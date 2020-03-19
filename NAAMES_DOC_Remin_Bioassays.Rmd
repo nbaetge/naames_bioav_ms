@@ -289,7 +289,7 @@ gcstat.df <- plyr::ldply(gcstat.list, data.frame) %>%
 
 ## Import and Tidy Data
 
-We will need to tidy the data in the same way the bacterial abundance dataframe was tidied before merging the datasets. We'll then omit data low quality data i.e. poor replication or possible contamination. We observed contamination in many of the NAAMES 2 experiments after incubations were transferred to WHOI. 
+We will need to tidy the data in the same way the bacterial abundance dataframe was tidied before merging the datasets. We'll then omit data low quality data i.e. poor replication or possible contamination. We observed contamination in many of the NAAMES 2 experiments after incubations were transferred to WHOI.
 
 ```{r message = F}
 oc.df <- read_csv("~/naames_bioav_ms/Input/N2-4_DOC_Remin_Master.csv") %>%
@@ -513,7 +513,7 @@ oc_p %>%
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
   facet_grid(~facet_depth, scales = "free_y") +
-  labs(y = expression(paste("Delta DOC, µmol C L"^-1))) +
+  labs(y = expression(paste("DOC, µmol C L"^-1))) +
   custom_theme() +
   ggtitle("NAAMES 2 Station 2 Experiment") + 
   guides(color = F)
@@ -1206,16 +1206,15 @@ fg_cell.rm %>%
 ```
 
 ```{r echo = FALSE, results = 'asis'}
-c_n.table <- fg_cell.rm %>% 
+fg_cell.rm %>% 
   select(initial_bactC_N:stationary_ncf) %>% 
   summary()
-
-kable(c_n.table, caption = "Bacterioplankton C:N")
 ```
 
-Overall, the mean bacterial C:N ratios for the in situ community (initial condition) estimated here are higher than those reported for oceanic bacteria by Fukuda et al. (1998): 6.8 $\pm$ 1.2
 
-The mean aveage contents of carbon and nitrogen are also higher than those reported by Fukuda et al. (1998): 12.4 $\pm$ 6.3 and 2.1 $\pm$ 1.1 fg cell^-1^
+Overall, the mean bacterial C:N ratios for the in situ community (initial condition) estimated here are higher than those reported for oceanic bacteria by Fukuda et al. (1998): $$6.8 \pm 1.2$$
+
+The mean aveage contents of carbon and nitrogen are also higher than those reported by Fukuda et al. (1998): $$12.4 \pm 6.3$$ and $$2.1 \pm 1.1$$ fg cell^-1^
 
 These deviations from Fukuda et al. may be in part due to differences in sampling locations (NA v Pacific and Southern Ocean) and time of collection (range of seasons for NAAMES, winter in both Pacific and Southern Ocean). They could also be due to differences in growth conditions (i.e nutrient limitation) and differences in bacterial communities (Vrede et al 2002).
 
@@ -1529,6 +1528,8 @@ bge <- calcs %>%
   left_join(calcs, .) %>% 
   ungroup()
 
+bge$Season <- factor(bge$Season, levels = levels)
+
 ```
 
 
@@ -1555,22 +1556,186 @@ bge %>%
 
 Despite all this... BGEs are trash. 
 
-Major factors are likely: 
+Major factors are likely problems with: 
 
 - CCFs
-  + sspecially the AT38 values, which seem really high for open ocean during a stratified period
+  + especially the AT38 values, which seem really high for open ocean during a stratified period
 - Short-term DOC dynamics
   + small flucuations could be making a big difference, especially for area under the curve/phase mean calculations. 
 
+# Recalculations Using Mean CCFs
+
+Because the surface and deepwater CCFs calculated for AT38 are high relative to the surface values of the other cruises, they are suspicious. 
+
+To workaround using them, we'll:
+
+- calculate mean conversion factors for the initial and stationary condition for addition (A) and non-addition (NA) experiments at 10 and 200 m
+- as above, use a weighted function to determine the conversion factors between the initial and stationary conditions
+- recalculate cell carbon using those conversion factors 
+
+This is still a slightly better approach than applying a single conversion factor (from the literature) across all data.
+
+```{r}
+rm_n3_ccf <- fg_cell.rm %>% 
+  filter(Cruise == "AT38") %>% 
+  select(Season:Bottle)
 
 
+mean_ccf <- fg_cell.rm %>% 
+  filter(!Cruise == "AT38") %>% 
+  bind_rows(., rm_n3_ccf) %>% 
+  mutate(Depth = as.numeric(Depth),
+         Depth = ifelse(Treatment == "MixDS", 200, Depth),
+         Depth = ifelse(Treatment == "MixSD", 10, Depth),
+         Addition = ifelse(Treatment %in% c("Control", "MixSD", "MixDS"), F, T)) %>% 
+  group_by(Depth) %>% 
+  mutate(ave_initial_ccf = round(mean(initial_ccf, na.rm = T)),
+         sd_initial_ccf = round(sd(initial_ccf, na.rm = T)),
+         ave_initial_bactC_N = round(mean(initial_bactC_N, na.rm = T)),
+         sd_initial_bactC_N = round(sd(initial_bactC_N, na.rm = T))) %>% 
+  ungroup() %>% 
+  group_by(Depth, Addition) %>% 
+  mutate(ave_NA_stationary_ccf = ifelse(Addition == F, round(mean(stationary_ccf, na.rm = T)), NA),
+         sd_NA_stationary_ccf = ifelse(Addition == F, round(sd(stationary_ccf, na.rm = T)), NA),
+         ave_NA_stationary_bactC_N = ifelse(Addition == F, round(mean(stationary_bactC_N, na.rm = T)), NA),
+         sd_NA_stationary_bactC_N = ifelse(Addition == F, round(sd(stationary_bactC_N, na.rm = T)), NA),
+         ave_A_stationary_ccf = ifelse(Addition == T, round(mean(stationary_ccf, na.rm = T)), NA),
+         sd_A_stationary_ccf = ifelse(Addition == T, round(sd(stationary_ccf, na.rm = T)), NA),
+          ave_A_stationary_bactC_N = ifelse(Addition == T, round(mean(stationary_bactC_N, na.rm = T)), NA),
+         sd_A_stationary_bactC_N = ifelse(Addition == T, round(sd(stationary_bactC_N, na.rm = T)), NA)) %>%
+  ungroup() %>% 
+  mutate(ave_stationary_ccf = ave_NA_stationary_ccf,
+         ave_stationary_ccf = ifelse(is.na(ave_stationary_ccf), ave_A_stationary_ccf, ave_stationary_ccf),
+         sd_stationary_ccf = sd_NA_stationary_ccf,
+         sd_stationary_ccf = ifelse(is.na(sd_stationary_ccf), sd_A_stationary_ccf, sd_stationary_ccf),
+         ave_stationary_bactC_N = ave_NA_stationary_bactC_N,
+         ave_stationary_bactC_N = ifelse(is.na(ave_stationary_bactC_N), ave_A_stationary_bactC_N, ave_stationary_bactC_N),
+         sd_stationary_bactC_N = sd_NA_stationary_bactC_N,
+         sd_stationary_bactC_N = ifelse(is.na(sd_stationary_bactC_N), sd_A_stationary_bactC_N, sd_stationary_bactC_N)) %>% 
+  select(Season:Bottle, Addition, ave_initial_bactC_N, sd_initial_bactC_N, ave_stationary_bactC_N, sd_stationary_bactC_N, ave_initial_ccf, sd_initial_ccf, ave_stationary_ccf, sd_stationary_ccf )
+  
+```
 
+```{r echo = FALSE, results = 'asis'}
+mean_ccf.table <- mean_ccf %>% 
+  select(Depth, Addition:sd_stationary_ccf) %>%
+  distinct() %>% 
+  arrange(Depth)
+```
 
+```{r echo = FALSE, results = 'asis'}
+kable(mean_ccf.table, caption = "Mean Bacterioplankton C:N and Converstion Factors")
+```
 
+```{r message = F, warning = F}
+calcs_ave_ccf <- interp_st %>%
+  left_join(., mean_ccf) %>% 
+  select(Season, Cruise:facet_treatment, Addition, Bottle:doc_from_t0, ave_initial_ccf, ave_stationary_ccf, interp_cells, interp_doc) %>% 
+  rename(initial_ccf = ave_initial_ccf,
+         stationary_ccf = ave_stationary_ccf) %>% 
+  group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
+  #division rates 
+  mutate(r = round((log(interp_cells) - lag(log(interp_cells)))/(Hours - lag(Hours)), 2),
+         r = ifelse(Hours == 0, 0, r)) %>% 
+  #cell growth phase
+  mutate(cell_div = ifelse(Hours >= stationary & !is.na(interp_cells), "stationary", NA),
+         cell_div = ifelse(Hours > stationary & is.na(cell_div), "out of bounds", cell_div),
+         cell_div = ifelse(Hours < stationary & r > 0.01, "exponential", cell_div)) %>% 
+  fill(cell_div, .direction = "down") %>% 
+  mutate(cell_div = ifelse(Hours < stationary & r == 0 & is.na(cell_div), "lag", cell_div)) %>% 
+  fill(cell_div, .direction = "down") %>% 
+  mutate(full_curve = ifelse(cell_div == "stationary", cell_div, NA)) %>% 
+  fill(full_curve, .direction = "downup") %>% 
+  mutate(full_curve = ifelse(full_curve == "stationary", T, F),
+         full_curve = ifelse(is.na(full_curve), F, full_curve),
+         cell_div = ifelse(full_curve == F, "no growth", cell_div),
+         full_curve = ifelse(cell_div == "exponential", T, NA)) %>% 
+  fill(full_curve, .direction = "downup") %>% 
+  mutate(full_curve = ifelse(is.na(full_curve), F, full_curve),
+         cell_div = ifelse(full_curve == F, "no growth", cell_div)) %>% 
+  #exponential growth rate
+  mutate(end_lag_t = ifelse(cell_div == "lag", Hours, NA),
+         end_lag_t = ifelse(!is.na(end_lag_t), max(end_lag_t, na.rm = T), NA),
+         end_lag_cells = ifelse(Hours == end_lag_t, interp_cells, NA),
+         beg_stationary_cells = ifelse(Hours == stationary, interp_cells, NA)) %>% 
+  fill(end_lag_t:beg_stationary_cells, .direction = "downup") %>% 
+  mutate(mew = ifelse(!is.na(end_lag_cells), ((log(beg_stationary_cells) - log(end_lag_cells))/(stationary - end_lag_t)) * 24, NA )) %>% 
+  #weighted CCF and cell carbon
+  mutate(initial_cells = ifelse(Hours == 0, interp_cells, NA)) %>% 
+  fill(initial_cells, .direction = "updown") %>% 
+  mutate(delta_cells = interp_cells - initial_cells,
+         stationary_delta_cells = ifelse(Hours == stationary & stationary != 0 & full_curve == T, delta_cells, NA)) %>% 
+  fill(stationary_delta_cells, .direction = "updown") %>% 
+  mutate(norm_cells = ifelse(!is.na(stationary_delta_cells), round(delta_cells/stationary_delta_cells,2), NA)) %>% 
+  rename(weight = norm_cells) %>% 
+  mutate(ccf = round(initial_ccf + (weight * (stationary_ccf - initial_ccf)),1),
+         cell_carbon =  round((interp_cells * ccf) / (12*10^9), 1)) %>% 
+  #BGE_p
+  mutate(cell_carbon_from_t0 = cell_carbon - first(cell_carbon),
+         interp_doc_from_t0 = first(interp_doc) - interp_doc,
+         ddoc_resolve_p = ifelse(Hours == stationary & interp_doc_from_t0 >= 1.5, T, NA)) %>% 
+  fill(ddoc_resolve_p, .direction = "downup") %>% 
+  mutate(ddoc_resolve_p = ifelse(is.na(ddoc_resolve_p), F, ddoc_resolve_p),
+         bge_p = ifelse(Hours == stationary & ddoc_resolve_p == T, round(((first(cell_carbon) - cell_carbon))/(interp_doc - first(interp_doc)),2), NA)) %>%
+  fill(bge_p, .direction = "downup") %>% 
+  #BGE_ph 
+  ungroup() %>% 
+  group_by(Cruise, Station, Depth, Treatment, Bottle, cell_div) %>% 
+  mutate(cell_carbon_cell_div = round(mean(cell_carbon, na.rm = T), 1),
+         doc_cell_div = round(mean(interp_doc, na.rm = T), 1),
+         cell_carbon_lag = ifelse(cell_div == "lag", cell_carbon_cell_div, NA),
+         cell_carbon_st = ifelse(cell_div == "stationary", cell_carbon_cell_div, NA),
+         doc_lag = ifelse(cell_div == "lag", doc_cell_div, NA),
+         doc_st = ifelse(cell_div == "stationary", doc_cell_div, NA) ) %>%
+  ungroup() %>% 
+  group_by(Cruise, Station, Depth, Treatment, Bottle) %>%
+  fill(cell_carbon_lag:doc_st, .direction = "downup") %>% 
+  mutate(ddoc_ph = doc_lag - doc_st,
+         ddoc_resolve_ph = ifelse(ddoc_ph >= 1.5, T, F),
+         bge_ph = ifelse(ddoc_resolve_ph == T, round((cell_carbon_st - cell_carbon_lag)/(doc_lag - doc_st), 2), NA)) %>% 
+  ungroup()
+  
+bge_ave_ccf <- calcs_ave_ccf %>%
+  group_by(Cruise, Station, Depth, Treatment, Bottle) %>%
+  filter(full_curve == T) %>% 
+  drop_na(interp_doc_from_t0, cell_carbon_from_t0) %>% 
+  mutate(auc_cell_carbon = round(integrateTrapezoid(Hours, cell_carbon_from_t0, type = "A"), 1),
+         auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
+         bge_ac = round(auc_cell_carbon/auc_doc, 2),
+         bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
+  ungroup() %>% 
+  select(Season, Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac) %>%  
+  distinct() %>% 
+  drop_na() %>% 
+  left_join(calcs_ave_ccf, .) %>% 
+  ungroup()
 
+bge_ave_ccf$Season <- factor(bge_ave_ccf$Season, levels = levels)
 
+```
 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8, fig.align = "center", warning = FALSE}
+bge_ave_ccf %>%
+  filter(Depth == 10, Treatment == "Control") %>% 
+  select(Season, bge_p, bge_ph, bge_ac) %>% 
+  distinct() %>% 
+  gather(key, value, bge_p, bge_ph, bge_ac) %>% 
+  drop_na(value) %>% 
+  mutate(key = gsub("bge_ph", "Phase to Phase", key),
+         key = gsub("bge_p", "Point to Point", key),
+         key = gsub("bge_ac", "Area Under the Curve", key)) %>% 
+  ggplot(aes(x = Season, y = value)) +
+  geom_boxplot(width = 0.3) +
+  geom_jitter(aes(fill = key), width = 0.1, shape = 21, size = 6, alpha = 0.7) + 
+  labs(x = "", y = expression(italic("BGE")), colour = expression(italic(""))) + 
+  scale_fill_brewer(palette = "Set1") +
+  custom_theme() +
+  ggtitle("Bacterial Growth Efficiences")
+  
+  
+```
 
+Using mean CCF helps, but still provides unreasonable BGEs for surface non-addition experiments.
 
 
 
