@@ -1175,6 +1175,7 @@ We’ll calculate and define:
         from GrowthCurver determined timepoint until cell counts cease
       - we do not determine growth phases where there is no observable
         growth
+  - Carrying Capacity (**k**), mean of cell abundance during stationary
   - Exponential growth rate day<sup>-1</sup>
   - Dynamic CCFs: we use a weighted function to determine the CCF from
     the initial condition to the beginning of stationary, end members
@@ -1216,12 +1217,15 @@ calcs <- interp_st %>%
   fill(full_curve, .direction = "downup") %>% 
   mutate(full_curve = ifelse(is.na(full_curve), F, full_curve),
          cell_div = ifelse(full_curve == F, "no growth", cell_div)) %>% 
+  # carrying capacity
+  mutate(k = ifelse(cell_div == "stationary", interp_cells, NA),
+         k = ifelse(!is.na(k), mean(k, na.rm = T), NA)) %>% 
   #exponential growth rate
   mutate(end_lag_t = ifelse(cell_div == "lag", Hours, NA),
          end_lag_t = ifelse(!is.na(end_lag_t), max(end_lag_t, na.rm = T), NA),
          end_lag_cells = ifelse(Hours == end_lag_t, interp_cells, NA),
          beg_stationary_cells = ifelse(Hours == stationary, interp_cells, NA)) %>% 
-  fill(end_lag_t:beg_stationary_cells, .direction = "downup") %>% 
+  fill(k:beg_stationary_cells, .direction = "downup") %>% 
   mutate(mew = ifelse(!is.na(end_lag_cells), ((log(beg_stationary_cells) - log(end_lag_cells))/(stationary - end_lag_t)) * 24, NA )) %>% 
   #weighted CCF and cell carbon
   mutate(initial_cells = ifelse(Hours == 0, interp_cells, NA)) %>% 
@@ -1266,19 +1270,20 @@ bge <- calcs %>%
          auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
          bge_ac = round(auc_cell_carbon/auc_doc, 2),
          bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
-  ungroup() %>% 
   select(Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac) %>%  
   distinct() %>% 
   drop_na() %>% 
   left_join(calcs, .) %>% 
-  ungroup()
+  ungroup() 
 
 bge$Season <- factor(bge$Season, levels = levels)
 ```
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-73-1.png" style="display: block; margin: auto;" />
 
-Despite all this… BGEs are trash.
+Despite all this… BGEs are trash. BUT it would seem that it doesn’t
+really matter how one calculates BGE as the different approaches are
+fairly consistent.
 
 Major factors are likely problems with:
 
@@ -1288,6 +1293,11 @@ Major factors are likely problems with:
   - Short-term DOC dynamics
       - small flucuations could be making a big difference, especially
         for area under the curve/phase mean calculations.
+  - Bacterial abundance
+      - counts overstimated? a spot check of initial condition counts
+        with Niskin counts suggests that counts are fine (initial
+        experimentalcondition is 30% of whole water counts) … unless all
+        counts are off, but this is unlikely.
 
 # Recalculations Using Mean CCFs
 
@@ -1305,7 +1315,8 @@ To workaround using them, we’ll:
   - recalculate cell carbon using those conversion factors
 
 This is still a slightly better approach than applying a single
-conversion factor (from the literature) across all data.
+conversion factor (from the literature) across all data. It does make
+some sense to do in comparing experiments across the different seasons.
 
 ``` r
 rm_n3_ccf <- fg_cell.rm %>% 
@@ -1382,12 +1393,15 @@ calcs_ave_ccf <- interp_st %>%
   fill(full_curve, .direction = "downup") %>% 
   mutate(full_curve = ifelse(is.na(full_curve), F, full_curve),
          cell_div = ifelse(full_curve == F, "no growth", cell_div)) %>% 
+  #carrying capacity
+  mutate(k = ifelse(cell_div == "stationary", interp_cells, NA),
+         k = ifelse(!is.na(k), mean(k, na.rm = T), NA)) %>% 
   #exponential growth rate
   mutate(end_lag_t = ifelse(cell_div == "lag", Hours, NA),
          end_lag_t = ifelse(!is.na(end_lag_t), max(end_lag_t, na.rm = T), NA),
          end_lag_cells = ifelse(Hours == end_lag_t, interp_cells, NA),
-         beg_stationary_cells = ifelse(Hours == stationary, interp_cells, NA)) %>% 
-  fill(end_lag_t:beg_stationary_cells, .direction = "downup") %>% 
+         beg_stationary_cells = ifelse(Hours == stationary, interp_cells, NA)) %>%
+  fill(k:beg_stationary_cells, .direction = "downup") %>% 
   mutate(mew = ifelse(!is.na(end_lag_cells), ((log(beg_stationary_cells) - log(end_lag_cells))/(stationary - end_lag_t)) * 24, NA )) %>% 
   #weighted CCF and cell carbon
   mutate(initial_cells = ifelse(Hours == 0, interp_cells, NA)) %>% 
@@ -1444,5 +1458,52 @@ bge_ave_ccf$Season <- factor(bge_ave_ccf$Season, levels = levels)
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-78-1.png" style="display: block; margin: auto;" />
 
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-79-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-80-1.png" style="display: block; margin: auto;" />
+
 Using mean CCF helps, but still provides unreasonable BGEs for surface
 non-addition experiments.
+
+# Hypotheses on High BGEs in Non-addition Experiments
+
+How can the calculated BGEs be so high in our experiments, even above
+the theoretical maximum of 0.7-0.8 constrained by del Giorgio and Cole
+(1998) ? The BGEs would imply that in many cases, the incubating
+bacterioplankton grew more the remineralization of DOC would allow.
+
+  - Was labile DOC being produced as fast as it is being consumed?
+      - since these experiments were dark incubations, photoautotrophy
+        is unlikely, but chemoautotrophy can be a source of labile DOC
+  - Was the microbial pump at play?
+      - the heterotrophic microbes may have been processing the bulk DOM
+        successively and repetitively, transforming reactive DOM pools
+        to a recalcitrant carbon resevoir of a different chemical
+        composition.
+      - the bulk concentration may therefore not change as dramatically
+        as cell abundance
+
+Though the absolute values of the BGEs calculated using mean CCFs are
+nonsensical in relation to the literature, there is some sense to the
+seasonal pattern if we assume that one or both of the processes
+described above were at play:
+
+  - In the early spring just after/during deep convection and before the
+    phytoplankton bloom is in full swing, DOC concentrations and
+    accumulation are low. There’s not a ton of material for microbes to
+    build into biomass, as indicated by the dampened carrying capacities
+    relative to other sesasons.
+
+  - In the late spring, as phytoplankton are blooming, albeit at
+    different stages throughout the NAAMES region, there’s a wide spread
+    of BGEs wuth many over 1. We would presume that phytoplankton blooms
+    lead to the increased production of labile DOC. Capturing different
+    stages of that production may explain the spread in BGEs. The
+    microbial pump may be enhanced in some of these incubations that may
+    have started with more reactive DOM.
+
+  - In the early autumn during the stratified condition, the range of
+    BGEs narrows but some are still elevated above 1. The range likely
+    decreases as the variability in ecosystem states is dampened
+    relative to the late spring. As above, elevated BGEs could reflect
+    the strength of the microbial pump.
