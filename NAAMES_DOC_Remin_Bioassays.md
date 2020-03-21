@@ -8,6 +8,23 @@ Nicholas Baetge
 This document shows how **individual bottle** data from NAAMES DOC
 remineralization bioassays were processed, QC’d, and analyzed.
 
+``` r
+library(tidyverse) 
+library(rmarkdown)
+library(knitr)
+library(data.table) 
+library(scales)
+library(zoo)
+library(oce)
+#rmarkdown tables
+library(stargazer)
+library(pander)
+library(growthcurver)
+#stat tests
+library(lmtest)
+library(lmodel2)
+```
+
 # Bacterial Abundance
 
 Here, growth curves are fitted to the logistic equation using the
@@ -1507,3 +1524,102 @@ described above were at play:
     decreases as the variability in ecosystem states is dampened
     relative to the late spring. As above, elevated BGEs could reflect
     the strength of the microbial pump.
+
+# Merge Data with Export MS Data
+
+Here, we put our experimental data in the context of the results from
+the export MS to explore remineralization of the seasonally accumulated
+DOC pool: - We first calculate treatment averages for each experiment -
+For each station, we then subtract the DOC concentration of the
+winter/early springtime deeply mixed condition (from the export MS) from
+the DOC concentrations in the experiments conducted at the respective
+station (**norm\_doc**). - We estimate the concentration of the
+seasonally accumulated DOC pool as the difference between the initial
+DOC concentration in each experiment and the DOC concentration of the
+mixed condition (**accm\_doc**) - This is only done for surface
+experiments
+
+``` r
+export <- readRDS("~/naames_export_ms/Output/processed_export.rds") %>% 
+  mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
+  select(Cruise, Season, degree_bin, Station, redis_DOC_vol, NCP_mol_100, doc_ncp_100) %>% 
+  distinct() %>% 
+  mutate_at(vars(redis_DOC_vol), round, 1) %>% 
+  mutate_at(vars(NCP_mol_100:doc_ncp_100), round, 2) %>%
+  mutate_at(vars(Station), as.character) 
+
+export_bioav <- left_join(bge_ave_ccf, export) %>% 
+  mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
+         degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>%  
+  group_by(Cruise, Station, Depth, Treatment, Hours) %>% 
+  mutate(trt_ave_doc = ifelse(!is.na(doc), round(mean(doc, na.rm = T),1), NA),
+         trt_sd_doc = ifelse(!is.na(doc), round(sd(doc, na.rm = T),1), NA)) %>% 
+  ungroup() %>% 
+  group_by(Cruise, Station, Depth, Treatment) %>% 
+  mutate(norm_doc = ifelse(Depth != 200 | Treatment == "MixDS", trt_ave_doc - redis_DOC_vol, NA),
+         accm_doc = ifelse(Depth != 200 | Treatment == "MixDS", first(trt_ave_doc) - redis_DOC_vol, NA),
+         norm_doc_from_t0 = ifelse(!is.na(norm_doc), first(norm_doc) - norm_doc, NA)) %>%   
+  select(Season, Cruise, degree_bin, Station, redis_DOC_vol:doc_ncp_100, Depth:sd_doc, interp_doc, trt_ave_doc:norm_doc_from_t0, interp_cells, initial_ccf, stationary_ccf, ccf, cell_carbon, full_curve, cell_div, r, mew, k, bge_p, bge_ph, bge_ac) %>% 
+  ungroup()
+
+export_bioav$Treatment <- factor(export_bioav$Treatment, levels = levels)
+export_bioav$facet_treatment <- factor(export_bioav$facet_treatment, levels = levels)
+export_bioav$facet_bottle <- factor(export_bioav$facet_bottle, levels = levels)
+```
+
+# Remineralization of Seasonally Accumulated DOC
+
+### NAAMES 2
+
+#### No Addition: Long-term
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-82-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-83-1.png" style="display: block; margin: auto;" />
+
+#### No Addition: Short-term
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-84-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-85-1.png" style="display: block; margin: auto;" />
+
+#### Additions
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-86-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-87-1.png" style="display: block; margin: auto;" />
+
+## NAAMES 3
+
+#### No Additions
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-88-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-89-1.png" style="display: block; margin: auto;" />
+
+#### Additions
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-90-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-91-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-92-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-93-1.png" style="display: block; margin: auto;" />
+
+### NAAMES 4
+
+#### No Additions
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-94-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-95-1.png" style="display: block; margin: auto;" />
+
+The replication between experiments at Station 4 is
+poor.
+
+#### Additions
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-96-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-97-1.png" style="display: block; margin: auto;" />

@@ -9,7 +9,7 @@ output: github_document
 
 This document shows how **individual bottle** data from NAAMES DOC remineralization bioassays were processed, QC'd, and analyzed. 
 
-```{r include=FALSE}
+```{r message = F, warning = F}
 library(tidyverse) 
 library(rmarkdown)
 library(knitr)
@@ -1798,6 +1798,417 @@ Though the absolute values of the BGEs calculated using mean CCFs are nonsensica
 - In the late spring, as phytoplankton are blooming, albeit at different stages throughout the NAAMES region, there's a wide spread of BGEs wuth many over 1. We would presume that phytoplankton blooms lead to the increased production of labile DOC. Capturing different stages of that production may explain the spread in BGEs. The microbial pump may be enhanced in some of these incubations that may have started with more reactive DOM.
 
 - In the early autumn during the stratified condition, the range of BGEs narrows but some are still elevated above 1. The range likely decreases as the variability in ecosystem states is dampened relative to the late spring. As above, elevated BGEs could reflect the strength of the microbial pump. 
+
+# Merge Data with Export MS Data
+
+Here, we put our experimental data in the context of the results from the export MS to explore remineralization of the seasonally accumulated DOC pool:
+- We first calculate treatment averages for each experiment
+- For each station, we then subtract the DOC concentration of the winter/early springtime deeply mixed condition (from the export MS) from the DOC concentrations in the experiments conducted at the respective station (**norm_doc**).
+- We estimate the concentration of the seasonally accumulated DOC pool as the difference between the initial DOC concentration in each experiment and the DOC concentration of the mixed condition (**accm_doc**)
+- This is only done for surface experiments
+
+```{r message = F, warning = F}
+
+export <- readRDS("~/naames_export_ms/Output/processed_export.rds") %>% 
+  mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
+  select(Cruise, Season, degree_bin, Station, redis_DOC_vol, NCP_mol_100, doc_ncp_100) %>% 
+  distinct() %>% 
+  mutate_at(vars(redis_DOC_vol), round, 1) %>% 
+  mutate_at(vars(NCP_mol_100:doc_ncp_100), round, 2) %>%
+  mutate_at(vars(Station), as.character) 
+
+export_bioav <- left_join(bge_ave_ccf, export) %>% 
+  mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
+         degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>%  
+  group_by(Cruise, Station, Depth, Treatment, Hours) %>% 
+  mutate(trt_ave_doc = ifelse(!is.na(doc), round(mean(doc, na.rm = T),1), NA),
+         trt_sd_doc = ifelse(!is.na(doc), round(sd(doc, na.rm = T),1), NA)) %>% 
+  ungroup() %>% 
+  group_by(Cruise, Station, Depth, Treatment) %>% 
+  mutate(norm_doc = ifelse(Depth != 200 | Treatment == "MixDS", trt_ave_doc - redis_DOC_vol, NA),
+         accm_doc = ifelse(Depth != 200 | Treatment == "MixDS", first(trt_ave_doc) - redis_DOC_vol, NA),
+         norm_doc_from_t0 = ifelse(!is.na(norm_doc), first(norm_doc) - norm_doc, NA)) %>%   
+  select(Season, Cruise, degree_bin, Station, redis_DOC_vol:doc_ncp_100, Depth:sd_doc, interp_doc, trt_ave_doc:norm_doc_from_t0, interp_cells, initial_ccf, stationary_ccf, ccf, cell_carbon, full_curve, cell_div, r, mew, k, bge_p, bge_ph, bge_ac) %>% 
+  ungroup()
+
+export_bioav$Treatment <- factor(export_bioav$Treatment, levels = levels)
+export_bioav$facet_treatment <- factor(export_bioav$facet_treatment, levels = levels)
+export_bioav$facet_bottle <- factor(export_bioav$facet_bottle, levels = levels)
+    
+```
+
+# Remineralization of Seasonally Accumulated DOC
+
+### NAAMES 2
+
+#### No Addition: Long-term
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  filter(Cruise == "AT34", Treatment == "Control", Depth == 10) %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = norm_doc, group = Treatment)) + 
+  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  facet_grid(~degree_bin, scales = "free_y") +
+  labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  ggtitle("NAAMES 2 DOC") + 
+  guides(color = F, fill = F)
+
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  drop_na(norm_doc) %>% 
+  select(Cruise, Station, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  filter(Cruise == "AT34", Treatment == "Control", Depth == 10) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = -norm_doc_from_t0, group = Treatment)) + 
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  facet_grid(~Station, scales = "free_y") +
+  labs(y = expression(paste("Delta Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  ggtitle("NAAMES 2 DOC") + 
+  guides(color = F, fill = F)
+
+```
+
+#### No Addition: Short-term
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  filter(Cruise == "AT34", Treatment == "Control", Depth == 10, Days < 20) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = norm_doc, group = Treatment)) + 
+  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  facet_grid(~degree_bin, scales = "free_y") +
+  labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  ggtitle("NAAMES 2 DOC") + 
+  guides(color = F, fill = F)
+
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  filter(Cruise == "AT34", Treatment == "Control", Depth == 10, Days < 20) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = -norm_doc_from_t0, group = Treatment)) + 
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  facet_grid(~degree_bin, scales = "free_y") +
+  labs(y = expression(paste("Delta Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  ggtitle("NAAMES 2 DOC") + 
+  guides(color = F, fill = F)
+```
+
+#### Additions
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT34", Station == 2) %>% 
+  drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = norm_doc, group = Treatment)) + 
+  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  ggtitle("NAAMES 2 DOC") + 
+  guides(color = F, fill = F)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT34", Station == 2) %>% 
+  drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = -norm_doc_from_t0, group = Treatment)) + 
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Delta Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  ggtitle("NAAMES 2 DOC") + 
+  guides(color = F, fill = F)
+```
+
+
+## NAAMES 3
+
+#### No Additions
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT38", Treatment == "Control") %>%  
+   drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = norm_doc, group = Treatment)) + 
+  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  facet_grid(~degree_bin, scales = "free_y") +
+  ggtitle("NAAMES 3 PTOC") + 
+  guides(color = F, fill = F)
+
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT38", Treatment == "Control") %>%  
+  drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = -norm_doc_from_t0, group = Treatment)) + 
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Delta Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  facet_grid(~degree_bin, scales = "free_y") +
+  ggtitle("NAAMES 3 PTOC") + 
+  guides(color = F, fill = F)
+
+```
+
+
+#### Additions
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT38", Station == 1, Treatment %in% c("Control", "SynExd", "SynLys", "TWExd")) %>%
+ drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = norm_doc, group = Treatment)) + 
+  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  facet_grid(~degree_bin, scales = "free_y") +
+  ggtitle("NAAMES 3 Station 1 Addition Experiment") + 
+  guides(color = F)
+
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT38", Station == 1, Treatment %in% c("Control", "SynExd", "SynLys", "TWExd")) %>%
+ drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = -norm_doc_from_t0, group = Treatment)) + 
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Delta Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  facet_grid(~degree_bin, scales = "free_y") +
+  ggtitle("NAAMES 3 Station 1 Addition Experiment") + 
+  guides(color = F)
+
+
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT38", Depth == 10, Station %in% c(1, 3, 6), Treatment %in% c("Control", "SynLys")) %>% 
+ drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = norm_doc, group = Treatment)) + 
+  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  facet_grid(~degree_bin, scales = "free_y") +
+  ggtitle("NAAMES 3 Addition Experiments") +
+  guides(color = F)
+
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT38", Depth == 10, Station %in% c(1, 3, 6), Treatment %in% c("Control", "SynLys")) %>% 
+ drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = -norm_doc_from_t0, group = Treatment)) + 
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Delta Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  facet_grid(~degree_bin, scales = "free_y") +
+  ggtitle("NAAMES 3 Addition Experiments") +
+  guides(color = F)
+
+```
+
+
+### NAAMES 4
+
+#### No Additions
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 11, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT39", Treatment == "Control") %>% 
+   drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = norm_doc, group = Station)) + 
+  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+  geom_point(aes(fill = Station), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Station), alpha = 0.7) +
+  #scale_color_manual(values = custom.colors) +
+  #scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  facet_grid(~degree_bin, scales = "free_y") +
+  ggtitle("NAAMES 4 PTOC") +
+  guides(color = F)
+
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 11, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT39", Treatment == "Control") %>% 
+   drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = -norm_doc_from_t0, group = Station)) + 
+  geom_point(aes(fill = Station), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Station), alpha = 0.7) +
+  #scale_color_manual(values = custom.colors) +
+  #scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Delta Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  facet_grid(~degree_bin, scales = "free_y") +
+  ggtitle("NAAMES 4 PTOC") +
+  guides(color = F)
+
+```
+
+The replication between experiments at Station 4 is poor. 
+
+#### Additions
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT39", Station == 2, !Treatment == "Parallel") %>% 
+ drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, facet_treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = norm_doc, group = Treatment)) + 
+  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() +
+  facet_grid(~facet_treatment, scales = "free_y") +
+  guides(fill = F, color = F)
+
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  filter(Cruise == "AT39", Station == 2, !Treatment == "Parallel") %>% 
+ drop_na(norm_doc) %>% 
+  select(Cruise, Station, degree_bin, Depth, Treatment, facet_treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N")) %>% 
+  group_by(Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = -norm_doc_from_t0, group = Treatment)) + 
+  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Treatment), alpha = 0.7) +
+  #scale_color_manual(values = custom.colors) +
+  #scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Delta Seasonally Accumulated DOC, µmol C L"^-1))) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~facet_treatment, scales = "free_y") +
+  guides(fill = F, color = F)
+
+```
 
 
 
