@@ -373,6 +373,7 @@ n2_oc <- oc.df %>%
   filter(!doc_from_last <= -1.5 | is.na(doc_from_last) | !Hours > 504) %>% 
   mutate(doc_from_last = lag(doc) - doc,
          doc_from_t0 = first(doc) - doc) %>% 
+  filter(!Station == 4 | !Hours == 192) %>% 
   ungroup()
 
 n3_4_oc <- oc.df %>% 
@@ -1529,15 +1530,25 @@ described above were at play:
 
 Here, we put our experimental data in the context of the results from
 the export MS to explore remineralization of the seasonally accumulated
-DOC pool: - We first calculate treatment averages for each experiment -
-For each station, we then subtract the DOC concentration of the
-winter/early springtime deeply mixed condition (from the export MS) from
-the DOC concentrations in the experiments conducted at the respective
-station (**norm\_doc**). - We estimate the concentration of the
-seasonally accumulated DOC pool as the difference between the initial
-DOC concentration in each experiment and the DOC concentration of the
-mixed condition (**accm\_doc**) - This is only done for surface
-experiments
+DOC pool:
+
+  - We first calculate treatment averages for each experiment
+  - For the surface values at each station, we then subtract the DOC
+    concentration of the winter/early springtime deeply mixed condition
+    (from the export MS) from the DOC concentrations in the experiments
+    conducted at the respective station (**norm\_doc**).
+  - We estimate the concentration of the seasonally accumulated DOC pool
+    as the difference between the initial DOC concentration in each
+    experiment and the DOC concentration of the mixed condition
+    (**accm\_doc**)
+  - We then estimate the total DOC drawdown for the experiments
+    (**bioav\_doc**), the total remaining DOC after
+    drawdown(**persis\_doc**), the percent DOC bioavalability and
+    persistence (**per\_bioav** and **per\_persis**, respectively)
+  - Lastly we calculate the rate of DOC drawdown (nmol C d<sup>-1</sup>,
+    **ddoc**)
+
+<!-- end list -->
 
 ``` r
 export <- readRDS("~/naames_export_ms/Output/processed_export.rds") %>% 
@@ -1558,10 +1569,17 @@ export_bioav <- left_join(bge_ave_ccf, export) %>%
   group_by(Cruise, Station, Depth, Treatment) %>% 
   mutate(norm_doc = ifelse(Depth != 200 | Treatment == "MixDS", trt_ave_doc - redis_DOC_vol, NA),
          accm_doc = ifelse(Depth != 200 | Treatment == "MixDS", first(trt_ave_doc) - redis_DOC_vol, NA),
-         norm_doc_from_t0 = ifelse(!is.na(norm_doc), first(norm_doc) - norm_doc, NA)) %>%   
-  select(Season, Cruise, degree_bin, Station, redis_DOC_vol:doc_ncp_100, Depth:sd_doc, interp_doc, trt_ave_doc:norm_doc_from_t0, interp_cells, initial_ccf, stationary_ccf, ccf, cell_carbon, full_curve, cell_div, r, mew, k, bge_p, bge_ph, bge_ac) %>% 
+         norm_doc_from_t0 = ifelse(!is.na(norm_doc), first(norm_doc) - norm_doc, NA),
+         bioav_doc = first(norm_doc) - last(norm_doc),
+         persis_doc = accm_doc - bioav_doc,
+         per_bioav = round((bioav_doc/accm_doc * 100)),
+         per_persis = round((persis_doc/accm_doc * 100)),
+         time = last(Days),
+         ddoc = round((bioav_doc/time) * 1000)) %>%   
+  select(Season, Cruise, degree_bin, Station, redis_DOC_vol:doc_ncp_100, Depth:sd_doc, interp_doc, trt_ave_doc:norm_doc_from_t0, bioav_doc, persis_doc, per_bioav, per_persis, ddoc, interp_cells, initial_ccf, stationary_ccf, ccf, cell_carbon, full_curve, cell_div, r, mew, k, bge_p, bge_ph, bge_ac) %>% 
   ungroup()
 
+export_bioav$Season <- factor(export_bioav$Season, levels = levels)
 export_bioav$Treatment <- factor(export_bioav$Treatment, levels = levels)
 export_bioav$facet_treatment <- factor(export_bioav$facet_treatment, levels = levels)
 export_bioav$facet_bottle <- factor(export_bioav$facet_bottle, levels = levels)
@@ -1571,55 +1589,86 @@ export_bioav$facet_bottle <- factor(export_bioav$facet_bottle, levels = levels)
 
 ### NAAMES 2
 
-#### No Addition: Long-term
+#### No Addition
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-82-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-83-1.png" style="display: block; margin: auto;" />
 
-#### No Addition: Short-term
+#### Additions
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-84-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-85-1.png" style="display: block; margin: auto;" />
 
-#### Additions
+## NAAMES 3
+
+#### No Additions
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-86-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-87-1.png" style="display: block; margin: auto;" />
 
-## NAAMES 3
-
-#### No Additions
+#### Additions
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-88-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-89-1.png" style="display: block; margin: auto;" />
 
-#### Additions
-
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-90-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-91-1.png" style="display: block; margin: auto;" />
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-92-1.png" style="display: block; margin: auto;" />
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-93-1.png" style="display: block; margin: auto;" />
 
 ### NAAMES 4
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-94-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-92-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-95-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-93-1.png" style="display: block; margin: auto;" />
 
 The replication between experiments at Station 4 is
 poor.
 
 #### Additions
 
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-94-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-95-1.png" style="display: block; margin: auto;" />
+
+## Seasonal Comparison
+
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-96-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-97-1.png" style="display: block; margin: auto;" />
+| Season       | min\_bioav\_doc | mean\_bioav\_doc | med\_bioav\_doc | max\_bioav\_doc | min\_persis\_doc | mean\_persis\_doc | med\_persis\_doc | max\_persis\_doc | min\_ddoc | mean\_ddoc | med\_ddoc | max\_ddoc | min\_bioav | mean\_bioav | med\_bioav | max\_bioav | min\_persis | mean\_persis | med\_persis | max\_persis |
+| :----------- | --------------: | ---------------: | --------------: | --------------: | ---------------: | ----------------: | ---------------: | ---------------: | --------: | ---------: | --------: | --------: | ---------: | ----------: | ---------: | ---------: | ----------: | -----------: | ----------: | ----------: |
+| Early Spring |             1.8 |              3.2 |             3.1 |             4.7 |            \-0.5 |               0.2 |              0.2 |              0.8 |        18 |         36 |        38 |        56 |         82 |          94 |         92 |        112 |        \-12 |            6 |           8 |          18 |
+| Late Spring  |             2.1 |              3.0 |             3.0 |             4.0 |            \-0.5 |               4.3 |              5.3 |              7.0 |        38 |        145 |       160 |       224 |         27 |          52 |         34 |        115 |        \-15 |           48 |          66 |          73 |
+| Early Autumn |             3.8 |              4.9 |             4.9 |             5.9 |              3.9 |               9.1 |              9.3 |             13.0 |        59 |         75 |        76 |        87 |         25 |          37 |         34 |         56 |          44 |           63 |          66 |          75 |
+
+Seasonal Accumulated DOC Bioavailability and Persistance
+
+This seasonal comparison is best exemplifies at 44˚N where we have
+experiments from all cruises. It shows:
+
+  - an increase in the accumulated DOC pool from the early spring to the
+    early autumn
+  - an increase in the persistent fraction of the bulk DOC as the
+    seasons progress
+      - DOC in the early spring does not accumulate (also apparent at
+        39˚N)
+      - 64% of DOC pool in the late spring was persistent while 69% of
+        the DOC pool in the early autumn was persistent. This would
+        imply an increase of the persistent DOC fraction by 5%. I think
+        this suggests that most of the net production of persistent DOC
+        occurs in the late spring, closer to the timing of the bloom
+        peak.
+
+Overall, there are elevated persistent fractions in the late spring and
+early autumn, with greater proportion of the early autumn pool beeing
+more consistently persistant.
+
+Our addition experiments are consistent with our definition of DOC
+persistence. In every cruise, the addition of DOM substrates (different
+quality and substrates) stimulated drawdown and bacterioplankton growth,
+but did not result in drawdown into the persistent pool.
