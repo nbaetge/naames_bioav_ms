@@ -1569,7 +1569,8 @@ export_bioav <- left_join(bge_ave_ccf, export) %>%
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment) %>% 
   mutate(norm_doc = ifelse(Depth != 200 | Treatment == "MixDS", trt_ave_doc - redis_DOC_vol, NA),
-         accm_doc = ifelse(Depth != 200 | Treatment == "MixDS", first(trt_ave_doc) - redis_DOC_vol, NA),
+         accm_doc = ifelse(Depth == 10 & Treatment == "Control", first(trt_ave_doc) - redis_DOC_vol, NA),
+         bioav_accm_doc = ifelse(Depth == 10 & Treatment == "Control", last(trt_ave_doc) - redis_DOC_vol, NA),
          norm_doc_from_t0 = ifelse(!is.na(norm_doc), first(norm_doc) - norm_doc, NA),
          bioav_doc = first(norm_doc) - last(norm_doc),
          persis_doc = accm_doc - bioav_doc,
@@ -1577,13 +1578,16 @@ export_bioav <- left_join(bge_ave_ccf, export) %>%
          per_persis = round((persis_doc/accm_doc * 100)),
          time = last(Days),
          ddoc = round((bioav_doc/time) * 1000)) %>%   
+  ungroup() %>% 
+  group_by(Cruise, Station, Depth) %>% 
+  fill(accm_doc: bioav_accm_doc, .direction = "downup") %>% 
   select(Season, Cruise, degree_bin, Station, redis_DOC_vol:doc_ncp_100, Depth:sd_doc, interp_doc, trt_ave_doc:norm_doc_from_t0, bioav_doc, persis_doc, per_bioav, per_persis, ddoc, interp_cells, initial_ccf, stationary_ccf, ccf, cell_carbon, full_curve, cell_div, r, mew, k, bge_p, bge_ph, bge_ac) %>% 
   ungroup()
 
 export_bioav$Season <- factor(export_bioav$Season, levels = levels)
-export_bioav$Treatment <- factor(export_bioav$Treatment, levels = levels)
-export_bioav$facet_treatment <- factor(export_bioav$facet_treatment, levels = levels)
-export_bioav$facet_bottle <- factor(export_bioav$facet_bottle, levels = levels)
+#export_bioav$Treatment <- factor(export_bioav$Treatment, levels = levels)
+#export_bioav$facet_treatment <- factor(export_bioav$facet_treatment, levels = levels)
+#export_bioav$facet_bottle <- factor(export_bioav$facet_bottle, levels = levels)
 ```
 
 # Remineralization of Seasonally Accumulated DOC
@@ -1671,8 +1675,9 @@ more consistently persistant.
 
 Our addition experiments are consistent with our definition of DOC
 persistence. In every cruise, the addition of DOM substrates (different
-quality and substrates) stimulated drawdown and bacterioplankton growth,
-but did not result in drawdown into the persistent
+quality and substrates) stimulated drawdown of accumulated DOC and
+bacterioplankton growth, but did not result in drawdown into the
+persistent
 pool.
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-99-1.png" style="display: block; margin: auto;" />

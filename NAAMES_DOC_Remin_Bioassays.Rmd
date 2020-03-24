@@ -39,7 +39,9 @@ custom_theme <- function() {
           plot.background = element_rect(fill = "transparent",colour = NA)) 
 }
 
-custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8") 
+custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00") 
+
+custom.shapes <- c("Early Spring" = 21, "Late Spring" = 22,"Early Autumn" = 23)
 
 
 levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT34", "AT38", "AT32","South", "North", "Early Spring", "Late Spring","Early Autumn",  "Summer", "Late Autumn", "Control", "Parallel", "SynLys", "SynExd", "TWExd", "MixSD", "MixDS", "TW12", "TW13", "TW5", "TW10", "TW20",  "Surface Comm., Deep DOM", "Deep Comm., Surface DOM", "Synechococcus Exudate", "Synechococcus Lysate", "T. Weissflogii Exudate", "T. Weissflogii 12C Exudate", "T. Weissflogii 13C Exudate", "+5 µmol C/L Exudate", "+10 µmol C/L Exudate","+20 µmol C/L Exudate", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "W", "Whole Seawater","1.2", "1.2 µm Filtrate","NV", "1.2 µm Filtrate: TFF Filtrate (3:7)")
@@ -1831,7 +1833,8 @@ export_bioav <- left_join(bge_ave_ccf, export) %>%
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment) %>% 
   mutate(norm_doc = ifelse(Depth != 200 | Treatment == "MixDS", trt_ave_doc - redis_DOC_vol, NA),
-         accm_doc = ifelse(Depth != 200 | Treatment == "MixDS", first(trt_ave_doc) - redis_DOC_vol, NA),
+         accm_doc = ifelse(Depth == 10 & Treatment == "Control", first(trt_ave_doc) - redis_DOC_vol, NA),
+         bioav_accm_doc = ifelse(Depth == 10 & Treatment == "Control", last(trt_ave_doc) - redis_DOC_vol, NA),
          norm_doc_from_t0 = ifelse(!is.na(norm_doc), first(norm_doc) - norm_doc, NA),
          bioav_doc = first(norm_doc) - last(norm_doc),
          persis_doc = accm_doc - bioav_doc,
@@ -1839,13 +1842,16 @@ export_bioav <- left_join(bge_ave_ccf, export) %>%
          per_persis = round((persis_doc/accm_doc * 100)),
          time = last(Days),
          ddoc = round((bioav_doc/time) * 1000)) %>%   
+  ungroup() %>% 
+  group_by(Cruise, Station, Depth) %>% 
+  fill(accm_doc: bioav_accm_doc, .direction = "downup") %>% 
   select(Season, Cruise, degree_bin, Station, redis_DOC_vol:doc_ncp_100, Depth:sd_doc, interp_doc, trt_ave_doc:norm_doc_from_t0, bioav_doc, persis_doc, per_bioav, per_persis, ddoc, interp_cells, initial_ccf, stationary_ccf, ccf, cell_carbon, full_curve, cell_div, r, mew, k, bge_p, bge_ph, bge_ac) %>% 
   ungroup()
 
 export_bioav$Season <- factor(export_bioav$Season, levels = levels)
-export_bioav$Treatment <- factor(export_bioav$Treatment, levels = levels)
-export_bioav$facet_treatment <- factor(export_bioav$facet_treatment, levels = levels)
-export_bioav$facet_bottle <- factor(export_bioav$facet_bottle, levels = levels)
+#export_bioav$Treatment <- factor(export_bioav$Treatment, levels = levels)
+#export_bioav$facet_treatment <- factor(export_bioav$facet_treatment, levels = levels)
+#export_bioav$facet_bottle <- factor(export_bioav$facet_bottle, levels = levels)
     
 ```
 
@@ -2248,26 +2254,36 @@ This seasonal comparison is best exemplifies at 44˚N where we have experiments 
 
 Overall, there are elevated persistent fractions in the late spring and early autumn, with greater proportion of the early autumn pool beeing more consistently persistant. 
 
-Our addition experiments are consistent with our definition of DOC persistence. In every cruise, the addition of DOM substrates (different quality and substrates) stimulated drawdown and bacterioplankton growth, but did not result in drawdown into the persistent pool. 
+Our addition experiments are consistent with our definition of DOC persistence. In every cruise, the addition of DOM substrates (different quality and substrates) stimulated drawdown of accumulated DOC and bacterioplankton growth, but did not result in drawdown into the persistent pool. 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 16, fig.align = "center", warning = FALSE}
 export_bioav %>% 
   drop_na(norm_doc) %>% 
-  select(Season, Cruise, Station, degree_bin, Depth, Addition, Treatment, facet_treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  select(Season, Cruise, Station, degree_bin, Depth, Addition, Treatment, facet_treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc, accm_doc, bioav_accm_doc) %>% 
   distinct() %>% 
-  filter(Depth == 10, !Treatment %in% c("MixDS", "MixSD")) %>% 
-  mutate(degree_bin = paste(degree_bin, "˚N"),
-         Addition = ifelse(Addition == T, "Addition", "No Addition")) %>% 
+  filter(Depth == 10, !Treatment %in% c("MixDS", "MixSD"), !Cruise == "AT34", Addition == T) %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N"), 
+         plot_treatment = ifelse(Cruise != "AT39", facet_treatment, "T. Weissflogii Exudate")) %>% 
   group_by(Cruise, Station, Depth, Treatment) %>%
-  ggplot(aes(x = Days, y = norm_doc, group = Station)) + 
+  ggplot(aes(x = Days, y = norm_doc, group = Treatment)) + 
   geom_hline(aes(yintercept = 0)) +
-  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
-  geom_point(aes(fill = Season), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Season), alpha = 0.7) +
-  #scale_color_manual(values = custom.colors) +
-  #scale_fill_manual(values = custom.colors) +
-  facet_grid(Addition~degree_bin, scales = "free") +
+  geom_hline(aes(yintercept = accm_doc), linetype = 2) +
+  geom_label(aes(x = 50, y = accm_doc + 1.5, label = "Seasonally Accm. DOC"), size = 3) +
+  geom_hline(aes(yintercept = bioav_accm_doc), linetype = 3) +
+  geom_label(aes(x = 45, y = bioav_accm_doc - 1.5, label = "Non-addition Bioavailable DOC"), size = 3) +
+  geom_line(aes(color = plot_treatment), alpha = 0.7, size = 1.5) +
+   geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+   geom_point(aes(fill = plot_treatment, shape = Season), size = 4, alpha = 0.7 ) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  scale_shape_manual(values = custom.shapes) +
+  facet_grid(~degree_bin, scales = "free") +
   labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
-  custom_theme() + 
-  guides(color = F)
+  custom_theme() +
+  guides(fill = F)
 ```
+
+
+
+
+
