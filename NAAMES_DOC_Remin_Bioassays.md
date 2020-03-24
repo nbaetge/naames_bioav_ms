@@ -1476,12 +1476,13 @@ bge_ave_ccf$Season <- factor(bge_ave_ccf$Season, levels = levels)
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-78-1.png" style="display: block; margin: auto;" />
 
+Using mean CCF helps, but still provides unreasonable BGEs for surface
+non-addition
+experiments.
+
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-79-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-80-1.png" style="display: block; margin: auto;" />
-
-Using mean CCF helps, but still provides unreasonable BGEs for surface
-non-addition experiments.
 
 # Hypotheses on High BGEs in Non-addition Experiments
 
@@ -1671,4 +1672,7 @@ more consistently persistant.
 Our addition experiments are consistent with our definition of DOC
 persistence. In every cruise, the addition of DOM substrates (different
 quality and substrates) stimulated drawdown and bacterioplankton growth,
-but did not result in drawdown into the persistent pool.
+but did not result in drawdown into the persistent
+pool.
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-99-1.png" style="display: block; margin: auto;" />
