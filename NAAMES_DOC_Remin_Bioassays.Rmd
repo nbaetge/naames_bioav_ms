@@ -1744,6 +1744,9 @@ bge_ave_ccf %>%
   
 ```
 
+Using mean CCF helps, but still provides unreasonable BGEs for surface non-addition experiments.
+
+
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8, fig.align = "center", warning = FALSE}
 bge_ave_ccf %>%
   filter(Depth == 10, Treatment == "Control") %>% 
@@ -1779,8 +1782,6 @@ bge_ave_ccf %>%
   
   
 ```
-
-Using mean CCF helps, but still provides unreasonable BGEs for surface non-addition experiments.
 
 # Hypotheses on High BGEs in Non-addition Experiments
 
@@ -2249,4 +2250,24 @@ Overall, there are elevated persistent fractions in the late spring and early au
 
 Our addition experiments are consistent with our definition of DOC persistence. In every cruise, the addition of DOM substrates (different quality and substrates) stimulated drawdown and bacterioplankton growth, but did not result in drawdown into the persistent pool. 
 
-  
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 16, fig.align = "center", warning = FALSE}
+export_bioav %>% 
+  drop_na(norm_doc) %>% 
+  select(Season, Cruise, Station, degree_bin, Depth, Addition, Treatment, facet_treatment, Days, norm_doc, norm_doc_from_t0, trt_sd_doc) %>% 
+  distinct() %>% 
+  filter(Depth == 10, !Treatment %in% c("MixDS", "MixSD")) %>% 
+  mutate(degree_bin = paste(degree_bin, "˚N"),
+         Addition = ifelse(Addition == T, "Addition", "No Addition")) %>% 
+  group_by(Cruise, Station, Depth, Treatment) %>%
+  ggplot(aes(x = Days, y = norm_doc, group = Station)) + 
+  geom_hline(aes(yintercept = 0)) +
+  geom_errorbar(aes(ymin = norm_doc - trt_sd_doc, ymax = norm_doc + trt_sd_doc), width = 0.5) +
+  geom_point(aes(fill = Season), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Season), alpha = 0.7) +
+  #scale_color_manual(values = custom.colors) +
+  #scale_fill_manual(values = custom.colors) +
+  facet_grid(Addition~degree_bin, scales = "free") +
+  labs(y = expression(paste("Seasonally Accumulated DOC, µmol C L"^-1))) +
+  custom_theme() + 
+  guides(color = F)
+```
