@@ -900,6 +900,65 @@ Southern Ocean). They could also be due to differences in growth
 conditions (i.e nutrient limitation) and differences in bacterial
 communities (Vrede et al 2002).
 
+# Biovolume
+
+Cell biovolume was determined from 10 images captured with a digital
+camera (Retiga Exi-QImaging, Surrey, BC, Canada). Images were processed
+using ImageJ software according to established image analyses protocols
+(Baldwin and Bankston 1988; Sieracki et al. 1989, Ducklow et al., 1995).
+In addition to calculating cell carbon using GF75 POC-derived CCFs,
+we’ll also caclulate cell carbon based on the biovolume measurements
+we have. Biovolume-based cell carbon will be calculated as: **Bacterial
+Abundance \* Cell Biovolume \* CCF of 148 fg C µm<sup>-3</sup>**
+
+``` r
+biovol <- read_csv("~/naames_bioav_ms/Input/Biovolume_Summary.csv") %>% 
+  select(Cruise:Timepoint, Biovol_Mean_All) %>% 
+  rename(biovol = Biovol_Mean_All) %>% 
+  mutate_at(vars(biovol), round, 3) %>% 
+  mutate(phase = ifelse(Timepoint == 0, "initial", "stationary")) %>% 
+  group_by(phase) %>% 
+  mutate(mean_biovol = round(mean(biovol, na.rm = T),3),
+         sd_biovol = round(sd(biovol, na.rm = T),3)) %>% 
+  add_tally() %>% 
+  rename(n_biovol = n) %>% 
+  select(Cruise, phase:n_biovol) %>% 
+  ungroup() %>% 
+  add_row(Cruise = "AT34", phase = "initial") %>% 
+  add_row(Cruise = "AT34", phase = "stationary") %>% 
+  group_by(phase) %>% 
+  fill(mean_biovol:n_biovol) %>% 
+  ungroup() %>% 
+  distinct() 
+```
+
+    ## Parsed with column specification:
+    ## cols(
+    ##   .default = col_double(),
+    ##   Cruise = col_character(),
+    ##   Station = col_character(),
+    ##   Bottle = col_character()
+    ## )
+
+    ## See spec(...) for full column specifications.
+
+``` r
+biovol_table <- biovol %>% select(-Cruise) %>% distinct()
+
+biovol_merge <- biovol %>% 
+  select(Cruise, phase, mean_biovol) %>% 
+  spread(., phase, mean_biovol) %>% 
+  rename(initial_biovol = initial,
+         stationary_biovol = stationary)
+```
+
+| phase      | mean\_biovol | sd\_biovol | n\_biovol |
+| :--------- | -----------: | ---------: | --------: |
+| initial    |        0.044 |      0.021 |        11 |
+| stationary |        0.046 |      0.025 |        26 |
+
+Mean Biovolume AT38, AT39
+
 # Merge Data
 
 ``` r
@@ -915,6 +974,7 @@ oc.merge <- oc_p %>%
 
 merge <- full_join(ba.merge, oc.merge) %>% 
   left_join(., fg_cell.qc) %>% 
+  left_join(., biovol_merge) %>% 
   arrange(Cruise, Station, Depth, Treatment, Bottle, Hours) %>%
   group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
   fill(stationary, .direction = "downup") %>% 
@@ -923,7 +983,7 @@ merge <- full_join(ba.merge, oc.merge) %>%
   mutate(Days = round(Hours/24, 1)) %>% 
   ungroup() %>% 
   drop_na(Hours) %>% 
-  select(Season:Depth, facet_depth,  Treatment, facet_treatment, Bottle, facet_bottle, Hours, stationary, Days, cells:sd_p_cells, doc, sd_doc, ptoc, sd_ptoc, doc_from_t0, ptoc_from_t0, initial_ccf:stationary_ncf) 
+  select(Season:Depth, facet_depth,  Treatment, facet_treatment, Bottle, facet_bottle, Hours, stationary, Days, cells:sd_p_cells, doc, sd_doc, ptoc, sd_ptoc, doc_from_t0, ptoc_from_t0, initial_biovol, stationary_biovol, initial_ccf:stationary_ncf) 
 ```
 
 # Bottle v. Vial Incubation Comparisons
@@ -967,7 +1027,7 @@ ptoc_pdoc.reg <- lmodel2(pdoc ~ ptoc, data = ptoc_pdoc.data , nperm = 99)
     ## 
     ## H statistic used for computing C.I. of MA: 0.0008036195
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-57-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-59-1.png" style="display: block; margin: auto;" />
 
 ### Delta
 
@@ -1005,7 +1065,7 @@ delta_ptoc_pdoc.reg <- lmodel2(pdoc_from_t0 ~ ptoc_from_t0, data = ptoc_pdoc.dat
     ## 
     ## H statistic used for computing C.I. of MA: 0.0008695124
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-60-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-62-1.png" style="display: block; margin: auto;" />
 
 ## Bottle TOC v. Vial TOC
 
@@ -1049,7 +1109,7 @@ toc_ptoc.reg <- lmodel2(ptoc ~ toc, data = toc_ptoc.data, nperm = 99)
     ## 
     ## H statistic used for computing C.I. of MA: 0.001177878
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-63-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-65-1.png" style="display: block; margin: auto;" />
 
 ### Delta
 
@@ -1087,7 +1147,7 @@ delta_toc_ptoc.reg <- lmodel2(ptoc_from_t0 ~ toc_from_t0, data = toc_ptoc.data, 
     ## 
     ## H statistic used for computing C.I. of MA: 0.002660834
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-66-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-68-1.png" style="display: block; margin: auto;" />
 
 ## Bottle v. Vial Cell Abundance
 
@@ -1127,7 +1187,7 @@ btl_vial_cell.reg <- lmodel2(p_cells ~ cells, data = btl_vial_cell.data, nperm =
     ## 
     ## H statistic used for computing C.I. of MA: 0.003145633
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-69-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-71-1.png" style="display: block; margin: auto;" />
 
 # Tidy and Wrangle Merged Data
 
@@ -1170,7 +1230,7 @@ interp.func <- function(x) {
   y <- zoo(x, order.by = x$Hours)
   interp_cells <- round(as.numeric(na.approx(y$cells, na.rm = F)))
   interp_doc <- round(as.numeric(na.approx(y$doc, na.rm = F)), 1)
-  z <- cbind(y, interp_cells, interp_doc)
+  z <- cbind(y, interp_cells,  interp_doc)
   as_tibble(z)
 }
 
@@ -1204,6 +1264,8 @@ We’ll calculate and define:
       - for this to work, we normalize the cell counts to those at
         stationary
   - Cell carbon in µmol C L<sup>-1</sup>, using the dynamic CCFS
+  - Biovolume-based cell carbon will be calculated using dynamic
+    biovolumes, in the same way as above.
   - Bacterial growth efficiencies (BGE) using multiple approaches, only
     where ∆DOC is resolvable:
       - point-to-point (**BGE\_p**), ∆BC and ∆DOC from T0 to stationary
@@ -1254,22 +1316,29 @@ calcs <- interp_st %>%
   mutate(norm_cells = ifelse(!is.na(stationary_delta_cells), round(delta_cells/stationary_delta_cells,2), NA)) %>% 
   rename(weight = norm_cells) %>% 
   mutate(ccf = round(initial_ccf + (weight * (stationary_ccf - initial_ccf)),1),
-         cell_carbon =  round((interp_cells * ccf) / (12*10^9), 1)) %>% 
+         ccf_biovol = round(initial_biovol + (weight * (stationary_biovol - initial_biovol)),3),
+         cell_carbon =  round((interp_cells * ccf) / (12*10^9), 1),
+         cell_carbon_biovol = round((interp_cells * ccf_biovol * 148)/(12*10^9), 1)) %>% 
   #BGE_p
   mutate(cell_carbon_from_t0 = cell_carbon - first(cell_carbon),
+         cell_carbon_from_t0_biovol = cell_carbon_biovol - first(cell_carbon_biovol),
          interp_doc_from_t0 = first(interp_doc) - interp_doc,
          ddoc_resolve_p = ifelse(Hours == stationary & interp_doc_from_t0 >= 1.5, T, NA)) %>% 
   fill(ddoc_resolve_p, .direction = "downup") %>% 
   mutate(ddoc_resolve_p = ifelse(is.na(ddoc_resolve_p), F, ddoc_resolve_p),
-         bge_p = ifelse(Hours == stationary & ddoc_resolve_p == T, round(((first(cell_carbon) - cell_carbon))/(interp_doc - first(interp_doc)),2), NA)) %>%
-  fill(bge_p, .direction = "downup") %>% 
+         bge_p = ifelse(Hours == stationary & ddoc_resolve_p == T, round(((first(cell_carbon) - cell_carbon))/(interp_doc - first(interp_doc)),2), NA),
+          bge_p_biovol = ifelse(Hours == stationary & ddoc_resolve_p == T, round(((first(cell_carbon_biovol) - cell_carbon_biovol))/(interp_doc - first(interp_doc)),2), NA)) %>%
+  fill(bge_p:bge_p_biovol, .direction = "downup") %>% 
   #BGE_ph 
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle, cell_div) %>% 
   mutate(cell_carbon_cell_div = round(mean(cell_carbon, na.rm = T), 1),
+         cell_carbon_cell_div_biovol = round(mean(cell_carbon_biovol, na.rm = T), 1),
          doc_cell_div = round(mean(interp_doc, na.rm = T), 1),
          cell_carbon_lag = ifelse(cell_div == "lag", cell_carbon_cell_div, NA),
          cell_carbon_st = ifelse(cell_div == "stationary", cell_carbon_cell_div, NA),
+           cell_carbon_lag_biovol = ifelse(cell_div == "lag", cell_carbon_cell_div_biovol, NA),
+         cell_carbon_st_biovol = ifelse(cell_div == "stationary", cell_carbon_cell_div_biovol, NA),
          doc_lag = ifelse(cell_div == "lag", doc_cell_div, NA),
          doc_st = ifelse(cell_div == "stationary", doc_cell_div, NA) ) %>%
   ungroup() %>% 
@@ -1277,7 +1346,8 @@ calcs <- interp_st %>%
   fill(cell_carbon_lag:doc_st, .direction = "downup") %>% 
   mutate(ddoc_ph = doc_lag - doc_st,
          ddoc_resolve_ph = ifelse(ddoc_ph >= 1.5, T, F),
-         bge_ph = ifelse(ddoc_resolve_ph == T, round((cell_carbon_st - cell_carbon_lag)/(doc_lag - doc_st), 2), NA)) %>% 
+         bge_ph = ifelse(ddoc_resolve_ph == T, round((cell_carbon_st - cell_carbon_lag)/(doc_lag - doc_st), 2), NA),
+         bge_ph_biovol = ifelse(ddoc_resolve_ph == T, round((cell_carbon_st_biovol - cell_carbon_lag_biovol)/(doc_lag - doc_st), 2), NA)) %>% 
   ungroup()
   
 bge <- calcs %>%
@@ -1285,23 +1355,32 @@ bge <- calcs %>%
   filter(full_curve == T) %>% 
   drop_na(interp_doc_from_t0, cell_carbon_from_t0) %>% 
   mutate(auc_cell_carbon = round(integrateTrapezoid(Hours, cell_carbon_from_t0, type = "A"), 1),
+         auc_cell_carbon_biovol = round(integrateTrapezoid(Hours, cell_carbon_from_t0_biovol, type = "A"), 1),
          auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
          bge_ac = round(auc_cell_carbon/auc_doc, 2),
-         bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
-  select(Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac) %>%  
+         bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac),
+         bge_ac_biovol = round(auc_cell_carbon_biovol/auc_doc, 2),
+         bge_ac_biovol = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
+  select(Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac_biovol) %>%  
   distinct() %>% 
   drop_na() %>% 
   left_join(calcs, .) %>% 
   ungroup() 
 
 bge$Season <- factor(bge$Season, levels = levels)
+
+test <- bge %>% 
+  select(Cruise, Station, Depth, Treatment, bge_p, bge_p_biovol, bge_ph, bge_ph_biovol, bge_ac, bge_ac_biovol) %>% 
+  distinct()
 ```
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-73-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-75-1.png" style="display: block; margin: auto;" />
 
-Despite all this… BGEs are trash. BUT it would seem that it doesn’t
-really matter how one calculates BGE as the different approaches are
-fairly consistent.
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-76-1.png" style="display: block; margin: auto;" />
+
+Despite all this… BGEs based on POC are trash. BUT it would seem that it
+doesn’t really matter how one calculates BGE as the different approaches
+are fairly consistent.
 
 Major factors are likely problems with:
 
@@ -1316,6 +1395,9 @@ Major factors are likely problems with:
         with Niskin counts suggests that counts are fine (initial
         experimentalcondition is 30% of whole water counts) … unless all
         counts are off, but this is unlikely.
+
+Biovolume-based BGEs seem to be much more reasonable, particulary those
+calculated via the phase-to-phase approach.
 
 # Recalculations Using Mean CCFs
 
@@ -1388,7 +1470,7 @@ Mean Bacterioplankton C:N and Converstion Factors
 ``` r
 calcs_ave_ccf <- interp_st %>%
   left_join(., mean_ccf) %>% 
-  select(Season, Cruise:facet_treatment, Addition, Bottle:doc_from_t0, ave_initial_ccf, ave_stationary_ccf, interp_cells, interp_doc) %>% 
+  select(Season, Cruise:facet_treatment, Addition, Bottle:doc_from_t0, ave_initial_ccf, ave_stationary_ccf, initial_biovol, stationary_biovol, interp_cells, interp_doc) %>% 
   rename(initial_ccf = ave_initial_ccf,
          stationary_ccf = ave_stationary_ccf) %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
@@ -1430,22 +1512,30 @@ calcs_ave_ccf <- interp_st %>%
   mutate(norm_cells = ifelse(!is.na(stationary_delta_cells), round(delta_cells/stationary_delta_cells,2), NA)) %>% 
   rename(weight = norm_cells) %>% 
   mutate(ccf = round(initial_ccf + (weight * (stationary_ccf - initial_ccf)),1),
-         cell_carbon =  round((interp_cells * ccf) / (12*10^9), 1)) %>% 
+         ccf_biovol = round(initial_biovol + (weight * (stationary_biovol - initial_biovol)),3),
+         cell_carbon =  round((interp_cells * ccf) / (12*10^9), 1),
+         cell_carbon_biovol = round((interp_cells * ccf_biovol * 148)/(12*10^9), 1)) %>% 
   #BGE_p
+ #BGE_p
   mutate(cell_carbon_from_t0 = cell_carbon - first(cell_carbon),
+         cell_carbon_from_t0_biovol = cell_carbon_biovol - first(cell_carbon_biovol),
          interp_doc_from_t0 = first(interp_doc) - interp_doc,
          ddoc_resolve_p = ifelse(Hours == stationary & interp_doc_from_t0 >= 1.5, T, NA)) %>% 
   fill(ddoc_resolve_p, .direction = "downup") %>% 
   mutate(ddoc_resolve_p = ifelse(is.na(ddoc_resolve_p), F, ddoc_resolve_p),
-         bge_p = ifelse(Hours == stationary & ddoc_resolve_p == T, round(((first(cell_carbon) - cell_carbon))/(interp_doc - first(interp_doc)),2), NA)) %>%
-  fill(bge_p, .direction = "downup") %>% 
+         bge_p = ifelse(Hours == stationary & ddoc_resolve_p == T, round(((first(cell_carbon) - cell_carbon))/(interp_doc - first(interp_doc)),2), NA),
+          bge_p_biovol = ifelse(Hours == stationary & ddoc_resolve_p == T, round(((first(cell_carbon_biovol) - cell_carbon_biovol))/(interp_doc - first(interp_doc)),2), NA)) %>%
+  fill(bge_p:bge_p_biovol, .direction = "downup") %>% 
   #BGE_ph 
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle, cell_div) %>% 
   mutate(cell_carbon_cell_div = round(mean(cell_carbon, na.rm = T), 1),
+         cell_carbon_cell_div_biovol = round(mean(cell_carbon_biovol, na.rm = T), 1),
          doc_cell_div = round(mean(interp_doc, na.rm = T), 1),
          cell_carbon_lag = ifelse(cell_div == "lag", cell_carbon_cell_div, NA),
          cell_carbon_st = ifelse(cell_div == "stationary", cell_carbon_cell_div, NA),
+           cell_carbon_lag_biovol = ifelse(cell_div == "lag", cell_carbon_cell_div_biovol, NA),
+         cell_carbon_st_biovol = ifelse(cell_div == "stationary", cell_carbon_cell_div_biovol, NA),
          doc_lag = ifelse(cell_div == "lag", doc_cell_div, NA),
          doc_st = ifelse(cell_div == "stationary", doc_cell_div, NA) ) %>%
   ungroup() %>% 
@@ -1453,19 +1543,22 @@ calcs_ave_ccf <- interp_st %>%
   fill(cell_carbon_lag:doc_st, .direction = "downup") %>% 
   mutate(ddoc_ph = doc_lag - doc_st,
          ddoc_resolve_ph = ifelse(ddoc_ph >= 1.5, T, F),
-         bge_ph = ifelse(ddoc_resolve_ph == T, round((cell_carbon_st - cell_carbon_lag)/(doc_lag - doc_st), 2), NA)) %>% 
+         bge_ph = ifelse(ddoc_resolve_ph == T, round((cell_carbon_st - cell_carbon_lag)/(doc_lag - doc_st), 2), NA),
+         bge_ph_biovol = ifelse(ddoc_resolve_ph == T, round((cell_carbon_st_biovol - cell_carbon_lag_biovol)/(doc_lag - doc_st), 2), NA)) %>% 
   ungroup()
   
 bge_ave_ccf <- calcs_ave_ccf %>%
   group_by(Cruise, Station, Depth, Treatment, Bottle) %>%
-  filter(full_curve == T) %>% 
+ filter(full_curve == T) %>% 
   drop_na(interp_doc_from_t0, cell_carbon_from_t0) %>% 
   mutate(auc_cell_carbon = round(integrateTrapezoid(Hours, cell_carbon_from_t0, type = "A"), 1),
+         auc_cell_carbon_biovol = round(integrateTrapezoid(Hours, cell_carbon_from_t0_biovol, type = "A"), 1),
          auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
          bge_ac = round(auc_cell_carbon/auc_doc, 2),
-         bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
-  ungroup() %>% 
-  select(Season, Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac) %>%  
+         bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac),
+         bge_ac_biovol = round(auc_cell_carbon_biovol/auc_doc, 2),
+         bge_ac_biovol = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
+  select(Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac_biovol) %>%  
   distinct() %>% 
   drop_na() %>% 
   left_join(calcs_ave_ccf, .) %>% 
@@ -1474,15 +1567,15 @@ bge_ave_ccf <- calcs_ave_ccf %>%
 bge_ave_ccf$Season <- factor(bge_ave_ccf$Season, levels = levels)
 ```
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-78-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-81-1.png" style="display: block; margin: auto;" />
 
 Using mean CCF helps, but still provides unreasonable BGEs for surface
 non-addition
 experiments.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-79-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-82-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-80-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-83-1.png" style="display: block; margin: auto;" />
 
 # Hypotheses on High BGEs in Non-addition Experiments
 
@@ -1596,54 +1689,54 @@ export_bioav$Season <- factor(export_bioav$Season, levels = levels)
 
 #### No Addition
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-82-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-85-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-83-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-86-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-84-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-87-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-85-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-88-1.png" style="display: block; margin: auto;" />
 
 ## NAAMES 3
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-86-1.png" style="display: block; margin: auto;" />
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-87-1.png" style="display: block; margin: auto;" />
-
-#### Additions
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-88-1.png" style="display: block; margin: auto;" />
-
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-89-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-90-1.png" style="display: block; margin: auto;" />
 
+#### Additions
+
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-91-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-92-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-93-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-94-1.png" style="display: block; margin: auto;" />
 
 ### NAAMES 4
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-92-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-95-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-93-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-96-1.png" style="display: block; margin: auto;" />
 
 The replication between experiments at Station 4 is
 poor.
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-94-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-97-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-95-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-98-1.png" style="display: block; margin: auto;" />
 
 ## Seasonal Comparison
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-96-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-99-1.png" style="display: block; margin: auto;" />
 
 | Season       | min\_bioav\_doc | mean\_bioav\_doc | med\_bioav\_doc | max\_bioav\_doc | min\_persis\_doc | mean\_persis\_doc | med\_persis\_doc | max\_persis\_doc | min\_ddoc | mean\_ddoc | med\_ddoc | max\_ddoc | min\_bioav | mean\_bioav | med\_bioav | max\_bioav | min\_persis | mean\_persis | med\_persis | max\_persis |
 | :----------- | --------------: | ---------------: | --------------: | --------------: | ---------------: | ----------------: | ---------------: | ---------------: | --------: | ---------: | --------: | --------: | ---------: | ----------: | ---------: | ---------: | ----------: | -----------: | ----------: | ----------: |
@@ -1680,4 +1773,4 @@ bacterioplankton growth, but did not result in drawdown into the
 persistent
 pool.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-99-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-102-1.png" style="display: block; margin: auto;" />
