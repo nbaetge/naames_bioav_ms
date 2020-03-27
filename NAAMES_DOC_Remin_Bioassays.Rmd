@@ -1577,9 +1577,9 @@ bge <- calcs %>%
          auc_cell_carbon_biovol = round(integrateTrapezoid(Hours, cell_carbon_from_t0_biovol, type = "A"), 1),
          auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
          bge_ac = round(auc_cell_carbon/auc_doc, 2),
-         bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac),
+         bge_ac = ifelse(ddoc_resolve_p == F, NA, bge_ac),
          bge_ac_biovol = round(auc_cell_carbon_biovol/auc_doc, 2),
-         bge_ac_biovol = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
+         bge_ac_biovol = ifelse(ddoc_resolve_p == F, NA, bge_ac)) %>% 
   select(Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac_biovol) %>%  
   distinct() %>% 
   drop_na() %>% 
@@ -1659,7 +1659,8 @@ bge_table <- bge %>%
   mutate(mean_bge = round(mean(bge), 2),
          sd_bge = round(sd(bge), 2),
          min_bge = round(min(bge), 2),
-         max_bge = round(max(bge), 2)) %>% 
+         max_bge = round(max(bge), 2)) %>%
+  add_tally() %>% 
   ungroup() %>% 
   select(-bge) %>% 
   distinct() %>% 
@@ -1795,7 +1796,6 @@ calcs_ave_ccf <- interp_st %>%
          ccf_biovol = round(initial_biovol + (weight * (stationary_biovol - initial_biovol)),3),
          cell_carbon =  round((interp_cells * ccf) / (12*10^9), 1),
          cell_carbon_biovol = round((interp_cells * ccf_biovol * 148)/(12*10^9), 1)) %>% 
-  #BGE_p
  #BGE_p
   mutate(cell_carbon_from_t0 = cell_carbon - first(cell_carbon),
          cell_carbon_from_t0_biovol = cell_carbon_biovol - first(cell_carbon_biovol),
@@ -1835,9 +1835,9 @@ bge_ave_ccf <- calcs_ave_ccf %>%
          auc_cell_carbon_biovol = round(integrateTrapezoid(Hours, cell_carbon_from_t0_biovol, type = "A"), 1),
          auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
          bge_ac = round(auc_cell_carbon/auc_doc, 2),
-         bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac),
+         bge_ac = ifelse(ddoc_resolve_p == F, NA, bge_ac),
          bge_ac_biovol = round(auc_cell_carbon_biovol/auc_doc, 2),
-         bge_ac_biovol = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
+         bge_ac_biovol = ifelse(ddoc_resolve_p == F, NA, bge_ac)) %>% 
   select(Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac_biovol) %>%  
   distinct() %>% 
   drop_na() %>% 

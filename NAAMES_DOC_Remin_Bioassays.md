@@ -1358,9 +1358,9 @@ bge <- calcs %>%
          auc_cell_carbon_biovol = round(integrateTrapezoid(Hours, cell_carbon_from_t0_biovol, type = "A"), 1),
          auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
          bge_ac = round(auc_cell_carbon/auc_doc, 2),
-         bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac),
+         bge_ac = ifelse(ddoc_resolve_p == F, NA, bge_ac),
          bge_ac_biovol = round(auc_cell_carbon_biovol/auc_doc, 2),
-         bge_ac_biovol = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
+         bge_ac_biovol = ifelse(ddoc_resolve_p == F, NA, bge_ac)) %>% 
   select(Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac_biovol) %>%  
   distinct() %>% 
   drop_na() %>% 
@@ -1394,24 +1394,25 @@ bge_table <- bge %>%
   mutate(mean_bge = round(mean(bge), 2),
          sd_bge = round(sd(bge), 2),
          min_bge = round(min(bge), 2),
-         max_bge = round(max(bge), 2)) %>% 
+         max_bge = round(max(bge), 2)) %>%
+  add_tally() %>% 
   ungroup() %>% 
   select(-bge) %>% 
   distinct() %>% 
   arrange(Season)
 ```
 
-| Season       | approach             | mean\_bge | sd\_bge | min\_bge | max\_bge |
-| :----------- | :------------------- | --------: | ------: | -------: | -------: |
-| Early Spring | Point to Point       |      0.11 |    0.01 |     0.10 |     0.11 |
-| Early Spring | Phase to Phase       |      0.12 |    0.01 |     0.11 |     0.12 |
-| Early Spring | Area Under the Curve |      0.57 |    0.06 |     0.53 |     0.62 |
-| Late Spring  | Point to Point       |      0.49 |    0.32 |     0.10 |     0.94 |
-| Late Spring  | Phase to Phase       |      0.39 |    0.25 |     0.11 |     0.74 |
-| Late Spring  | Area Under the Curve |      1.53 |    1.91 |     0.21 |     5.67 |
-| Early Autumn | Point to Point       |      0.20 |    0.13 |     0.11 |     0.38 |
-| Early Autumn | Phase to Phase       |      0.23 |    0.12 |     0.09 |     0.40 |
-| Early Autumn | Area Under the Curve |      1.13 |    0.88 |     0.32 |     2.55 |
+| Season       | approach             | mean\_bge | sd\_bge | min\_bge | max\_bge | n |
+| :----------- | :------------------- | --------: | ------: | -------: | -------: | -: |
+| Early Spring | Point to Point       |      0.11 |    0.01 |     0.10 |     0.11 | 2 |
+| Early Spring | Phase to Phase       |      0.12 |    0.01 |     0.11 |     0.12 | 2 |
+| Early Spring | Area Under the Curve |      0.57 |    0.06 |     0.53 |     0.62 | 2 |
+| Late Spring  | Point to Point       |      0.49 |    0.32 |     0.10 |     0.94 | 7 |
+| Late Spring  | Phase to Phase       |      0.39 |    0.25 |     0.11 |     0.74 | 6 |
+| Late Spring  | Area Under the Curve |      1.70 |    2.00 |     0.21 |     5.67 | 7 |
+| Early Autumn | Point to Point       |      0.20 |    0.13 |     0.11 |     0.38 | 4 |
+| Early Autumn | Phase to Phase       |      0.23 |    0.12 |     0.09 |     0.40 | 6 |
+| Early Autumn | Area Under the Curve |      0.60 |    0.23 |     0.32 |     0.80 | 4 |
 
 Biovolume-based BGE
 
@@ -1552,7 +1553,6 @@ calcs_ave_ccf <- interp_st %>%
          ccf_biovol = round(initial_biovol + (weight * (stationary_biovol - initial_biovol)),3),
          cell_carbon =  round((interp_cells * ccf) / (12*10^9), 1),
          cell_carbon_biovol = round((interp_cells * ccf_biovol * 148)/(12*10^9), 1)) %>% 
-  #BGE_p
  #BGE_p
   mutate(cell_carbon_from_t0 = cell_carbon - first(cell_carbon),
          cell_carbon_from_t0_biovol = cell_carbon_biovol - first(cell_carbon_biovol),
@@ -1592,9 +1592,9 @@ bge_ave_ccf <- calcs_ave_ccf %>%
          auc_cell_carbon_biovol = round(integrateTrapezoid(Hours, cell_carbon_from_t0_biovol, type = "A"), 1),
          auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
          bge_ac = round(auc_cell_carbon/auc_doc, 2),
-         bge_ac = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac),
+         bge_ac = ifelse(ddoc_resolve_p == F, NA, bge_ac),
          bge_ac_biovol = round(auc_cell_carbon_biovol/auc_doc, 2),
-         bge_ac_biovol = ifelse(ddoc_resolve_p == F & ddoc_resolve_ph == F, NA, bge_ac)) %>% 
+         bge_ac_biovol = ifelse(ddoc_resolve_p == F, NA, bge_ac)) %>% 
   select(Cruise, Station, Depth, Treatment, Bottle, auc_cell_carbon:bge_ac_biovol) %>%  
   distinct() %>% 
   drop_na() %>% 
