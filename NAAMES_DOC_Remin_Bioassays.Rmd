@@ -1643,6 +1643,32 @@ bge %>%
   
 ```
 
+```{r}
+bge_table <- bge %>% 
+  filter(Depth == 10, Treatment == "Control") %>% 
+  select(Season, bge_p_biovol, bge_ph_biovol, bge_ac_biovol) %>% 
+  distinct() %>% 
+  gather(key, value, bge_p_biovol, bge_ph_biovol, bge_ac_biovol) %>% 
+  drop_na(value) %>% 
+  mutate(key = gsub("bge_ph_biovol", "Phase to Phase", key),
+         key = gsub("bge_p_biovol", "Point to Point", key),
+         key = gsub("bge_ac_biovol", "Area Under the Curve", key)) %>%
+  rename(approach = key, 
+         bge = value) %>% 
+  group_by(Season, approach) %>% 
+  mutate(mean_bge = round(mean(bge), 2),
+         sd_bge = round(sd(bge), 2),
+         min_bge = round(min(bge), 2),
+         max_bge = round(max(bge), 2)) %>% 
+  ungroup() %>% 
+  select(-bge) %>% 
+  distinct() %>% 
+  arrange(Season)
+```
+
+```{r echo = FALSE, results = 'asis'}
+kable(bge_table, caption = "Biovolume-based BGE")
+```
 
 Despite all this... BGEs based on POC are trash. BUT it would seem that it doesn't really matter how one calculates BGE as the different approaches are fairly consistent. 
 

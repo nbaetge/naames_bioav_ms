@@ -1378,6 +1378,43 @@ test <- bge %>%
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-76-1.png" style="display: block; margin: auto;" />
 
+``` r
+bge_table <- bge %>% 
+  filter(Depth == 10, Treatment == "Control") %>% 
+  select(Season, bge_p_biovol, bge_ph_biovol, bge_ac_biovol) %>% 
+  distinct() %>% 
+  gather(key, value, bge_p_biovol, bge_ph_biovol, bge_ac_biovol) %>% 
+  drop_na(value) %>% 
+  mutate(key = gsub("bge_ph_biovol", "Phase to Phase", key),
+         key = gsub("bge_p_biovol", "Point to Point", key),
+         key = gsub("bge_ac_biovol", "Area Under the Curve", key)) %>%
+  rename(approach = key, 
+         bge = value) %>% 
+  group_by(Season, approach) %>% 
+  mutate(mean_bge = round(mean(bge), 2),
+         sd_bge = round(sd(bge), 2),
+         min_bge = round(min(bge), 2),
+         max_bge = round(max(bge), 2)) %>% 
+  ungroup() %>% 
+  select(-bge) %>% 
+  distinct() %>% 
+  arrange(Season)
+```
+
+| Season       | approach             | mean\_bge | sd\_bge | min\_bge | max\_bge |
+| :----------- | :------------------- | --------: | ------: | -------: | -------: |
+| Early Spring | Point to Point       |      0.11 |    0.01 |     0.10 |     0.11 |
+| Early Spring | Phase to Phase       |      0.12 |    0.01 |     0.11 |     0.12 |
+| Early Spring | Area Under the Curve |      0.57 |    0.06 |     0.53 |     0.62 |
+| Late Spring  | Point to Point       |      0.49 |    0.32 |     0.10 |     0.94 |
+| Late Spring  | Phase to Phase       |      0.39 |    0.25 |     0.11 |     0.74 |
+| Late Spring  | Area Under the Curve |      1.53 |    1.91 |     0.21 |     5.67 |
+| Early Autumn | Point to Point       |      0.20 |    0.13 |     0.11 |     0.38 |
+| Early Autumn | Phase to Phase       |      0.23 |    0.12 |     0.09 |     0.40 |
+| Early Autumn | Area Under the Curve |      1.13 |    0.88 |     0.32 |     2.55 |
+
+Biovolume-based BGE
+
 Despite all this… BGEs based on POC are trash. BUT it would seem that it
 doesn’t really matter how one calculates BGE as the different approaches
 are fairly consistent.
@@ -1567,15 +1604,15 @@ bge_ave_ccf <- calcs_ave_ccf %>%
 bge_ave_ccf$Season <- factor(bge_ave_ccf$Season, levels = levels)
 ```
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-81-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-83-1.png" style="display: block; margin: auto;" />
 
 Using mean CCF helps, but still provides unreasonable BGEs for surface
 non-addition
 experiments.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-82-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-84-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-83-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-85-1.png" style="display: block; margin: auto;" />
 
 # Hypotheses on High BGEs in Non-addition Experiments
 
@@ -1689,54 +1726,54 @@ export_bioav$Season <- factor(export_bioav$Season, levels = levels)
 
 #### No Addition
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-85-1.png" style="display: block; margin: auto;" />
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-86-1.png" style="display: block; margin: auto;" />
-
-#### Additions
-
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-87-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-88-1.png" style="display: block; margin: auto;" />
 
-## NAAMES 3
-
-#### No Additions
+#### Additions
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-89-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-90-1.png" style="display: block; margin: auto;" />
 
-#### Additions
+## NAAMES 3
+
+#### No Additions
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-91-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-92-1.png" style="display: block; margin: auto;" />
 
+#### Additions
+
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-93-1.png" style="display: block; margin: auto;" />
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-94-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-95-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-96-1.png" style="display: block; margin: auto;" />
 
 ### NAAMES 4
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-95-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-97-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-96-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-98-1.png" style="display: block; margin: auto;" />
 
 The replication between experiments at Station 4 is
 poor.
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-97-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-99-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-98-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-100-1.png" style="display: block; margin: auto;" />
 
 ## Seasonal Comparison
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-99-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-101-1.png" style="display: block; margin: auto;" />
 
 | Season       | min\_bioav\_doc | mean\_bioav\_doc | med\_bioav\_doc | max\_bioav\_doc | min\_persis\_doc | mean\_persis\_doc | med\_persis\_doc | max\_persis\_doc | min\_ddoc | mean\_ddoc | med\_ddoc | max\_ddoc | min\_bioav | mean\_bioav | med\_bioav | max\_bioav | min\_persis | mean\_persis | med\_persis | max\_persis |
 | :----------- | --------------: | ---------------: | --------------: | --------------: | ---------------: | ----------------: | ---------------: | ---------------: | --------: | ---------: | --------: | --------: | ---------: | ----------: | ---------: | ---------: | ----------: | -----------: | ----------: | ----------: |
@@ -1773,4 +1810,4 @@ bacterioplankton growth, but did not result in drawdown into the
 persistent
 pool.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-102-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-104-1.png" style="display: block; margin: auto;" />
