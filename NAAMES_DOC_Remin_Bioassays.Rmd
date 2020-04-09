@@ -50,7 +50,7 @@ custom_theme_linedraw <- function() {
           plot.background = element_rect(fill = "transparent",colour = NA)) 
 }
 
-custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00") 
+custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00", "Filter 1" = "#E41A1C", "Filter 2" = "#377EB8", "10 m" = "#E41A1C", "200 m" = "#377EB8") 
 
 custom.shapes <- c("Early Spring" = 21, "Late Spring" = 22,"Early Autumn" = 23)
 
@@ -976,7 +976,7 @@ nonblank.stats <- nonblank.data %>%
             min_c_n_µM = min(BactC_N, na.rm = T),
             n()) %>% 
   mutate_at(vars(ave_c_µg:min_c_n_µM), round, 2) %>% 
-  arrange(Filter, Depth, Season)
+  arrange(Filter, Depth, Season) 
 ```
 
 ```{r echo = FALSE, results = 'asis'}
@@ -990,6 +990,26 @@ all_filter_stats <- blank.stats %>%
   select(Sample, everything()) %>%
   write_csv(., "~/Desktop/NAAMES_GF75_Stats.csv")
 ```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+all_filter_stats  %>% 
+  ungroup() %>% 
+  mutate(Depth = as.character(Depth),
+         Depth = gsub("10", "10 m", Depth),
+         Depth = gsub("200", "200 m", Depth),
+         Filter = as.character(Filter),
+         Filter = gsub("1", "Filter 1", Filter),
+         Filter = gsub("2", "Filter 2", Filter)) %>% 
+  ggplot(aes(x = Season, y = ave_c_n_µM)) + 
+  geom_point(aes(fill = Depth), shape = 21, size = 6, alpha = 0.7) +
+  geom_errorbar(aes(ymin = ave_c_n_µM - sd_c_n_µM, ymax = ave_c_n_µM + sd_c_n_µM), width = 0.1) +
+  scale_fill_manual(values = custom.colors) +
+  labs(x = "", y = "Average C:N") +
+  facet_grid(Filter~Sample) +
+  custom_theme() 
+  
+```
+
 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
@@ -1330,7 +1350,7 @@ fg_cell.rm %>%
 
 ```{r echo = FALSE, results = 'asis'}
 fg_cell.rm %>% 
-  select(init_bactC_N_raw ) %>% 
+  select(init_bactC_N_raw) %>% 
   summary()
 ```
 
