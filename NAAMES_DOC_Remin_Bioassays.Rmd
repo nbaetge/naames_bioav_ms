@@ -933,7 +933,7 @@ blank.stats <- blank.data %>%
             
             n()) %>% 
   mutate_at(vars(ave_c_µg:min_c_n_µM), round, 2) %>% 
-  arrange(Filter, Depth, Season)
+  arrange(Filter, Depth,Season)
 ```
 
 ```{r echo = FALSE, results = 'asis'}
@@ -950,8 +950,10 @@ nonblank.data <- bigelow %>%
          BactC_N = ifelse(BactN_µM > 0, round(BactC_µM/BactN_µM,1), NA))
 
 nonblank.stats <- nonblank.data %>% 
-  group_by(Season, Depth, Filter) %>% 
-  select(Season, Depth, Filter, BactC_µg, BactN_µg, BactC_µM:BactC_N) %>% 
+  mutate(Type = ifelse(Treatment %in% c("Control", "Niskin"), "Control", "Non-Control"),
+         Time = ifelse(Timepoint == 0, "Initial", "Stationary")) %>% 
+  group_by(Season, Depth, Type, Time, Filter) %>% 
+  select(Season, Depth, Type, Time, Filter, BactC_µg, BactN_µg, BactC_µM:BactC_N) %>% 
   summarize(ave_c_µg = mean(BactC_µg, na.rm = T),
             sd_c_µg = sd(BactC_µg, na.rm = T),
             max_c_µg = max(BactC_µg, na.rm = T),
@@ -976,7 +978,7 @@ nonblank.stats <- nonblank.data %>%
             min_c_n_µM = min(BactC_N, na.rm = T),
             n()) %>% 
   mutate_at(vars(ave_c_µg:min_c_n_µM), round, 2) %>% 
-  arrange(Filter, Depth, Season) 
+  arrange(Filter, Depth, Time, Type, Season) 
 ```
 
 ```{r echo = FALSE, results = 'asis'}
@@ -985,32 +987,53 @@ kable(nonblank.stats, caption = "GF75 Non-blank Filters")
 
 ```{r}
 all_filter_stats <- blank.stats %>%
-  mutate(Sample = "Blank") %>%
+  mutate(Sample = "Blank",
+         Type = "Blank",
+         Time = "Initial") %>%
   bind_rows(., nonblank.stats %>% mutate(Sample = "Non-blank")) %>%
-  select(Sample, everything()) %>%
+  select(Sample, Type, everything()) %>%
   write_csv(., "~/Desktop/NAAMES_GF75_Stats.csv")
 ```
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 16, fig.align = "center", warning = FALSE}
 all_filter_stats  %>% 
   ungroup() %>% 
+  #filter(Depth == 10) %>% 
   mutate(Depth = as.character(Depth),
          Depth = gsub("10", "10 m", Depth),
          Depth = gsub("200", "200 m", Depth),
          Filter = as.character(Filter),
          Filter = gsub("1", "Filter 1", Filter),
          Filter = gsub("2", "Filter 2", Filter)) %>% 
-  ggplot(aes(x = Season, y = ave_c_n_µM)) + 
+  ggplot(aes(x = factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")), y = ave_c_n_µM)) + 
   geom_point(aes(fill = Depth), shape = 21, size = 6, alpha = 0.7) +
   geom_errorbar(aes(ymin = ave_c_n_µM - sd_c_n_µM, ymax = ave_c_n_µM + sd_c_n_µM), width = 0.1) +
   scale_fill_manual(values = custom.colors) +
   labs(x = "", y = "Average C:N") +
-  facet_grid(Filter~Sample) +
+  facet_grid(Filter~Sample + Type + Time, scales = "free") +
   custom_theme() 
   
 ```
 
-
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 16, fig.align = "center", warning = FALSE}
+all_filter_stats  %>% 
+  ungroup() %>% 
+  #filter(Depth == 10) %>% 
+  mutate(Depth = as.character(Depth),
+         Depth = gsub("10", "10 m", Depth),
+         Depth = gsub("200", "200 m", Depth),
+         Filter = as.character(Filter),
+         Filter = gsub("1", "Filter 1", Filter),
+         Filter = gsub("2", "Filter 2", Filter)) %>% 
+  ggplot(aes(x = factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")), y = ave_c_µM)) + 
+  geom_point(aes(fill = Depth), shape = 21, size = 6, alpha = 0.7) +
+  geom_errorbar(aes(ymin = ave_c_µM - sd_c_µM, ymax = ave_c_µM + sd_c_µM), width = 0.1) +
+  scale_fill_manual(values = custom.colors) +
+  labs(x = "", y = expression(paste("Average POC µmol C L"^-1))) +
+  facet_grid(Filter~Sample + Type + Time, scales = "free") +
+  custom_theme() 
+  
+```
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
 
