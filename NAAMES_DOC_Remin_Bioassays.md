@@ -561,6 +561,119 @@ first filter. This sample (filter 1 & 2), will be omitted from analysis.
 
 #### Filter Summary Statistics
 
+##### t-tests
+
+``` r
+t.test.data <- bigelow %>% 
+  filter(!Bottle %in% c("100mls", "250mls", "500mls")) %>%
+  mutate(Treatment = ifelse(Bottle == "Blank", "Blank", Treatment),
+         Treatment = ifelse(Treatment == "Blank" & BlnkFiltrate == "TFF", "TFF", Treatment),
+         Treatment = ifelse(Treatment == "Blank" & BlnkFiltrate == "0.2 µm", "0.2 µm", Treatment),
+         Treatment = gsub("Niskin", "1.2 µm", Treatment),
+         Type = ifelse(Bottle == "Blank", "Blank", "Non-blank")) %>% 
+  select(Season, Treatment, Type, facetlabel, Filter, BactC_µg)  %>% 
+  rename(Filtrate = Treatment,
+         Depth = facetlabel)
+```
+
+###### 0.2 µm and TFF filtrate, filter 1
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  BactC_µg by Filtrate
+    ## t = -1.9334, df = 8.299, p-value = 0.08794
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -3.9897395  0.3383109
+    ## sample estimates:
+    ## mean in group 0.2 µm    mean in group TFF 
+    ##             3.560000             5.385714
+
+Not signficantly different
+
+###### 0.2 µm and TFF filtrate, filter 2
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  BactC_µg by Filtrate
+    ## t = -0.1386, df = 10.39, p-value = 0.8924
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -1.019692  0.899692
+    ## sample estimates:
+    ## mean in group 0.2 µm    mean in group TFF 
+    ##                 2.94                 3.00
+
+Not significantly different
+
+###### All blanks, filter 1 v filter 2
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  BactC_µg by Filter
+    ## t = 2.5785, df = 24.297, p-value = 0.0164
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  0.2695235 2.4245942
+    ## sample estimates:
+    ## mean in group 1 mean in group 2 
+    ##        4.311765        2.964706
+
+Significantly different
+
+###### Blank and Non-blank (initial condition), filter 1
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  BactC_µg by Type
+    ## t = -5.4128, df = 27.22, p-value = 9.812e-06
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -10.843868  -4.884132
+    ## sample estimates:
+    ##     mean in group Blank mean in group Non-blank 
+    ##                   3.560                  11.424
+
+Significantly different
+
+###### Blank and Non-blank (initial condition), filter 2
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  BactC_µg by Type
+    ## t = -2.2195, df = 27.56, p-value = 0.03486
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -6.5016817 -0.2583183
+    ## sample estimates:
+    ##     mean in group Blank mean in group Non-blank 
+    ##                    2.94                    6.32
+
+Significantly different
+
+###### Blank and Non-blank, filter 2, without N3
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  BactC_µg by Type
+    ## t = -1.4978, df = 19.571, p-value = 0.1501
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -1.899718  0.313051
+    ## sample estimates:
+    ##     mean in group Blank mean in group Non-blank 
+    ##                2.940000                3.733333
+
+Not signficantly different
+
+##### Summary Stats
+
 ``` r
 blank.stats <- blank.data %>% 
   group_by(Season, Depth, Filter) %>% 
@@ -694,11 +807,11 @@ all_filter_stats <- blank.stats %>%
   write_csv(., "~/Desktop/NAAMES_GF75_Stats.csv")
 ```
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-44-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-51-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-45-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-52-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-46-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-53-1.png" style="display: block; margin: auto;" />
 
 This plot shows greater variability in the POC values from the first
 blank filter (red points). Whether using surface or deep water, 0.2 µm
@@ -770,7 +883,7 @@ bactcarbon <- bigelow %>%
 
 ### Sampling Volume Effect on Bacterial Carbon
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-49-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-56-1.png" style="display: block; margin: auto;" />
 
 This test needs to be done again \#flattenthecurve
 
@@ -911,7 +1024,7 @@ fg_cell$Season <- factor(fg_cell$Season, levels = levels)
 
 #### Retention of GF75 Filters
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-52-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-59-1.png" style="display: block; margin: auto;" />
 
 This figure shows that while GF75 filter retention is fairly consistent
 across the samples taken during the stationary phase of cell growth
@@ -988,9 +1101,9 @@ ungroup() %>%
 
 #### CCFs and C:N ratios
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-55-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-62-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-56-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-63-1.png" style="display: block; margin: auto;" />
 
 init\_bactC\_N\_raw Min. : 4.50  
 1st Qu.: 8.00  
@@ -1211,7 +1324,7 @@ biovol_merge <- biovol %>%
 
 #### Biovolume v. Cell Carbon (this study and literature)
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-74-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-81-1.png" style="display: block; margin: auto;" />
 
 For the samples in which we have concurrent biovolume and cellular C
 measurements, we see that their relationship to one another is pretty
@@ -1296,23 +1409,23 @@ cellC_plot.data <- left_join(ccf_plot.data, ret_plot.data) %>%
 
 #### Cell Carbon v GF75 Retention
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-76-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-83-1.png" style="display: block; margin: auto;" />
 
 #### Cell Carbon v GF75 Filter Cell Abundance
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-77-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-84-1.png" style="display: block; margin: auto;" />
 
 #### Cell Carbon v POC
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-78-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-85-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-79-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-86-1.png" style="display: block; margin: auto;" />
 
 #### Cell Carbon v C:N
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-80-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-87-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-81-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-88-1.png" style="display: block; margin: auto;" />
 
 # Merge Data
 
@@ -1380,7 +1493,7 @@ ptoc_pdoc.reg <- lmodel2(pdoc ~ ptoc, data = ptoc_pdoc.data , nperm = 99)
     ## 
     ## H statistic used for computing C.I. of MA: 0.0008036195
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-85-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-92-1.png" style="display: block; margin: auto;" />
 
 ### Delta
 
@@ -1418,7 +1531,7 @@ delta_ptoc_pdoc.reg <- lmodel2(pdoc_from_t0 ~ ptoc_from_t0, data = ptoc_pdoc.dat
     ## 
     ## H statistic used for computing C.I. of MA: 0.0008695124
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-88-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-95-1.png" style="display: block; margin: auto;" />
 
 ## Bottle TOC v. Vial TOC
 
@@ -1462,7 +1575,7 @@ toc_ptoc.reg <- lmodel2(ptoc ~ toc, data = toc_ptoc.data, nperm = 99)
     ## 
     ## H statistic used for computing C.I. of MA: 0.001177878
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-91-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-98-1.png" style="display: block; margin: auto;" />
 
 ### Delta
 
@@ -1500,7 +1613,7 @@ delta_toc_ptoc.reg <- lmodel2(ptoc_from_t0 ~ toc_from_t0, data = toc_ptoc.data, 
     ## 
     ## H statistic used for computing C.I. of MA: 0.002660834
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-94-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-101-1.png" style="display: block; margin: auto;" />
 
 ## Bottle v. Vial Cell Abundance
 
@@ -1540,7 +1653,7 @@ btl_vial_cell.reg <- lmodel2(p_cells ~ cells, data = btl_vial_cell.data, nperm =
     ## 
     ## H statistic used for computing C.I. of MA: 0.003145633
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-97-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-104-1.png" style="display: block; margin: auto;" />
 
 # Tidy and Wrangle Merged Data
 
@@ -1605,7 +1718,7 @@ calculating other parameters. Since the initial condition was 1.2-µm
 filtrate, the carbon content of that filtrate would be higher than the
 30:70 incubation mix at the beginning of the experiment. As a result
 we’ll correct the initial carbon number to account for this:
-POC<sub>initial</sub> = POC~1.2 µm filtrate~ - 0.3(POC~1.2 µm filtrate~)
+POC<sub>initial</sub> = 0.3(POC~1.2 µm filtrate~)
 
 We’ll calculate and define:
 
@@ -1642,14 +1755,14 @@ We’ll calculate and define:
 
 ``` r
 calcs <- interp_st %>%
-   mutate(init_poc_raw = init_poc_raw - 0.3 * init_poc_raw,
-         init_poc_corr = init_poc_corr - 0.3 * init_poc_corr,
-         init_bactC_raw = init_bactC_raw - 0.3 * init_bactC_raw,
-         init_bactC_corr = init_bactC_corr - 0.3 * init_bactC_corr,
-         init_pon_raw = init_pon_raw - 0.3 * init_pon_raw,
-         init_pon_corr = init_pon_corr - 0.3 * init_pon_corr,
-         init_bactN_raw = init_bactN_raw - 0.3 * init_bactN_raw,
-         init_bactN_corr = init_bactN_corr - 0.3 * init_bactN_corr) %>% 
+   mutate(init_poc_raw = 0.3 * init_poc_raw,
+         init_poc_corr =  0.3 * init_poc_corr,
+         init_bactC_raw =  0.3 * init_bactC_raw,
+         init_bactC_corr =  0.3 * init_bactC_corr,
+         init_pon_raw =  0.3 * init_pon_raw,
+         init_pon_corr =  0.3 * init_pon_corr,
+         init_bactN_raw = 0.3 * init_bactN_raw,
+         init_bactN_corr =  0.3 * init_bactN_corr) %>% 
   mutate_at(vars(init_poc_raw:init_bactN_corr), round, 1) %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
   #division rates 
@@ -1757,16 +1870,15 @@ bge_summary <- bge %>%
 
 ## BGEs
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-101-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-108-1.png" style="display: block; margin: auto;" />
 
 Despite all this… BGEs estimated using CCFs from GF75 POC are trash.
 Note that in the figure above, I’ve limited the data to BGEs lower than
-1. There are several BGEs estimated using CCF that are above 1. Using
+1. There are several BGEs estimated using CCF that are above 1.5. Using
 just uncorrected and corrected POC values (not applying bacterial
 abundances to them) dampens the BGEs to those closer to reality.
-However, there are several BGEs that are negative. This is because the
-POC value at stationary is lower than the initial condition, which is
-weird…but the differences may be within the limit of detection?
+However, there are a few BGEs that are above 1, all in the early autumn
+cruise.
 
 Major factors for high BGEs are likely problems with:
 
@@ -1782,7 +1894,7 @@ Major factors for high BGEs are likely problems with:
         experimentalcondition is 30% of whole water counts) … unless all
         counts are off, but this is unlikely.
 
-# Recalculations Using Mean CCFs
+### Recalculations Using Mean CCFs
 
 Because the surface and deepwater CCFs calculated for AT38 are high
 relative to the surface values of the other cruises, they are
@@ -1842,20 +1954,18 @@ mean_ccf <- fg_cell.rm %>%
 
 Mean Bacterioplankton C:N and Converstion Factors
 
-# 
-
 ``` r
 calcs_ave_ccf <- interp_st %>%
   select(-c(init_ccf, stat_ccf)) %>% 
   left_join(., mean_ccf) %>% 
-  mutate(init_poc_raw = init_poc_raw - 0.3 * init_poc_raw,
-         init_poc_corr = init_poc_corr - 0.3 * init_poc_corr,
-         init_bactC_raw = init_bactC_raw - 0.3 * init_bactC_raw,
-         init_bactC_corr = init_bactC_corr - 0.3 * init_bactC_corr,
-         init_pon_raw = init_pon_raw - 0.3 * init_pon_raw,
-         init_pon_corr = init_pon_corr - 0.3 * init_pon_corr,
-         init_bactN_raw = init_bactN_raw - 0.3 * init_bactN_raw,
-         init_bactN_corr = init_bactN_corr - 0.3 * init_bactN_corr) %>% 
+  mutate(init_poc_raw =  0.3 * init_poc_raw,
+         init_poc_corr = 0.3 * init_poc_corr,
+         init_bactC_raw = 0.3 * init_bactC_raw,
+         init_bactC_corr = 0.3 * init_bactC_corr,
+         init_pon_raw =  0.3 * init_pon_raw,
+         init_pon_corr =  0.3 * init_pon_corr,
+         init_bactN_raw =  0.3 * init_bactN_raw,
+         init_bactN_corr =  0.3 * init_bactN_corr) %>% 
   mutate_at(vars(init_poc_raw:init_bactN_corr), round, 1) %>%
   rename(init_ccf = ave_init_ccf,
          stat_ccf = ave_stat_ccf) %>% 
@@ -1963,17 +2073,17 @@ bge_ave_ccf_summary <- bge %>%
   select(Season:Treatment, Manipulation, everything())
 ```
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-106-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-113-1.png" style="display: block; margin: auto;" />
 
 Using mean CCF helps, but still provides unreasonable BGEs for surface
 non-addition
 experiments.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-107-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-114-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-108-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-115-1.png" style="display: block; margin: auto;" />
 
-# Hypotheses on High BGEs in Non-addition Experiments
+### Hypotheses on High BGEs in Non-addition Experiments
 
 How can the calculated BGEs be so high in our experiments, even above
 the theoretical maximum of 0.7-0.8 constrained by del Giorgio and Cole
@@ -2082,51 +2192,51 @@ export_bioav$Season <- factor(export_bioav$Season, levels = levels)
 
 #### No Addition
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-110-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-117-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-111-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-118-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-112-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-119-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-113-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-120-1.png" style="display: block; margin: auto;" />
 
 ## NAAMES 3
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-114-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-121-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-115-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-122-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-116-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-123-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-117-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-124-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-118-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-125-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-119-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-126-1.png" style="display: block; margin: auto;" />
 
 ### NAAMES 4
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-120-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-127-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-121-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-128-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-122-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-129-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-123-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-130-1.png" style="display: block; margin: auto;" />
 
 ## Seasonal Comparison
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-124-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-131-1.png" style="display: block; margin: auto;" />
 
 | Season       | min\_bioav\_doc | mean\_bioav\_doc | med\_bioav\_doc | max\_bioav\_doc | min\_persis\_doc | mean\_persis\_doc | med\_persis\_doc | max\_persis\_doc | min\_ddoc | mean\_ddoc | med\_ddoc | max\_ddoc | min\_bioav | mean\_bioav | med\_bioav | max\_bioav | min\_persis | mean\_persis | med\_persis | max\_persis |
 | :----------- | --------------: | ---------------: | --------------: | --------------: | ---------------: | ----------------: | ---------------: | ---------------: | --------: | ---------: | --------: | --------: | ---------: | ----------: | ---------: | ---------: | ----------: | -----------: | ----------: | ----------: |
@@ -2163,4 +2273,4 @@ bacterioplankton growth, but did not result in drawdown into the
 persistent
 pool.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-127-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-134-1.png" style="display: block; margin: auto;" />
