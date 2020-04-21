@@ -548,16 +548,19 @@ spring cruises to this cruise.
 ``` r
 blank.data <- bigelow %>% 
   filter(Bottle == "Blank") %>% 
-  filter(!Season == "Late Spring" | !Station == 1 | !Depth == 10) %>% 
+  #filter out outliers
+  # filter(!Season == "Late Spring" | !Station == 1 | !Depth == 10) %>% 
+  # filter(!Season == "Early Spring" |  !Depth == 200) %>% 
   mutate(BactC_µM = round(BactC_µg/12,2),
          BactN_µM = round(BactN_µg/14,2),
          BactC_N = ifelse(BactN_µM > 0, round(BactC_µM/BactN_µM,1), NA))
 ```
 
-In the filter 2 set, the filter value of 6.46 appears to be an outlier
-relative to all the other filters (across cruises and filtrate types),
-indicating possible contamination or the compromised integrity of the
-first filter. This sample (filter 1 & 2), will be omitted from analysis.
+The 0.2 µm filter 2 value of 6.46 and the TFF filter 1 value of 9.8
+appears to be outliers relative to all the other filters (across cruises
+and filtrate types), indicating possible contamination or the
+compromised integrity of the first filter. These samples (filter 1 & 2)
+are going to be perserved in the analysis for now.
 
 #### Filter Summary Statistics
 
@@ -566,6 +569,8 @@ first filter. This sample (filter 1 & 2), will be omitted from analysis.
 ``` r
 t.test.data <- bigelow %>% 
   filter(!Bottle %in% c("100mls", "250mls", "500mls")) %>%
+  # filter(!Season == "Late Spring" | !Station == 1 | !Depth == 10 | !Bottle == "Blank") %>% 
+  # filter(!Season == "Early Spring" |  !Depth == 200 | !Bottle == "Blank") %>% 
   mutate(Treatment = ifelse(Bottle == "Blank", "Blank", Treatment),
          Treatment = ifelse(Treatment == "Blank" & BlnkFiltrate == "TFF", "TFF", Treatment),
          Treatment = ifelse(Treatment == "Blank" & BlnkFiltrate == "0.2 µm", "0.2 µm", Treatment),
@@ -575,6 +580,38 @@ t.test.data <- bigelow %>%
   rename(Filtrate = Treatment,
          Depth = facetlabel)
 ```
+
+###### 0.2 µm filtrate, filter 1 v filter 2
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  BactC_µg by Filter
+    ## t = 1.1028, df = 17.827, p-value = 0.2848
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  -0.5619966  1.8019966
+    ## sample estimates:
+    ## mean in group 1 mean in group 2 
+    ##            3.56            2.94
+
+**Not significantly different**
+
+###### TFF filtrate, filter 1 v filter 2
+
+    ## 
+    ##  Welch Two Sample t-test
+    ## 
+    ## data:  BactC_µg by Filter
+    ## t = 2.7311, df = 6.2211, p-value = 0.03291
+    ## alternative hypothesis: true difference in means is not equal to 0
+    ## 95 percent confidence interval:
+    ##  0.266534 4.504895
+    ## sample estimates:
+    ## mean in group 1 mean in group 2 
+    ##        5.385714        3.000000
+
+**Significantly different**
 
 ###### 0.2 µm and TFF filtrate, filter 1
 
@@ -590,7 +627,7 @@ t.test.data <- bigelow %>%
     ## mean in group 0.2 µm    mean in group TFF 
     ##             3.560000             5.385714
 
-Not signficantly different
+**Not signficantly different**
 
 ###### 0.2 µm and TFF filtrate, filter 2
 
@@ -606,7 +643,7 @@ Not signficantly different
     ## mean in group 0.2 µm    mean in group TFF 
     ##                 2.94                 3.00
 
-Not significantly different
+**Not significantly different**
 
 ###### All blanks, filter 1 v filter 2
 
@@ -622,7 +659,7 @@ Not significantly different
     ## mean in group 1 mean in group 2 
     ##        4.311765        2.964706
 
-Significantly different
+**Significantly different**
 
 ###### Blank and Non-blank (initial condition), filter 1
 
@@ -638,7 +675,7 @@ Significantly different
     ##     mean in group Blank mean in group Non-blank 
     ##                   3.560                  11.424
 
-Significantly different
+**Significantly different**
 
 ###### Blank and Non-blank (initial condition), filter 2
 
@@ -646,15 +683,15 @@ Significantly different
     ##  Welch Two Sample t-test
     ## 
     ## data:  BactC_µg by Type
-    ## t = -2.2195, df = 27.56, p-value = 0.03486
+    ## t = -2.2595, df = 25.323, p-value = 0.0327
     ## alternative hypothesis: true difference in means is not equal to 0
     ## 95 percent confidence interval:
-    ##  -6.5016817 -0.2583183
+    ##  -6.4116635 -0.2989247
     ## sample estimates:
     ##     mean in group Blank mean in group Non-blank 
-    ##                    2.94                    6.32
+    ##                2.964706                6.320000
 
-Significantly different
+**Significantly different**
 
 ###### Blank and Non-blank, filter 2, without N3
 
@@ -662,15 +699,37 @@ Significantly different
     ##  Welch Two Sample t-test
     ## 
     ## data:  BactC_µg by Type
-    ## t = -1.4978, df = 19.571, p-value = 0.1501
+    ## t = -1.8834, df = 31.003, p-value = 0.06906
     ## alternative hypothesis: true difference in means is not equal to 0
     ## 95 percent confidence interval:
-    ##  -1.899718  0.313051
+    ##  -1.60097600  0.06372109
     ## sample estimates:
     ##     mean in group Blank mean in group Non-blank 
-    ##                2.940000                3.733333
+    ##                2.964706                3.733333
 
-Not signficantly different
+**Not signficantly different**
+
+Based on these results, it seems like filter 2 of the blanks and the
+initial conditions could be a good blank.
+
+For the filters that had 0.2 µm filtrate run through them:
+
+\-Any particles remaining in the 0.2 µm filtrate are equally caught on
+the top and bottom GF75 filters -Handling of the filters is the same
+-DOC adsorption is the same on both filters
+
+We would expect to see the same for the TFF filters, but the top and
+bottom filters are significantly different. As a result these filters
+drive a significant difference between filter 1 and filter 2 when all
+blanks are included.
+
+However, given that filter 2 of the blanks and non-NAAMES 3\* 1.2 µm
+filtrate are not signficantly different, it seems like filter 2 could
+represent a good blank correction.
+
+\*The lower filter cell retention and the higher filter 2 POC values for
+NAAMES3 would suggest slippage, making omission of this data reasonable
+if blank correction factors are based on blank and non-blank samples.
 
 ##### Summary Stats
 
@@ -709,11 +768,11 @@ blank.stats <- blank.data %>%
 | Season       | Depth | Filter | ave\_c\_µg | sd\_c\_µg | max\_c\_µg | min\_c\_µg | ave\_n\_µg | sd\_n\_µg | max\_n\_µg | min\_n\_µg | ave\_c\_µM | sd\_c\_µM | max\_c\_µM | min\_c\_µM | ave\_n\_µM | sd\_n\_µM | max\_n\_µM | min\_n\_µM | ave\_c\_n\_µM | sd\_c\_n\_µM | max\_c\_n\_µM | min\_c\_n\_µM | n() |
 | :----------- | ----: | -----: | ---------: | --------: | ---------: | ---------: | ---------: | --------: | ---------: | ---------: | ---------: | --------: | ---------: | ---------: | ---------: | --------: | ---------: | ---------: | ------------: | -----------: | ------------: | ------------: | --: |
 | Early Spring |    10 |      1 |       4.65 |      1.32 |        6.5 |        2.6 |       0.27 |      0.32 |        0.9 |        0.1 |       0.39 |      0.11 |       0.54 |       0.22 |       0.02 |      0.02 |       0.06 |       0.01 |         28.00 |        13.75 |          44.0 |           9.0 |   6 |
-| Late Spring  |    10 |      1 |       3.90 |      0.91 |        5.1 |        3.2 |       0.32 |      0.45 |        1.0 |        0.1 |       0.32 |      0.07 |       0.42 |       0.27 |       0.02 |      0.03 |       0.07 |       0.01 |         23.50 |        12.12 |          34.0 |           6.0 |   4 |
+| Late Spring  |    10 |      1 |       4.20 |      1.03 |        5.4 |        3.2 |       0.28 |      0.40 |        1.0 |        0.1 |       0.35 |      0.08 |       0.45 |       0.27 |       0.02 |      0.03 |       0.07 |       0.01 |         27.80 |        14.24 |          45.0 |           6.0 |   5 |
 | Early Spring |   200 |      1 |       9.80 |        NA |        9.8 |        9.8 |       0.40 |        NA |        0.4 |        0.4 |       0.82 |        NA |       0.82 |       0.82 |       0.03 |        NA |       0.03 |       0.03 |         27.30 |           NA |          27.3 |          27.3 |   1 |
 | Late Spring  |   200 |      1 |       2.92 |      1.06 |        4.5 |        1.8 |       0.24 |      0.26 |        0.7 |        0.1 |       0.24 |      0.09 |       0.38 |       0.15 |       0.02 |      0.02 |       0.05 |       0.01 |         21.36 |        12.94 |          38.0 |           3.8 |   5 |
 | Early Spring |    10 |      2 |       2.97 |      0.33 |        3.4 |        2.5 |       0.20 |      0.20 |        0.6 |        0.1 |       0.25 |      0.03 |       0.28 |       0.21 |       0.02 |      0.01 |       0.04 |       0.01 |         21.53 |         7.99 |          28.0 |           6.2 |   6 |
-| Late Spring  |    10 |      2 |       2.48 |      0.43 |        3.1 |        2.1 |       0.30 |      0.40 |        0.9 |        0.1 |       0.21 |      0.04 |       0.26 |       0.18 |       0.02 |      0.02 |       0.06 |       0.01 |         15.32 |         7.40 |          20.0 |           4.3 |   4 |
+| Late Spring  |    10 |      2 |       3.28 |      1.84 |        6.5 |        2.1 |       0.26 |      0.36 |        0.9 |        0.1 |       0.27 |      0.15 |       0.54 |       0.18 |       0.02 |      0.02 |       0.06 |       0.01 |         23.06 |        18.44 |          54.0 |           4.3 |   5 |
 | Early Spring |   200 |      2 |       3.20 |        NA |        3.2 |        3.2 |       0.10 |        NA |        0.1 |        0.1 |       0.27 |        NA |       0.27 |       0.27 |       0.01 |        NA |       0.01 |       0.01 |         27.00 |           NA |          27.0 |          27.0 |   1 |
 | Late Spring  |   200 |      2 |       2.60 |      0.48 |        3.1 |        2.0 |       0.22 |      0.27 |        0.7 |        0.1 |       0.22 |      0.04 |       0.26 |       0.17 |       0.02 |      0.02 |       0.05 |       0.01 |         18.08 |         8.64 |          26.0 |           4.4 |   5 |
 
@@ -803,87 +862,139 @@ all_filter_stats <- blank.stats %>%
          Type = "Blank",
          Time = "Initial") %>%
   bind_rows(., nonblank.stats %>% mutate(Sample = "Non-blank")) %>%
-  select(Sample, Type, everything()) %>%
-  write_csv(., "~/Desktop/NAAMES_GF75_Stats.csv")
+  select(Sample, Type, everything()) 
+  
+#write_csv(all_filter_stats, "~/Desktop/NAAMES_GF75_Stats.csv")
 ```
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-51-1.png" style="display: block; margin: auto;" />
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-52-1.png" style="display: block; margin: auto;" />
-
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-53-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-54-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-55-1.png" style="display: block; margin: auto;" />
 
 This plot shows greater variability in the POC values from the first
 blank filter (red points). Whether using surface or deep water, 0.2 µm
 filtrate or TFF filtrate, the small range in the POC values of the
-second filter indicates that the second filter provides a reasonable
-estimate of DOC adsorption onto GF75s (at least for the spring cruises).
+second filter indicates that the second filter could provide a
+reasonable estimate of DOC adsorption onto GF75s (at least for the
+spring cruises) and represent a decent blank correction.
 
 ### Blank Corrections and Bacterial Carbon Estimates
 
 We’ll report non-blank corrected POC estimates as well as
 blank-corrected POC estimates. Because we will be calculating delta
 bacterial carbon to then estimate BGE, a blank correction may not be
-necessary. However, if we were to blank correct, we’ll use a universal
-correction factor based on the plot above. The detection limit for
-Bigelow’s Costech ECS 4010 elemental analysis is 0.1 µg C.
+necessary. However, if we were to blank correct, we’ll use universal
+correction factors based on the data/plots above. The detection limit
+for Bigelow’s Costech ECS 4010 elemental analysis is 0.1 µg C.
 
-The mean of all blank water filter 2 POC values will be used as a
-universal correction factor. It will be subtracted from each sample
-filter to estimate bacterial carbon in µg. Values below the detection
-limits for N (\<0.1) are converted to 0. The addition of the corrected
-value from filter 1 and from filter 2 of each sample will provide the
-bacterial carbon estimate for that sample.
+We’ll make 3 universal correction factors:
+
+  - poc.cf1 = the mean of filter 2 for all blanks
+  - poc.cf2 = the mean of filter 2 of only TFF blanks
+  - poc.cf3 = the mean of filter 1 and 2 of only TFF blanks
+
+Each of these will be subtracted from each sample filter to estimate
+bacterial carbon in µg. Values below the detection limits for N (\<0.1)
+are converted to 0. The addition of the corrected value from filter 1
+and from filter 2 of each sample will provide the bacterial carbon
+estimate for that sample.
 
 Bacterial carbon estimates will then be converted to µmol
 C<sup>-1</sup>. The same will be done for PON.
 
 ``` r
-corrfactor <- blank.data %>% 
-  filter(Filter == 2, !Season == "Late Spring" | !Station == 1 | !Depth == 10) %>% 
-  mutate(ave_c_blank = round(mean(BactC_µg),1),
-         ave_n_blank = round(mean(BactN_µg),1)) %>% 
-  select(ave_c_blank, ave_n_blank) %>% 
+corrfactor <- blank.data %>%
+  group_by(Filter) %>%
+  mutate(poc.cf1 = ifelse(Filter == 2, round(mean(BactC_µg),1), NA),
+         pon.cf1 = ifelse(Filter == 2, round(mean(BactN_µg),1), NA)) %>% 
+  ungroup() %>% 
+  group_by(BlnkFiltrate, Filter) %>%
+  mutate(poc.cf2 = ifelse(BlnkFiltrate == "TFF" & Filter == 2, round(mean(BactC_µg),1), NA),
+         pon.cf2 = ifelse(BlnkFiltrate == "TFF" & Filter == 2, round(mean(BactN_µg),1), NA)) %>% 
+  ungroup() %>% 
+  group_by(BlnkFiltrate) %>% 
+  mutate(poc.cf3 = ifelse(BlnkFiltrate == "TFF", round(mean(BactC_µg),1), NA),
+         pon.cf3 = ifelse(BlnkFiltrate == "TFF", round(mean(BactN_µg),1), NA)) %>% 
+  ungroup() %>% 
+  fill(poc.cf1:pon.cf3, .direction = "updown") %>% 
+  select(poc.cf1:pon.cf3) %>% 
   distinct()
 
 corrfactor
 ```
 
-    ## # A tibble: 1 x 2
-    ##   ave_c_blank ave_n_blank
-    ##         <dbl>       <dbl>
-    ## 1         2.7         0.2
+    ## # A tibble: 1 x 6
+    ##   poc.cf1 pon.cf1 poc.cf2 pon.cf2 poc.cf3 pon.cf3
+    ##     <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>
+    ## 1       3     0.2       3     0.2     4.2     0.2
+
+The carbon correction factors for the mean of filter 2 for all blanks
+and the mean of filter 2 of only TFF blanks are the same. So, we’ll
+calculate 2 corrected values:
+
+  - poc.c1.ug = POC (µg) - poc.cf1 or 2
+  - poc.c3.ug = POC (µg) - poc.cf3
+
+and convert the calculated vales to µmol C L<sup>-1</sup>:
+
+  - poc.c1.um
+  - poc.c3.um
+
+Since the nitrogen carbon conversion factors are all the same, we’ll
+only calculate 1 corrected value
+
+  - pon.c.ug = PON (µg) - pon.cf1, 2, or 3
+
+and convert the calculated values to µmol N L <sup>-1</sup>:
+
+  - pon.c.um
+
+We’ll also calculate C:N ratios:
+
+  - cn = poc.um/pon.um
+  - cn.c1 = poc.c1.um/pon.um
+  - cn.c3 = poc.c3.um/pon.m
+
+<!-- end list -->
 
 ``` r
 bactcarbon <- bigelow %>%
   filter(!Bottle == "Blank") %>%
+  mutate(Treatment = ifelse(Bottle %in% c("1L", "100mls", "250mls", "500mls"), "Volume", Treatment)) %>% 
+  rename(pon.ug = BactN_µg,
+         poc.ug = BactC_µg) %>% 
   cbind(., corrfactor) %>% 
-  mutate(c_corr = BactC_µg - ave_c_blank,
-         c_corr = ifelse(c_corr < 0, 0, c_corr), 
-         n_corr = BactN_µg - ave_n_blank,
-         n_corr = ifelse(n_corr < 0.1, 0, n_corr)) %>%
-  group_by(Cruise, Station, Depth, Bottle, Timepoint) %>% 
-  mutate(poc_raw = round((sum(BactC_µg)),1),
-         poc_corr = round((sum(c_corr)),1),
-         bactC_raw = round((sum(BactC_µg))/12,1),
-         bactC_corr = round((sum(c_corr))/12,1),
-         pon_raw = round((sum(BactN_µg)),1),
-         pon_corr = round((sum(n_corr)),1),
-         bactN_raw = round((sum(BactN_µg))/14,1),
-         bactN_corr = round((sum(n_corr))/14,1),
-         bactC_N_raw = ifelse(bactN_raw > 0, round(bactC_raw/bactN_raw,1), NA),
-         bactC_N_corr = ifelse(bactN_corr > 0, round(bactC_corr/bactN_corr,1), NA)) %>% 
+  mutate(poc.c1.ug = poc.ug - poc.cf1,
+         poc.c3.ug = poc.ug - poc.cf3,
+         pon.c.ug = pon.ug - pon.cf1,
+         poc.c1.ug = ifelse(poc.c1.ug < 0, 0, poc.c1.ug),
+         poc.c3.ug = ifelse(poc.c3.ug < 0, 0, poc.c3.ug),
+         pon.c.ug = ifelse(pon.c.ug < 0, 0, pon.c.ug)) %>%
+  group_by(Cruise, Station, Depth, Bottle, Timepoint) %>%
+  mutate(poc.ug = round((sum(poc.ug)),1),
+         pon.ug = round((sum(pon.ug)),1),
+         poc.c1.ug = round((sum(poc.c1.ug)),1),
+         poc.c3.ug = round((sum(poc.c3.ug)),1),
+         pon.c.ug = round((sum(pon.c.ug)),1)) %>% 
   ungroup() %>% 
-  select(-c(Filter, BlnkFiltrate, BactN_µg, BactC_µg, ave_c_blank:n_corr)) %>% 
-  select(Season, Cruise, Station, Depth, facetlabel, Treatment, everything()) %>% 
+  mutate(poc.um = round(poc.ug/12, 1),
+         poc.c1.um = round(poc.c1.ug/12, 1),
+         poc.c3.um = round(poc.c3.ug/12, 1),
+         pon.um = round(pon.ug/14, 1),
+         pon.c.um = round(pon.c.ug/14, 1),
+         cn = round(poc.um/pon.um),
+         cn.c1 = round(poc.c1.um/pon.um),
+         cn.c3 = round(poc.c3.um/pon.um)) %>% 
+  select(Season, Cruise, Station, Depth, facetlabel, Treatment, Bottle, Timepoint, poc.ug, pon.ug, poc.cf1, poc.cf2, poc.cf3, pon.cf1, pon.cf2, pon.cf3, poc.c1.ug, poc.c3.ug, pon.c.ug, poc.um:cn.c3 ) %>% 
   distinct() %>% 
-  arrange(Season, Cruise, Station, Depth, Treatment, Timepoint) %>% 
-  mutate(Treatment = ifelse(Bottle %in% c("1L", "100mls", "250mls", "500mls"), "Volume", Treatment))
+  arrange(Season, Cruise, Station, Depth, Treatment, Bottle, Timepoint) 
 ```
 
 ### Sampling Volume Effect on Bacterial Carbon
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-56-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-58-1.png" style="display: block; margin: auto;" />
 
 This test needs to be done again \#flattenthecurve
 
@@ -893,11 +1004,11 @@ Here we calculate fg C or fg N cell<sup>-1</sup> by:
 
   - Estimating the cell abundance captured on the 0.3 µm GF75 filters
     (whole water - filtrate, cells L<sup>-1</sup>)
-  - Dividing the GF75 POC or PON value (µmol C or N L<sup>-1</sup>) (see
-    Bacterial\_Carbon.Rmd) by the cell abundance on the GF75 filter,
-    then applying the subsequent conversions
+  - Dividing the GF75 POC or PON value (µmol C or N L<sup>-1</sup>) by
+    the cell abundance on the GF75 filter, then applying the subsequent
+    conversions
 
-The GF75 POC data is tidied before calculations are made (e.g renaming
+The GF75 POC data are tidied before calculations are made (e.g renaming
 bottle identifiers so they are congruent with datasets to be merged
 with, duplicating values for initial timepoints where one POC value was
 taken for replicate bottles). For ease, initial POC and cell abundance
@@ -908,69 +1019,93 @@ timepoints.
 
 ``` r
 #initial cell abundance
-gf75.t0 <- ba.df %>% 
+i.gf75 <- ba.df %>% 
   select(Season:cells) %>% 
   filter(Timepoint == 0, Bottle %in% c("GF75", "Niskin")) %>% 
   group_by(Cruise, Station, Depth) %>% 
-  mutate(filtrate_cells = ifelse(Bottle == "GF75", cells, NA)) %>% 
-  fill(filtrate_cells, .direction = "downup") %>% 
+  mutate(filtrate.cells = ifelse(Bottle == "GF75", cells, NA)) %>% 
+  fill(filtrate.cells, .direction = "downup") %>% 
   filter(Bottle == "Niskin") %>% 
-  mutate(init_gf75_cells = cells - filtrate_cells,
-         init_gf75_retention = round((cells - filtrate_cells)/cells, 2)) %>% 
+  mutate(i.gf75.cells = cells - filtrate.cells,
+         i.gf75.ret = round((cells - filtrate.cells)/cells, 2)) %>% 
   ungroup() %>% 
-  select(Season:Depth, init_gf75_cells, init_gf75_retention)
+  select(Season:Depth, i.gf75.cells, i.gf75.ret)
 
 #stationary cell abundance
-gf75.st <- ba.df %>% 
+s.gf75 <- ba.df %>% 
   select(Season:cells) %>% 
   filter(!Timepoint == 0) %>% 
   arrange(Cruise, Station, Depth, Bottle, Timepoint) %>% 
   group_by(Cruise, Station,  Depth, Bottle) %>%
-  mutate(gf75_timepoint = ifelse(Treatment == "GF75", Timepoint, NA)) %>% 
-  fill(gf75_timepoint, .direction = "updown") %>% 
-  filter(Timepoint == gf75_timepoint) %>% 
-  mutate(filtrate_cells = ifelse(Treatment == "GF75", cells, NA)) %>% 
-  fill(filtrate_cells, .direction = "updown") %>%  
+  mutate(gf75.timepoint = ifelse(Treatment == "GF75", Timepoint, NA)) %>% 
+  fill(gf75.timepoint, .direction = "updown") %>% 
+  filter(Timepoint == gf75.timepoint) %>% 
+  mutate(filtrate.cells = ifelse(Treatment == "GF75", cells, NA)) %>% 
+  fill(filtrate.cells, .direction = "updown") %>%  
   filter(!Treatment == "GF75") %>% 
-  mutate(stat_gf75_cells = cells - filtrate_cells,
-         stat_gf75_retention = round((cells - filtrate_cells)/cells, 2)) %>% 
+  mutate(s.gf75.cells = cells - filtrate.cells,
+         s.gf75.ret = round((cells - filtrate.cells)/cells, 2)) %>% 
   ungroup() %>% 
-  select(Season:Bottle, Treatment, stat_gf75_cells, stat_gf75_retention)
+  select(Season:Bottle, Treatment, Timepoint, s.gf75.cells, s.gf75.ret) 
 ```
 
 ### Combine Cell Abundance and POC Data, Calculate CCF
 
-We’ll calculate CCFs from corrected POC data only.
+We’ll calculate 4 CCFs (fg C cell<sup>-1</sup>) from the POC data:
+
+  - i.ccf.c1 = poc.c1.um/cells on filter \* 12 \* 10<sup>9</sup>
+    (initial)
+  - s.ccf.c1 = poc.c1.um/cells on filter \* 12 \* 10<sup>9</sup>
+    (stationary)
+  - i.ccf.c3 = poc.c3.um/cells on filter \* 12 \* 10<sup>9</sup>
+    (initial)
+  - s.ccf.c3 = poc.c3.um/cells on filter \* 12 \* 10<sup>9</sup>
+    (stationary)
+
+We’ll also add 3 other CCFs from the literature:
+
+  - ccf.white = 6.5 (SAR11), White et al 2019
+      - also close to 6.3 of Carlson et al 1996 and 7 of Zubkov 2000
+  - ccf.fukuda = 12.3 (average oceanic Pacific), Fukuda et al 1998
+      - also close to 10 generally used by many papers Wear et al 2020,
+        Christian and Karl 1994, Caron et al 1995, James et al 2017
+  - ccf.lee = 20 (Long Island Sound), Lee and Fuhrman 1987
+      - generally used as reported by Gunderson et al 2002
+
+<!-- end list -->
 
 ``` r
-bc.df <- bactcarbon %>% 
-  filter(!Treatment == "Volume") %>% 
-  select(Season, Cruise, Station, Depth, Treatment:bactC_N_corr)
-
 #initial timepoints
-fg_cell.t0 <- bc.df %>% 
-  filter(Timepoint == 0) %>% 
-  select(-c(Treatment:Timepoint)) %>% 
+i.fg_cell <-  bactcarbon %>% 
+  filter(!Treatment == "Volume", Timepoint == 0) %>% 
+  select_at(vars(poc.ug:cn.c3), .funs = funs(paste0("i.", .))) %>% 
+  bind_cols(bactcarbon %>% filter(!Treatment == "Volume", Timepoint == 0) %>% select(Season:facetlabel), .) %>% 
   mutate(Station = gsub("2RD", "S2RD", Station),
          Station = gsub("2RF", "S2RF", Station)) %>% 
-  left_join(., gf75.t0) %>% 
-  mutate(init_ccf = round(bactC_corr/init_gf75_cells * 12 * 10^9),
-         init_ncf = round(bactN_corr/init_gf75_cells * 14 * 10^9, 1)) %>%
-  rename(init_poc_raw = poc_raw,
-         init_poc_corr = poc_corr,
-         init_bactC_raw = bactC_raw,
-         init_bactC_corr = bactC_corr,
-         init_pon_raw = pon_raw,
-         init_pon_corr = pon_corr,
-         init_bactN_raw = bactN_raw,
-         init_bactN_corr = bactN_corr,
-         init_bactC_N_raw = bactC_N_raw,
-         init_bactC_N_corr = bactC_N_corr) %>% 
-  ungroup()
+  left_join(., i.gf75) %>% 
+  mutate(i.ccf.c1 = round(i.poc.c1.um/i.gf75.cells * 12 * 10^9),
+         i.ccf.c3 = round(i.poc.c3.um/i.gf75.cells * 12 * 10^9)) 
+```
 
+    ## Warning: funs() is soft deprecated as of dplyr 0.8.0
+    ## Please use a list of either functions or lambdas: 
+    ## 
+    ##   # Simple named list: 
+    ##   list(mean = mean, median = median)
+    ## 
+    ##   # Auto named with `tibble::lst()`: 
+    ##   tibble::lst(mean, median)
+    ## 
+    ##   # Using lambdas
+    ##   list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))
+    ## This warning is displayed once per session.
+
+``` r
 #stationary timepoints
-fg_cell.st <- bc.df %>% 
-  filter(!Timepoint == 0) %>% 
+s.fg_cell <- bactcarbon %>% 
+  filter(!Treatment == "Volume", !Timepoint == 0) %>% 
+  select_at(vars(poc.ug:cn.c3), .funs = funs(paste0("s.", .))) %>% 
+  bind_cols(bactcarbon %>% filter(!Treatment == "Volume", !Timepoint == 0) %>% select(Season:facetlabel, Treatment, Bottle, Timepoint), .) %>% 
   mutate(Station = gsub("2RD", "S2RD", Station),
          Station = gsub("2RF", "S2RF", Station),
          Treatment = gsub("TW15", "TW20", Treatment),
@@ -990,280 +1125,183 @@ fg_cell.st <- bc.df %>%
   add_row(Season = "Early Autumn", Cruise = "AT38", Station = 1, Depth = 200, Treatment = "SynLys", Bottle = "P") %>% 
   arrange(Cruise, Station, Depth, Treatment, Bottle) %>% 
   group_by(Cruise, Station, Depth, Treatment) %>% 
-  fill(bactC_raw:bactN_corr, .direction = "updown") %>% 
-  mutate(bactN_raw = ifelse(Cruise == "AT38" & Treatment == "MixDS" & Bottle == "C", NA, bactN_raw),
-         bactN_raw = ifelse(Cruise == "AT38" & Station == 6 & Treatment == "SynLys" & Bottle == "C", NA, bactN_raw), 
-         bactN_corr = ifelse(Cruise == "AT38" & Treatment == "MixDS" & Bottle == "C", NA, bactN_corr),
-         bactN_raw = ifelse(Cruise == "AT38" & Station == 6 & Treatment == "SynLys" & Bottle == "C", NA, bactN_corr),
-         Bottle = gsub("JI", "J", Bottle),
+  fill(s.poc.ug:s.cn.c3, .direction = "updown") %>% 
+  mutate(Bottle = gsub("JI", "J", Bottle),
          Bottle = gsub("MN", "M", Bottle),
          Bottle = gsub("LK", "L", Bottle),
-         Bottle = gsub("OP", "O", Bottle),
-         bactC_N_raw = ifelse(bactN_raw > 0, round(bactC_raw/bactN_raw, 1), NA),
-         bactC_N_corr = ifelse(bactN_corr > 0, round(bactC_corr/bactN_corr, 1), NA)) %>% 
-  left_join(., gf75.st) %>% 
-  mutate(stat_ccf = round((bactC_corr/stat_gf75_cells) * 12 * 10^9),
-         stat_ncf = round((bactN_corr/stat_gf75_cells) * 14 * 10^9, 1)) %>%
-  rename(stat_poc_raw = poc_raw,
-         stat_poc_corr = poc_corr,
-         stat_bactC_raw = bactC_raw,
-         stat_bactC_corr = bactC_corr,
-         stat_bactN_raw = bactN_raw,
-         stat_bactN_corr = bactN_corr,
-         stat_pon_raw = pon_raw,
-         stat_pon_corr = pon_corr,
-         stat_bactC_N_raw = bactC_N_raw,
-         stat_bactC_N_corr = bactC_N_corr,
-         stat_timepoint = Timepoint) %>% 
-  ungroup()
+         Bottle = gsub("OP", "O", Bottle)) %>% 
+  left_join(., s.gf75) %>% 
+  mutate(s.ccf.c1 = round(s.poc.c1.um/s.gf75.cells * 12 * 10^9),
+         s.ccf.c3 = round(s.poc.c3.um/s.gf75.cells * 12 * 10^9)) %>% 
+  ungroup() %>% 
+  rename(s.timepoint = Timepoint)
 
-fg_cell <- left_join(fg_cell.st, fg_cell.t0)  
+fg_cell <- left_join(s.fg_cell, i.fg_cell)  %>% 
+   group_by(Cruise, Station, Depth, Treatment) %>% 
+  fill(c(s.timepoint,i.poc.ug:i.ccf.c3), .direction = "updown") %>% 
+  mutate(ccf.white = 6.5,
+         ccf.fukuda = 12.3,
+         ccf.lee = 20) %>% 
+  ungroup()
 
 fg_cell$Season <- factor(fg_cell$Season, levels = levels)
 ```
 
 #### Retention of GF75 Filters
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-59-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-61-1.png" style="display: block; margin: auto;" />
+
+``` r
+fg_cell %>% 
+  select(Season, Cruise, Station, Bottle, Depth, Treatment, i.gf75.ret, s.gf75.ret) %>% 
+  mutate(facet_depth = paste(Depth, "m")) %>% 
+  gather(key, value, i.gf75.ret:s.gf75.ret) %>% 
+  mutate(key = gsub("i.gf75.ret", "Initial", key),
+         key = gsub("s.gf75.ret", "Stationary", key),
+         value = ifelse(key == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>% 
+  filter(key == "Initial", Treatment == "Control") %>% 
+  drop_na() %>% 
+  ungroup() %>% 
+  rename(Initial_Summary = value) %>% 
+  select(Initial_Summary) %>% 
+  summary()
+```
+
+    ##  Initial_Summary 
+    ##  Min.   :0.1000  
+    ##  1st Qu.:0.5575  
+    ##  Median :0.7350  
+    ##  Mean   :0.6567  
+    ##  3rd Qu.:0.8000  
+    ##  Max.   :0.8800
 
 This figure shows that while GF75 filter retention is fairly consistent
 across the samples taken during the stationary phase of cell growth
 (median 85%, mean 83%), they are pretty variable for the samples taken
-at the initial condition (median 73%, mean 66%, range 10 - 88%, 1st Qu =
-56%). Those samples with filter retentions \<= 0.56 (1st Qu.) likely
+at the initial condition (median 74%, mean 66%, range 10 - 88%, 1st Qu =
+~56%). Those samples with filter retentions \<= 0.58 (1st Qu.) likely
 reflect faulty procedure (i.e. ripped filters) and may be associated
-with questionable measurements.
-
-#### QC Data
-
-As a result, we will replace the CCF and NCF values of those samples
-with the following criteria:
-
-  - If samples were taken from the initial condition, values will be
-    replaced by cruise means.
-  - If samples were taken from the stationary phase, values will be
-    replaced with those taken from the replicate sample from the same
-    treatment if possible. There are 3 sets of experiments that do not
-    have conversion factors for the stationary phase of either replicate
-    bottle: AT34 S3 200 m, AT38 S1 MixDS, AT38 S1 MixSD.
-      - For AT34 S3 200 m, the mean value of samples taken from
-        stationary in the 200 m control experiments of AT34 will be used
-      - For AT38 S1 MixDS, the mean value of samples taken from
-        stationary in the deep-deep incubations will be used (cell
-        growth is similar)
-      - For AT38 S1 MixSD, the mean value of samples taken from
-        stationary in the surface-surface incubations will be used (cell
-        growth is similar)
-      - We’ll have to remain aware that caclulating CCFs for AT38 may
-        not be appropriate
-
-<!-- end list -->
+with questionable measurements. We’ll flag these data.
 
 ``` r
-fg_cell.rm <- fg_cell %>% 
-  mutate(init_ccf = ifelse(init_gf75_retention <= 0.56, NA, init_ccf),
-         init_ncf = ifelse(init_gf75_retention <= 0.56, NA, init_ncf),
-         stat_ccf = ifelse(stat_gf75_retention <= 0.56, NA, stat_ccf),
-         stat_ncf = ifelse(stat_gf75_retention <= 0.56, NA, stat_ncf)) 
-```
-
-``` r
-fg_cell.qc <- fg_cell.rm %>% 
-  group_by(Season) %>% 
-  mutate(Depth = as.numeric(Depth),
-         Depth = ifelse(Treatment == "MixDS", 200, Depth),
-         Depth = ifelse(Treatment == "MixSD", 10, Depth),
-         mean_init_ccf = round(mean(init_ccf, na.rm = T)),
-         mean_init_ncf = round(mean(init_ncf, na.rm = T), 1),
-         init_ccf = ifelse(is.na(init_ccf), mean_init_ccf, init_ccf),
-         init_ncf = ifelse(is.na(init_ncf), mean_init_ncf, init_ncf)) %>%
-  ungroup() %>% 
-  group_by(Cruise, Station, Depth, Treatment) %>% 
-  fill(c(stat_timepoint, stat_ccf, stat_ncf), .direction = "downup") %>%
-  ungroup() %>% 
-  group_by(Cruise, Depth, Treatment) %>% 
-  mutate(mean_stat_ccf = round(mean(stat_ccf, na.rm = T)),
-         mean_stat_ncf = round(mean(stat_ncf, na.rm = T)),
-         stat_ccf = ifelse(is.na(stat_ccf), mean_stat_ccf, stat_ccf),
-         stat_ncf = ifelse(is.na(stat_ncf), mean_stat_ncf, stat_ncf)) %>% 
-ungroup() %>% 
-   group_by(Cruise, Station, Depth, Treatment) %>% 
-  mutate(mean_stat_ccf = round(mean(stat_ccf, na.rm = T)),
-         mean_stat_ncf = round(mean(stat_ncf, na.rm = T)),
-         stat_ccf = ifelse(Treatment == "MixDS", 34, stat_ccf),
-         stat_ncf = ifelse(Treatment == "MixDS", 6, stat_ncf),
-         stat_ccf = ifelse(Treatment == "MixSD", 42, stat_ccf),
-         stat_ncf = ifelse(Treatment == "MixSD", 5, stat_ncf),
-         ) %>% 
-  ungroup() %>% 
-  select(-c(contains("mean")))
+fg_cell.qc <- fg_cell %>% 
+  mutate(i.gf75.flag = ifelse(i.gf75.ret <= 0.56, "Questionable", "Acceptable"),
+         i.gf75.flag = ifelse(is.na(i.gf75.flag), "ND", i.gf75.flag),
+         s.gf75.flag = ifelse(s.gf75.ret <= 0.56, "Questionable", "Acceptable"),
+         s.gf75.flag = ifelse(is.na(s.gf75.flag), "ND", s.gf75.flag),
+         gf75.flag = ifelse(i.gf75.flag == "Questionable", "Initial Questionable", NA),
+         gf75.flag = ifelse(s.gf75.flag == "Questionable" & is.na(gf75.flag), "Stationary Questionable", gf75.flag),
+         gf75.flag = ifelse(is.na(gf75.flag) & is.na(i.gf75.flag) & is.na(s.gf75.flag), "ND", gf75.flag),
+         gf75.flag = ifelse(is.na(gf75.flag) & i.gf75.flag == "ND" & s.gf75.flag == "ND", "ND", gf75.flag),
+         gf75.flag = ifelse(is.na(gf75.flag), "Acceptable", gf75.flag),
+         gf75.flag = ifelse(i.gf75.flag == "ND", paste(gf75.flag, "ND Initial", sep = "/" ), gf75.flag),
+          gf75.flag = ifelse(s.gf75.flag == "ND", paste(gf75.flag, "ND Stationary", sep = "/" ), gf75.flag)) %>% 
+  select(-c(i.gf75.flag, s.gf75.flag))
 ```
 
 #### CCFs and C:N ratios
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-62-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-64-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-63-1.png" style="display: block; margin: auto;" />
+There’s a lot going on this plot. “Questionable” refers to samples with
+retentions \>= 56%, where cell slippage may have occured. “ND” refers to
+points where there is missing filter retention data. We’ve faceted the
+plot by (1) control or non-control, (2) the type of blank correction,
+and (3) depth.
 
-init\_bactC\_N\_raw Min. : 4.50  
-1st Qu.: 8.00  
-Median :10.00  
-Mean :10.55  
-3rd Qu.:12.00  
-Max. :25.00  
-NA’s :30
+Overall, there are mostly questionable measurements at 200 m. It is
+peculiar that the acceptable measurements at that depth horizon have
+CCFs \>20. There are a lot of acceptable measurments at 10 m, with
+outliers at the initial condition being questionalble measurements. The
+CCFs for the Early Autumn still seem high even excluding the outliers.
 
-init\_bactC\_N\_corr Min. : 2.500  
-1st Qu.: 5.300  
-Median : 7.350  
-Mean : 8.673  
-3rd Qu.: 9.000  
-Max. :22.500  
-NA’s :36
+The POC correction using both filters of the TFF blanks appears to
+dampen the
+CCFs.
 
-stat\_bactC\_N\_raw Min. : 3.800  
-1st Qu.: 5.225  
-Median : 7.000  
-Mean : 8.842  
-3rd Qu.:11.000  
-Max. :33.000  
-NA’s :6
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-65-1.png" style="display: block; margin: auto;" />
 
-``` 
-init_ccf    
-```
+C:N ratios of POC-corrected samples appear to be more realistic than
+uncorrected values. However, even exluding questionable measurements, N3
+still has an outlier for the initial condition. The points on the line
+intersecting the max of the y-axis represent “Inf” values, where PON
+values are 0.
 
-Min. : 5.00  
-1st Qu.:11.00  
-Median :20.50  
-Mean :26.36  
-3rd Qu.:43.00  
-Max. :60.00  
-NA’s :24
+Summary Statistics including N3: i.cn i.cn.c1 i.cn.c3  
+Min. : 4.0 Min. :2.0 Min. : 1  
+1st Qu.: 8.0 1st Qu.:5.0 1st Qu.: 3  
+Median :11.5 Median :8.5 Median : 6  
+Mean : Inf Mean :Inf Mean :Inf  
+3rd Qu.: Inf 3rd Qu.:Inf 3rd Qu.: 21  
+Max. : Inf Max. :Inf Max. :Inf  
+NA’s :2 NA’s :2 NA’s :8
 
 ``` 
-init_ncf    
+i.ccf.c1        i.ccf.c3    
 ```
 
-Min. :0.000  
-1st Qu.:0.000  
-Median :2.200  
-Mean :2.771  
-3rd Qu.:2.875  
-Max. :9.100  
-NA’s :24
+Min. : 5.00 Min. : 0.00  
+1st Qu.: 8.25 1st Qu.: 4.00  
+Median :16.00 Median : 9.00  
+Mean :25.65 Mean :19.09  
+3rd Qu.:41.50 3rd Qu.:35.00  
+Max. :77.00 Max. :67.00  
+NA’s :4 NA’s :4
+
+Summary Statistics excluding N3: i.cn i.cn.c1 i.cn.c3  
+Min. : 4 Min. : 2 Min. :1.0  
+1st Qu.: 8 1st Qu.: 3 1st Qu.:2.0  
+Median : 10 Median : 6 Median :4.5  
+Mean :Inf Mean :Inf Mean :Inf  
+3rd Qu.:Inf 3rd Qu.:Inf 3rd Qu.:6.0  
+Max. :Inf Max. :Inf Max. :Inf  
+NA’s :2 NA’s :2 NA’s :8
 
 ``` 
-stat_ccf    
+i.ccf.c1        i.ccf.c3     
 ```
 
-Min. : 6.00  
-1st Qu.:18.25  
-Median :28.00  
-Mean :29.61  
-3rd Qu.:40.75  
-Max. :86.00  
-NA’s :10
+Min. : 5.00 Min. : 0.000  
+1st Qu.: 7.00 1st Qu.: 3.000  
+Median :11.00 Median : 7.000  
+Mean :14.94 Mean : 8.188  
+3rd Qu.:16.75 3rd Qu.: 9.250  
+Max. :52.00 Max. :35.000  
+NA’s :4 NA’s :4
 
-``` 
-stat_ncf     
-```
+Overall (including AT38), the median corrected bacterial C:N ratios for
+the in situ community (initial condition) estimated here are are
+comparable to those reported for oceanic bacteria by Fukuda et al.
+(1998): \[6.8 \pm 1.2\]
 
-Min. : 0.000  
-1st Qu.: 3.400  
-Median : 5.400  
-Mean : 5.977  
-3rd Qu.: 8.275  
-Max. :16.300  
-NA’s :10
+While the medians are within the range, the mean aveage contents of
+carbon are higher than those reported by Fukuda et al. (1998):
+\[12.4 \pm 6.3\] fg C cell<sup>-1</sup>
 
-Overall (including AT38), the mean bacterial C:N ratios for the in situ
-community (initial condition) estimated here are higher than those
-reported for oceanic bacteria by Fukuda et al. (1998): \[6.8 \pm 1.2\]
-
-The mean aveage contents of carbon and nitrogen are also higher than
-those reported by Fukuda et al. (1998): \[12.4 \pm 6.3\] and
-\[2.1 \pm 1.1\] fg cell<sup>-1</sup>
-
-These deviations from Fukuda et al. may be in part due to differences in
+Deviations from Fukuda et al. may be in part due to differences in
 sampling locations (NA v Pacific and Southern Ocean) and time of
 collection (range of seasons for NAAMES, winter in both Pacific and
 Southern Ocean). They could also be due to differences in growth
 conditions (i.e nutrient limitation) and differences in bacterial
-communities (Vrede et al 2002). However, C:N ratios, CCF, and NCF become
-much closer to those of Fukuda et al when AT38 data are omitted.
+communities (Vrede et al 2002). The estimates become more in agreement
+with Fukuda et al when N3 data are
+excluded.
 
-init\_bactC\_N\_raw Min. : 4.50  
-1st Qu.: 7.00  
-Median : 8.00  
-Mean : 8.75  
-3rd Qu.:10.50  
-Max. :12.00  
-NA’s :18
+#### Cell Carbon v GF75 Retention
 
-init\_bactC\_N\_corr Min. : 2.500  
-1st Qu.: 5.300  
-Median : 6.000  
-Mean : 6.185  
-3rd Qu.: 7.000  
-Max. :12.000  
-NA’s :24
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-70-1.png" style="display: block; margin: auto;" />
 
-stat\_bactC\_N\_raw Min. : 3.800  
-1st Qu.: 5.000  
-Median : 6.500  
-Mean : 7.948  
-3rd Qu.:10.000  
-Max. :33.000  
-NA’s :4
+#### Cell Carbon v GF75 Filter Cell Abundance
 
-``` 
-init_ccf    
-```
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-71-1.png" style="display: block; margin: auto;" />
 
-Min. : 5.00  
-1st Qu.: 7.00  
-Median :11.00  
-Mean :10.29  
-3rd Qu.:13.00  
-Max. :18.00  
-NA’s :22
+#### Cell Carbon v POC
 
-``` 
-init_ncf    
-```
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-72-1.png" style="display: block; margin: auto;" />
 
-Min. :0.000  
-1st Qu.:0.000  
-Median :2.050  
-Mean :1.557  
-3rd Qu.:2.200  
-Max. :3.100  
-NA’s :22
+#### Cell Carbon v C:N
 
-``` 
-stat_ccf    
-```
-
-Min. : 6.00  
-1st Qu.:14.50  
-Median :23.00  
-Mean :24.64  
-3rd Qu.:32.25  
-Max. :55.00  
-NA’s :6
-
-``` 
-stat_ncf     
-```
-
-Min. : 0.000  
-1st Qu.: 3.350  
-Median : 4.500  
-Mean : 5.882  
-3rd Qu.: 7.825  
-Max. :16.300  
-NA’s :6
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-73-1.png" style="display: block; margin: auto;" />
 
 ## Biovolume
 
@@ -1318,114 +1356,20 @@ measurements at initial though, so we can plot those.
 biovol_merge <- biovol %>% 
   filter(Timepoint == 0) %>% 
   select(Cruise:Bottle, biovol) %>% 
-  rename(init_biovol = biovol) %>% 
+  rename(i.biovol = biovol) %>% 
   left_join(fg_cell.qc, .)
 ```
 
 #### Biovolume v. Cell Carbon (this study and literature)
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-81-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-77-1.png" style="display: block; margin: auto;" />
 
 For the samples in which we have concurrent biovolume and cellular C
 measurements, we see that their relationship to one another is pretty
-widespread relative to published literature relationshops.
-
-### Plots
-
-``` r
-ccf_plot.data <- biovol_merge %>% 
-  select(Season, Station, Depth, Bottle, Treatment, init_ccf, stat_ccf) %>% 
-  gather(phase, ccf, init_ccf:stat_ccf, -c(Season:Treatment)) %>% 
-  mutate(phase = gsub("_ccf", "", phase),
-         phase = gsub("init", "Initial", phase),
-         phase = gsub("stat", "Stationary", phase)) %>% 
-  distinct()
-
-ret_plot.data <- biovol_merge %>% 
-  select(Season, Station, Depth, Bottle, Treatment, init_gf75_retention, stat_gf75_retention) %>%
-  gather(phase, ret, init_gf75_retention, stat_gf75_retention, -c(Season:Treatment)) %>% 
-  mutate(phase = gsub("_gf75_retention", "", phase),
-         phase = gsub("init", "Initial", phase),
-         phase = gsub("stat", "Stationary", phase)) %>% 
-  distinct()
-
-filt_abund_plot.data <- biovol_merge %>% 
-  select(Season, Station, Depth, Bottle, Treatment, init_gf75_cells, stat_gf75_cells) %>%
-  gather(phase, filter_cells, init_gf75_cells, stat_gf75_cells, -c(Season:Treatment)) %>% 
-  mutate(phase = gsub("_gf75_cells", "", phase),
-         phase = gsub("init", "Initial", phase),
-         phase = gsub("stat", "Stationary", phase)) %>% 
-  distinct()
-
-bactC_raw_plot.data <- biovol_merge %>% 
-  select(Season, Station, Depth, Bottle, Treatment, init_bactC_raw,  stat_bactC_raw) %>%
-  gather(phase, bactC_raw, init_bactC_raw, stat_bactC_raw, -c(Season:Treatment)) %>% 
-  mutate(phase = gsub("_bactC_raw", "", phase),
-         phase = gsub("init", "Initial", phase),
-         phase = gsub("stat", "Stationary", phase)) %>% 
-  distinct()
-
-bactC_corr_plot.data <- biovol_merge %>% 
-  select(Season, Station, Depth, Bottle, Treatment, init_bactC_corr,  stat_bactC_corr) %>%
-  gather(phase, bactC_corr, init_bactC_corr, stat_bactC_corr, -c(Season:Treatment)) %>% 
-  mutate(phase = gsub("_bactC_corr", "", phase),
-         phase = gsub("init", "Initial", phase),
-         phase = gsub("stat", "Stationary", phase)) %>% 
-  distinct()
-
-bactC_N_raw_plot.data <- biovol_merge %>% 
-  select(Season, Station, Depth, Bottle, Treatment, init_bactC_N_raw,  stat_bactC_N_raw) %>%
-  gather(phase, bactC_N_raw, init_bactC_N_raw, stat_bactC_N_raw, -c(Season:Treatment)) %>% 
-  mutate(phase = gsub("_bactC_N_raw", "", phase),
-         phase = gsub("init", "Initial", phase),
-         phase = gsub("stat", "Stationary", phase)) %>% 
-  distinct()
-
-bactC_N_corr_plot.data <- biovol_merge %>% 
-  select(Season, Station, Depth, Bottle, Treatment, init_bactC_N_corr,  stat_bactC_N_corr) %>%
-  gather(phase, bactC_N_corr, init_bactC_N_corr, stat_bactC_N_corr, -c(Season:Treatment)) %>% 
-  mutate(phase = gsub("_bactC_N_corr", "", phase),
-         phase = gsub("init", "Initial", phase),
-         phase = gsub("stat", "Stationary", phase)) %>% 
-  distinct()
-
-
-cellC_plot.data <- left_join(ccf_plot.data, ret_plot.data) %>% 
-  left_join(., filt_abund_plot.data) %>% 
-  left_join(., bactC_raw_plot.data) %>% 
-  left_join(., bactC_corr_plot.data) %>% 
-  left_join(., bactC_N_raw_plot.data) %>% 
-  left_join(., bactC_N_corr_plot.data) %>% 
-  mutate(amendment = ifelse(!Treatment == "Control", T, F),
-         ret = ifelse(amendment == T & phase == "Initial", NA, ret),
-         ret = ret * 100,
-         ccf = ifelse(amendment == T & phase == "Initial", NA, ccf),
-         bactC_raw = ifelse(amendment == T & phase == "Initial", NA, bactC_raw),
-        bactC_corr = ifelse(amendment == T & phase == "Initial", NA, bactC_corr),
-        bactC_N_raw = ifelse(amendment == T & phase == "Initial", NA, bactC_N_raw),
-         bactC_N_corr = ifelse(amendment == T & phase == "Initial", NA, bactC_N_corr),
-         amendment = ifelse(amendment == T, "Addition", "Non-Addition")) 
-```
-
-#### Cell Carbon v GF75 Retention
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-83-1.png" style="display: block; margin: auto;" />
-
-#### Cell Carbon v GF75 Filter Cell Abundance
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-84-1.png" style="display: block; margin: auto;" />
-
-#### Cell Carbon v POC
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-85-1.png" style="display: block; margin: auto;" />
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-86-1.png" style="display: block; margin: auto;" />
-
-#### Cell Carbon v C:N
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-87-1.png" style="display: block; margin: auto;" />
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-88-1.png" style="display: block; margin: auto;" />
+widespread relative to published literature relationshops. Circles are
+samples corrected using filter 2 of either all POC blanks or only TFF
+blanks. Diamonds are samples corrected using the sum of the filters for
+TFF blanks.
 
 # Merge Data
 
@@ -1441,15 +1385,14 @@ oc.merge <- oc_p %>%
 
 
 merge <- full_join(ba.merge, oc.merge) %>% 
-  left_join(., biovol_merge) %>% 
+  left_join(., fg_cell.qc %>% select(-c(contains(".ug"), contains("gf75.cells")))) %>% 
   arrange(Cruise, Station, Depth, Treatment, Bottle, Hours) %>%
   mutate(Days = round(Hours/24, 1)) %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) %>%
-  select(Season:Depth, facet_depth,  Treatment, facet_treatment, Bottle, facet_bottle, Timepoint, Hours, stationary, stat_timepoint, Days, cells:sd_p_cells, doc, sd_doc, ptoc, sd_ptoc, doc_from_t0, ptoc_from_t0, init_biovol, init_poc_raw:init_ncf, stat_poc_raw:stat_ncf) %>% 
+  select(Season:Depth, facet_depth,  Treatment, facet_treatment, Bottle, facet_bottle, Timepoint, Hours, stationary, s.timepoint, Days, cells:sd_p_cells, doc, sd_doc, ptoc, sd_ptoc, doc_from_t0, ptoc_from_t0, gf75.flag, i.poc.cf1:i.ccf.c3, s.poc.cf1:s.ccf.c3, ccf.white:ccf.lee) %>% 
   fill(stationary, facet_treatment, facet_depth, facet_bottle, .direction = "downup") %>% 
   ungroup() %>% 
-  drop_na(Hours) %>% 
-  rename(GF75_stationary_tp = stat_timepoint) 
+  drop_na(Hours) 
 ```
 
 # Bottle v. Vial Incubation Comparisons
@@ -1493,7 +1436,7 @@ ptoc_pdoc.reg <- lmodel2(pdoc ~ ptoc, data = ptoc_pdoc.data , nperm = 99)
     ## 
     ## H statistic used for computing C.I. of MA: 0.0008036195
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-92-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-81-1.png" style="display: block; margin: auto;" />
 
 ### Delta
 
@@ -1531,7 +1474,7 @@ delta_ptoc_pdoc.reg <- lmodel2(pdoc_from_t0 ~ ptoc_from_t0, data = ptoc_pdoc.dat
     ## 
     ## H statistic used for computing C.I. of MA: 0.0008695124
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-95-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-84-1.png" style="display: block; margin: auto;" />
 
 ## Bottle TOC v. Vial TOC
 
@@ -1575,7 +1518,7 @@ toc_ptoc.reg <- lmodel2(ptoc ~ toc, data = toc_ptoc.data, nperm = 99)
     ## 
     ## H statistic used for computing C.I. of MA: 0.001177878
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-98-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-87-1.png" style="display: block; margin: auto;" />
 
 ### Delta
 
@@ -1613,7 +1556,7 @@ delta_toc_ptoc.reg <- lmodel2(ptoc_from_t0 ~ toc_from_t0, data = toc_ptoc.data, 
     ## 
     ## H statistic used for computing C.I. of MA: 0.002660834
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-101-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-90-1.png" style="display: block; margin: auto;" />
 
 ## Bottle v. Vial Cell Abundance
 
@@ -1653,7 +1596,7 @@ btl_vial_cell.reg <- lmodel2(p_cells ~ cells, data = btl_vial_cell.data, nperm =
     ## 
     ## H statistic used for computing C.I. of MA: 0.003145633
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-104-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-93-1.png" style="display: block; margin: auto;" />
 
 # Tidy and Wrangle Merged Data
 
@@ -1673,13 +1616,13 @@ tidy_merge <- merge %>%
          sd_doc = sd_ptoc,
          doc_from_t0 = ptoc_from_t0) %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
-  mutate(GF75_stationary_tp = ifelse(GF75_stationary_tp == Timepoint, Hours, NA)) %>% 
-  fill(GF75_stationary_tp, .direction = "downup") %>% 
-  rename(gf75_stationary = GF75_stationary_tp) %>% 
+  mutate(s.timepoint = ifelse(s.timepoint == Timepoint, Hours, NA)) %>% 
+  fill(s.timepoint, .direction = "downup") %>% 
+  rename(s.gf75 = s.timepoint) %>% 
   select(-Timepoint) %>% 
   # merge duplicate stationary timepoints
   group_by(Cruise, Station, Depth, Treatment, Bottle, Hours) %>%
-  fill(cells:stat_ncf, .direction = "downup") %>% 
+  fill(cells:ccf.lee, .direction = "downup") %>% 
   distinct() %>% 
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) 
@@ -1708,7 +1651,8 @@ interp.func <- function(x) {
 interp_st <- lapply(tidy_merge_list, interp.func) %>% 
   plyr::ldply(., as.data.frame) %>% 
   select(-.id) %>% 
-  mutate_at(vars(Depth, Hours:interp_doc), as.numeric)
+  mutate_at(vars(Depth, Hours:interp_doc), as.numeric) %>% 
+  select(Season:doc_from_t0, interp_cells, interp_doc, everything())
 ```
 
 # Calculate Derived Variables
@@ -1726,7 +1670,7 @@ We’ll calculate and define:
     assume all cells are viable.
   - Duration of lag, log, stationary phases based on calculated division
     rates and timing of stationary determined via GrowthCurver
-      - lag phase ends when r \> 0.01
+      - lag phase ends when r \> 0.01 (Yates and Smotzer 2007)
       - we’ve already filtered out the death phases so stationary runs
         from GrowthCurver determined timepoint until cell counts cease
       - we do not determine growth phases where there is no observable
@@ -1742,8 +1686,6 @@ We’ll calculate and define:
       - for this to work, we normalize the cell counts to those at
         stationary
   - Cell carbon in µmol C L<sup>-1</sup>, using the dynamic CCFS
-  - Biovolume-based cell carbon will be calculated using dynamic
-    biovolumes, in the same way as above.
   - Bacterial growth efficiencies (BGE) using multiple approaches, only
     where ∆DOC is resolvable:
       - point-to-point (**BGE\_p**), ∆BC and ∆DOC from T0 to stationary
@@ -1754,16 +1696,29 @@ We’ll calculate and define:
 <!-- end list -->
 
 ``` r
+interp_st %>% 
+  select(Cruise, Station, Depth, Treatment, Bottle, stationary, s.gf75) %>% 
+  unique() %>% 
+  filter(s.gf75 < stationary) 
+```
+
+    ##   Cruise Station Depth Treatment Bottle stationary s.gf75
+    ## 1   AT34       3   200   Control      C        289    288
+    ## 2   AT34       3   200   Control      D        555    288
+    ## 3   AT38       1    10    SynExd      J        171    120
+    ## 4   AT38       1   200   Control      E        390    240
+    ## 5   AT38       1   200   Control      F        379    240
+    ## 6   AT38       3    10   Control      A        121    120
+    ## 7   AT38       6    10   Control      B        196    192
+    ## 8   AT39       4    10   Control      A        273    216
+    ## 9   AT39       4    10   Control      B        262    216
+
+There are a few cases where the onset of stationary predicted by the
+GrowthCurver model occurs later than the time of sampling (n = 9 of 78).
+
+``` r
 calcs <- interp_st %>%
-   mutate(init_poc_raw = 0.3 * init_poc_raw,
-         init_poc_corr =  0.3 * init_poc_corr,
-         init_bactC_raw =  0.3 * init_bactC_raw,
-         init_bactC_corr =  0.3 * init_bactC_corr,
-         init_pon_raw =  0.3 * init_pon_raw,
-         init_pon_corr =  0.3 * init_pon_corr,
-         init_bactN_raw = 0.3 * init_bactN_raw,
-         init_bactN_corr =  0.3 * init_bactN_corr) %>% 
-  mutate_at(vars(init_poc_raw:init_bactN_corr), round, 1) %>% 
+  mutate_at(vars( i.poc.cf1:i.pon.c.um), funs(.*0.3)) %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
   #division rates 
   mutate(r = round((log(interp_cells) - lag(log(interp_cells)))/(Hours - lag(Hours)), 2),
@@ -1775,7 +1730,7 @@ calcs <- interp_st %>%
   fill(cell_div, .direction = "down") %>% 
   mutate(cell_div = ifelse(Hours < stationary & r == 0 & is.na(cell_div), "lag", cell_div)) %>% 
   fill(cell_div, .direction = "down") %>% 
-  mutate(full_curve = ifelse(cell_div == "stationary", cell_div, NA)) %>% 
+  mutate(full_curve = ifelse(cell_div == "stationary", cell_div, NA)) %>%
   fill(full_curve, .direction = "downup") %>% 
   mutate(full_curve = ifelse(full_curve == "stationary", T, F),
          full_curve = ifelse(is.na(full_curve), F, full_curve),
@@ -1795,336 +1750,197 @@ calcs <- interp_st %>%
   fill(k:beg_stat_cells, .direction = "downup") %>% 
   mutate(mew = ifelse(!is.na(end_lag_cells), ((log(beg_stat_cells) - log(end_lag_cells))/(stationary - end_lag_t)) * 24, NA )) %>% 
   #weighted CCFs, raw POC BC, and BC based on CCFs
-  mutate(init_cells = ifelse(Hours == 0, interp_cells, NA)) %>% 
-  fill(init_cells, .direction = "updown") %>% 
-  mutate(delta_cells = interp_cells - init_cells,
-         stat_delta_cells = ifelse(Hours == stationary & stationary != 0 & full_curve == T, delta_cells, NA)) %>% 
-  fill(stat_delta_cells, .direction = "updown") %>% 
-  mutate(norm_cells = ifelse(!is.na(stat_delta_cells), round(delta_cells/stat_delta_cells,2), NA)) %>% 
+  mutate(i.cells = ifelse(Hours == 0, cells, NA)) %>% 
+  fill(i.cells, .direction = "updown") %>% 
+  mutate(delta_cells = interp_cells - i.cells,
+         s.delta_cells = ifelse(Hours == stationary & stationary != 0 & full_curve == T, delta_cells, NA)) %>% 
+  fill(s.delta_cells, .direction = "updown") %>% 
+  mutate(norm_cells = ifelse(!is.na(s.delta_cells), round(delta_cells/s.delta_cells,2), NA)) %>% 
   rename(weight = norm_cells) %>% 
-  mutate(ccf = round(init_ccf + (weight * (stat_ccf - init_ccf)),1),
-         ccf_bc =  round((interp_cells * ccf) / (12*10^9), 1),
-         delta_poc = stat_poc_raw - init_poc_raw, 
-         delta_poc_resolve = ifelse(delta_poc > 0.1 , T, F),
-         delta_gf75_bc_raw = stat_bactC_raw - init_bactC_raw,
-         delta_gf75_bc_corr = stat_bactC_corr - init_bactC_corr,
-         init_doc_gf75_raw = first(doc) - init_bactC_raw,
-         init_doc_gf75_corr = first(doc) - init_bactC_corr,
-         stat_doc_gf75_raw = ifelse(Hours == gf75_stationary, doc - stat_bactC_raw, NA), 
-         stat_doc_gf75_corr = ifelse(Hours == gf75_stationary, doc - stat_bactC_corr, NA),
-         ddoc_gf75_raw =  round(init_doc_gf75_raw - stat_doc_gf75_raw,1),
-         ddoc_gf75_corr = round(init_doc_gf75_corr - stat_doc_gf75_corr,1)) %>% 
-  fill(stat_doc_gf75_raw:ddoc_gf75_corr, .direction = "downup") %>% 
-  #BGE_p
-  mutate(ccf_bc_from_t0 = ccf_bc - first(ccf_bc),
-         ccf_bc_corr_doc = interp_doc - ccf_bc,
-         interp_doc_from_t0 = first(interp_doc) - interp_doc,
-         ddoc_p = ifelse(Hours == stationary, interp_doc_from_t0,  NA)) %>% 
-  fill(ddoc_p, .direction = "downup") %>% 
-  mutate(ddoc_resolve_p = ifelse(ddoc_p >= 1.5, T, F),
-         ddoc_gf75_resolve = ifelse(ddoc_gf75_raw >= 1.5, T, F)) %>% 
-  fill(ddoc_resolve_p,  ddoc_gf75_resolve, .direction = "downup") %>% 
-  mutate(bge_p_ccf = ifelse(Hours == stationary & ddoc_resolve_p == T, round(((first(ccf_bc) - ccf_bc))/((interp_doc - ccf_bc) - (first(interp_doc) - ccf_bc)),2), NA),
-         bge_GF75_raw = ifelse(ddoc_gf75_resolve == T, round( delta_gf75_bc_raw/ddoc_gf75_raw,2), NA),
-          bge_GF75_corr = ifelse(ddoc_gf75_resolve == T, round( delta_gf75_bc_corr/ddoc_gf75_corr,2), NA)) %>%
-  fill(bge_p_ccf:bge_GF75_corr, .direction = "downup") %>% 
-  #BGE_ph 
+  mutate(dyn.ccf.c1 = round(i.ccf.c1 + (weight * (s.ccf.c1 - i.ccf.c1)),1),
+         dyn.ccf.c3 = round(i.ccf.c3 + (weight * (s.ccf.c3 - i.ccf.c3)),1),
+         dyn.ccf.c1 = round(i.ccf.c1 + (weight * (s.ccf.c1 - i.ccf.c1)),1),
+         dyn.ccf.white_fukuda = round(ccf.white + (weight * (ccf.fukuda - ccf.white)),1),
+         dyn.ccf.white_lee = round(ccf.white + (weight * (ccf.lee - ccf.white)),1),
+         bc.ccf.c1 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * i.ccf.c1) / (12*10^9), 1), NA), 
+         bc.ccf.c3 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * i.ccf.c3) / (12*10^9), 1), NA), 
+         bc.dyn.ccf.c1 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * dyn.ccf.c1) / (12*10^9), 1), NA), 
+         bc.dyn.ccf.c3 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * dyn.ccf.c3) / (12*10^9), 1), NA), 
+         bc.ccf.white =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * ccf.white) / (12*10^9), 1), NA), 
+         bc.ccf.fukuda =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * ccf.fukuda) / (12*10^9), 1), NA), 
+         bc.ccf.lee =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * ccf.lee) / (12*10^9), 1), NA), 
+         bc.dyn.ccf.white_fukuda =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * dyn.ccf.white_fukuda) / (12*10^9), 1), NA), 
+         bc.dyn.ccf.white_lee =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * dyn.ccf.white_lee) / (12*10^9), 1), NA)) %>% 
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle, cell_div) %>% 
-  mutate(bc_cell_div = round(mean(ccf_bc, na.rm = T), 1),
-         doc_cell_div = round(mean(interp_doc, na.rm = T), 1),
-         bc_lag = ifelse(cell_div == "lag", bc_cell_div, NA),
-         bc_stat = ifelse(cell_div == "stationary", bc_cell_div, NA),
-         doc_lag = ifelse(cell_div == "lag", doc_cell_div, NA),
-         doc_stat = ifelse(cell_div == "stationary", doc_cell_div, NA) ) %>%
+  mutate(ph.bc.ccf.c1 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.ccf.c1, na.rm = T), 1), NA),
+         ph.bc.ccf.c3 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.ccf.c3, na.rm = T), 1), NA),
+         ph.bc.dyn.ccf.c1 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.dyn.ccf.c1, na.rm = T), 1), NA),
+         ph.bc.dyn.ccf.c3 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.dyn.ccf.c3, na.rm = T), 1), NA),
+         ph.bc.ccf.white = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.ccf.white, na.rm = T), 1), NA),
+         ph.bc.ccf.fukuda = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean( bc.ccf.fukuda, na.rm = T), 1), NA),
+         ph.bc.ccf.lee = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.ccf.lee, na.rm = T), 1), NA),
+         ph.bc.dyn.ccf.white_fukuda =  ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.dyn.ccf.white_fukuda, na.rm = T), 1), NA),
+         ph.bc.dyn.ccf.white_lee = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.dyn.ccf.white_lee, na.rm = T), 1), NA),
+         ph.doc = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(interp_doc, na.rm = T), 1), NA)
+         ) %>% 
   ungroup() %>% 
-  group_by(Cruise, Station, Depth, Treatment, Bottle) %>%
-  fill(bc_lag:doc_stat, .direction = "downup") %>% 
-  mutate(ddoc_ph = doc_lag - doc_stat,
-         ddoc_resolve_ph = ifelse(ddoc_ph >= 1.5, T, F),
-         bge_ph = ifelse(ddoc_resolve_ph == T, round((bc_stat - bc_lag)/(doc_lag - doc_stat), 2), NA)) %>% 
-  ungroup()
-  
-bge <- calcs %>%
-  group_by(Cruise, Station, Depth, Treatment, Bottle) %>%
-  filter(full_curve == T) %>% 
-  drop_na(interp_doc_from_t0, ccf_bc_from_t0) %>% 
-  mutate(auc_bc = round(integrateTrapezoid(Hours, ccf_bc_from_t0, type = "A"), 1),
-         auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
-         bge_ac = round(auc_bc/auc_doc, 2),
-         bge_ac = ifelse(ddoc_resolve_p == F, NA, bge_ac)) %>% 
-  select(Cruise, Station, Depth, Treatment, Bottle, auc_bc:bge_ac) %>%  
-  distinct() %>% 
-  drop_na() %>% 
-  left_join(calcs, .) %>% 
-  ungroup() 
+  group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
+  fill(ph.bc.ccf.c1:ph.doc, .direction = "down") %>%
+  mutate(del.bc.poc = s.poc.um - i.poc.um,
+         del.bc.poc.c1 = s.poc.c1.um - i.poc.c1.um,
+         del.bc.poc.c3 = s.poc.c3.um - i.poc.c3.um,
+         del.p.bc.ccf.c1 = ifelse(Hours == stationary, bc.ccf.c1, NA) - first(bc.ccf.c1),
+         del.p.bc.ccf.c3 = ifelse(Hours == stationary, bc.ccf.c3, NA) - first(bc.ccf.c3),
+         del.p.bc.dyn.ccf.c1 = ifelse(Hours == stationary, bc.dyn.ccf.c1, NA) - first(bc.dyn.ccf.c1),
+         del.p.bc.dyn.ccf.c3 = ifelse(Hours == stationary, bc.dyn.ccf.c3, NA) - first(bc.dyn.ccf.c3),
+          del.p.bc.ccf.white = ifelse(Hours == stationary, bc.ccf.white, NA) - first(bc.ccf.white),
+         del.p.bc.ccf.fukuda = ifelse(Hours == stationary, bc.ccf.fukuda, NA) - first(bc.ccf.fukuda),
+         del.p.bc.ccf.lee = ifelse(Hours == stationary, bc.ccf.lee, NA) - first(bc.ccf.lee),
+         del.p.bc.dyn.ccf.white_fukuda = ifelse(Hours == stationary, bc.dyn.ccf.white_fukuda, NA) - first(bc.dyn.ccf.white_fukuda),
+         del.p.bc.dyn.ccf.white_lee = ifelse(Hours == stationary, bc.dyn.ccf.white_lee, NA) - first(bc.dyn.ccf.white_lee),
+         
+         
+          del.ph.bc.ccf.c1 = ifelse(Hours == stationary, ph.bc.ccf.c1, NA) - first(ph.bc.ccf.c1),
+          del.ph.bc.ccf.c3 = ifelse(Hours == stationary, ph.bc.ccf.c3, NA) - first(ph.bc.ccf.c3),
+         del.ph.bc.dyn.ccf.c1 = ifelse(Hours == stationary, ph.bc.dyn.ccf.c1, NA) - first(ph.bc.dyn.ccf.c1),
+         del.ph.bc.dyn.ccf.c3 = ifelse(Hours == stationary, ph.bc.dyn.ccf.c3, NA) - first(ph.bc.dyn.ccf.c3),
+          del.ph.bc.ccf.white = ifelse(Hours == stationary, ph.bc.ccf.white, NA) - first(ph.bc.ccf.white),
+         del.ph.bc.ccf.fukuda = ifelse(Hours == stationary, ph.bc.ccf.fukuda, NA) - first(ph.bc.ccf.fukuda),
+         del.ph.bc.ccf.lee = ifelse(Hours == stationary, ph.bc.ccf.lee, NA) - first(ph.bc.ccf.lee),
+         del.ph.bc.dyn.ccf.white_fukuda = ifelse(Hours == stationary, ph.bc.dyn.ccf.white_fukuda, NA) - first(ph.bc.dyn.ccf.white_fukuda),
+         del.ph.bc.dyn.ccf.white_lee = ifelse(Hours == stationary, ph.bc.dyn.ccf.white_lee, NA) - first(ph.bc.dyn.ccf.white_lee),
+         del.ph.doc = first(ph.doc) - last(ph.doc),
+         del.doc = first(doc) - ifelse(Hours == stationary, interp_doc, NA),
+         ) %>% 
+  fill(del.p.bc.ccf.c1:del.doc, .direction = "downup") %>% 
+  mutate(del.ph.doc.flag = ifelse(del.ph.doc >= 1.5, "Acceptable", "NR"),
+         del.doc.flag = ifelse(del.doc >= 1.5, "Acceptable", "NR"),
+         bge.bc.poc = ifelse(del.doc.flag != "NR", del.bc.poc/(del.doc + del.bc.poc), NA),
+         bge.bc.poc.c1 = ifelse(del.doc.flag != "NR", del.bc.poc.c1/(del.doc + del.bc.poc.c1), NA),
+         bge.bc.poc.c3 = ifelse(del.doc.flag != "NR", del.bc.poc.c3/(del.doc + del.bc.poc.c3), NA),
+         bge.p.bc.ccf.c1 = ifelse(del.doc.flag != "NR", del.p.bc.ccf.c1/(del.doc + del.p.bc.ccf.c1), NA),
+         bge.p.bc.ccf.c3 = ifelse(del.doc.flag != "NR", del.p.bc.ccf.c3/(del.doc + del.p.bc.ccf.c3), NA),
+         bge.p.bc.dyn.ccf.c1 = ifelse(del.doc.flag != "NR", del.p.bc.dyn.ccf.c1/(del.doc + del.p.bc.dyn.ccf.c1), NA),
+         bge.p.bc.dyn.ccf.c3 = ifelse(del.doc.flag != "NR", del.p.bc.dyn.ccf.c3/(del.doc + del.p.bc.dyn.ccf.c3), NA),
+         bge.p.bc.ccf.white = ifelse(del.doc.flag != "NR", del.p.bc.ccf.white/(del.doc + del.p.bc.ccf.white), NA),
+         bge.p.bc.ccf.fukuda = ifelse(del.doc.flag != "NR", del.p.bc.ccf.fukuda/(del.doc +  del.p.bc.ccf.fukuda), NA),
+         bge.p.bc.ccf.lee = ifelse(del.doc.flag != "NR", del.p.bc.ccf.lee/(del.doc + del.p.bc.ccf.lee), NA),
+         bge.p.bc.dyn.ccf.white_fukuda = ifelse(del.doc.flag != "NR", del.p.bc.dyn.ccf.white_fukuda/(del.doc + del.p.bc.dyn.ccf.white_fukuda), NA),
+         bge.p.bc.dyn.ccf.white_lee = ifelse(del.doc.flag != "NR", del.p.bc.dyn.ccf.white_lee/(del.doc + del.p.bc.dyn.ccf.white_lee), NA),
+         
+         bge.ph.bc.ccf.c1 = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.c1/(del.ph.doc + del.ph.bc.ccf.c1), NA),
+         bge.ph.bc.ccf.c3 = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.c3/(del.ph.doc + del.ph.bc.ccf.c3), NA),
+         bge.ph.bc.dyn.ccf.c1 = ifelse(del.ph.doc.flag != "NR", del.ph.bc.dyn.ccf.c1/(del.ph.doc + del.ph.bc.dyn.ccf.c1), NA),
+         bge.ph.bc.dyn.ccf.c3 = ifelse(del.ph.doc.flag != "NR", del.ph.bc.dyn.ccf.c3/(del.ph.doc + del.ph.bc.dyn.ccf.c3), NA),
+         bge.ph.bc.ccf.white = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.white/(del.ph.doc + del.ph.bc.ccf.white), NA),
+         bge.ph.bc.ccf.fukuda = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.fukuda/(del.ph.doc + del.ph.bc.ccf.fukuda), NA),
+         bge.ph.bc.ccf.lee = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.lee/(del.ph.doc + del.ph.bc.ccf.lee), NA),
+         bge.ph.bc.dyn.ccf.white_fukuda = ifelse(del.ph.doc.flag != "NR", del.ph.bc.dyn.ccf.white_fukuda/(del.ph.doc + del.ph.bc.dyn.ccf.white_fukuda), NA),
+         bge.ph.bc.dyn.ccf.white_lee = ifelse(del.ph.doc.flag != "NR", del.ph.bc.dyn.ccf.white_lee/(del.ph.doc + del.ph.bc.dyn.ccf.white_lee), NA)
+         ) %>% 
+  ungroup() %>% 
+  mutate_at(vars(bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee), round, 2) %>% 
+  left_join(., readRDS("~/naames_export_ms/Output/processed_export_n2_n3_n4.rds") %>% 
+              mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>%
+              mutate_at(vars(Station), as.character) %>% 
+              select(Cruise:Subregion) %>% 
+              distinct()
+  )
+ 
+# bge <- calcs %>%
+#   group_by(Cruise, Station, Depth, Treatment, Bottle) %>%
+#   filter(full_curve == T) %>% 
+#   drop_na(interp_doc_from_t0, ccf_bc_from_t0) %>% 
+#   mutate(auc_bc = round(integrateTrapezoid(Hours, ccf_bc_from_t0, type = "A"), 1),
+#          auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
+#          bge_ac = round(auc_bc/auc_doc, 2),
+#          bge_ac = ifelse(ddoc_resolve_p == F, NA, bge_ac)) %>% 
+#   select(Cruise, Station, Depth, Treatment, Bottle, auc_bc:bge_ac) %>%  
+#   distinct() %>% 
+#   drop_na() %>% 
+#   left_join(calcs, .) %>% 
+#   ungroup() 
 
-bge$Season <- factor(bge$Season, levels = levels)
-
-bge_summary <- bge %>% 
-  select(Season, Cruise, Station, Depth, Treatment, Bottle, delta_poc, delta_poc_resolve, init_bactC_raw, stat_bactC_raw,  delta_gf75_bc_raw,  init_bactC_corr, stat_bactC_corr, delta_gf75_bc_corr,  ddoc_p, ddoc_resolve_p, ddoc_ph, ddoc_resolve_ph, ddoc_gf75_raw, ddoc_gf75_corr, ddoc_gf75_resolve, bge_p_ccf, bge_ph, bge_GF75_raw, bge_GF75_corr, bge_ac ) %>% 
+bge_summary <- calcs %>% 
+  select(Season:Station, ave_lat:Subregion, Depth:facet_bottle, stationary:s.gf75, gf75.flag, del.doc, del.doc.flag, del.ph.doc, del.ph.doc.flag, del.bc.poc:del.ph.bc.dyn.ccf.white_lee, bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee) %>% 
   distinct() %>% 
-  mutate(Manipulation = ifelse(Treatment == "Control", "Control", "Non-Control")) %>% 
-  select(Season:Treatment, Manipulation, everything())
+  mutate(type = ifelse(Treatment == "Control", "Control", "Non-Control")) %>% 
+  select(Season:Treatment, type, everything())
 ```
 
 ## BGEs
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-108-1.png" style="display: block; margin: auto;" />
-
-Despite all this… BGEs estimated using CCFs from GF75 POC are trash.
-Note that in the figure above, I’ve limited the data to BGEs lower than
-1. There are several BGEs estimated using CCF that are above 1.5. Using
-just uncorrected and corrected POC values (not applying bacterial
-abundances to them) dampens the BGEs to those closer to reality.
-However, there are a few BGEs that are above 1, all in the early autumn
-cruise.
-
-Major factors for high BGEs are likely problems with:
-
-  - CCFs
-      - especially the AT38 values, which seem really high for open
-        ocean during a stratified period
-  - Short-term DOC dynamics
-      - small flucuations could be making a big difference, especially
-        for area under the curve/phase mean calculations.
-  - Bacterial abundance
-      - counts overstimated? a spot check of initial condition counts
-        with Niskin counts suggests that counts are fine (initial
-        experimentalcondition is 30% of whole water counts) … unless all
-        counts are off, but this is unlikely.
-
-### Recalculations Using Mean CCFs
-
-Because the surface and deepwater CCFs calculated for AT38 are high
-relative to the surface values of the other cruises, they are
-suspicious. Furthermore, they are blank corrected using the blanks from
-the spring cruises, which may not be appropriate. We may need to omit
-the AT38 data all together.
-
-To workaround using the AT38 CCFs, we’ll:
-
-  - calculate mean conversion factors for the initial and stationary
-    condition for addition (A) and non-addition (NA) experiments at 10
-    and 200 m
-  - as above, use a weighted function to determine the conversion
-    factors between the initial and stationary conditions
-  - recalculate cell carbon using those conversion factors
-
-This is still a slightly better approach than applying a single
-conversion factor (from the literature) across all data. It does make
-some sense to do in comparing experiments across the different seasons.
-
 ``` r
-rm_n3_ccf <- fg_cell.rm %>% 
-  filter(Cruise == "AT38") %>% 
-  select(Season:Bottle)
+bge_lvls <- c("p2p, POC", 
+              "p2p, POC 1f corr.", 
+              "p2p, POC 2f corr.", 
+              "p2p, CCF 1f corr.", 
+              "ph2ph, CCF 1f corr.", 
+              "p2p, CCF 2f corr.", 
+              "ph2ph, CCF 2f corr.", 
+              "p2p, Dyn. CCF 1f corr.", 
+              "ph2ph, Dyn. CCF 1f corr.", 
+              "p2p, Dyn. CCF 2f corr.", 
+              "ph2ph, Dyn. CCF 2f corr.", 
+              "p2p, White CCF", 
+              "ph2ph, White CCF", 
+              "p2p, Fukuda CCF", 
+              "ph2ph, Fukuda CCF", 
+              "p2p, Lee CCF", 
+              "ph2ph, Lee CCF", 
+              "p2p, Dyn. White_Fukuda CCF", 
+              "ph2ph, Dyn. White_Fukuda CCF", 
+              "p2p, Dyn. White_Lee CCF", 
+              "ph2ph, Dyn. White_Lee CCF" )
 
-
-mean_ccf <- fg_cell.rm %>% 
-  filter(!Cruise == "AT38") %>% 
-  bind_rows(., rm_n3_ccf) %>% 
-  mutate(Depth = as.numeric(Depth),
-         Depth = ifelse(Treatment == "MixDS", 200, Depth),
-         Depth = ifelse(Treatment == "MixSD", 10, Depth),
-         Addition = ifelse(Treatment %in% c("Control", "MixSD", "MixDS"), F, T)) %>% 
-  group_by(Depth) %>% 
-  mutate(ave_init_ccf = round(mean(init_ccf, na.rm = T)),
-         sd_init_ccf = round(sd(init_ccf, na.rm = T))) %>% 
+bge_summary.plot.data <- bge_summary %>%
+  select(Season:Bottle, contains("bge")) %>% 
+  distinct() %>% 
+  gather(key, bge, contains("bge")) %>% 
+  drop_na(bge) %>% 
+  mutate(appr = key,
+         appr = ifelse(appr == "bge.bc.poc", "p2p, POC", appr),
+         appr = ifelse(appr == "bge.bc.poc.c1", "p2p, POC 1f corr.", appr),
+         appr = ifelse(appr == "bge.bc.poc.c3", "p2p, POC 2f corr.", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c1", "p2p, CCF 1f corr.", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c3", "p2p, CCF 2f corr.", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c1", "p2p, Dyn. CCF 1f corr.", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c3", "p2p, Dyn. CCF 2f corr.", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.white", "p2p, White CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.fukuda", "p2p, Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.lee", "p2p, Lee CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_fukuda", "p2p, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_lee", "p2p, Dyn. White_Lee CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c1", "ph2ph, CCF 1f corr.", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c3", "ph2ph, CCF 2f corr.", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c1", "ph2ph, Dyn. CCF 1f corr.", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c3", "ph2ph, Dyn. CCF 2f corr.", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.white", "ph2ph, White CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.fukuda", "ph2ph, Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.lee", "ph2ph, Lee CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
+         p = appr) %>% 
+  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
+  group_by(Cruise, type, appr) %>% 
+  add_tally() %>% 
   ungroup() %>% 
-  group_by(Depth, Addition) %>% 
-  mutate(ave_NA_stat_ccf = ifelse(Addition == F, round(mean(stat_ccf, na.rm = T)), NA),
-         sd_NA_stat_ccf = ifelse(Addition == F, round(sd(stat_ccf, na.rm = T)), NA),
-         ave_A_stat_ccf = ifelse(Addition == T, round(mean(stat_ccf, na.rm = T)), NA),
-         sd_A_stat_ccf = ifelse(Addition == T, round(sd(stat_ccf, na.rm = T)), NA)) %>%
-  ungroup() %>% 
-  mutate(ave_stat_ccf = ave_NA_stat_ccf,
-         ave_stat_ccf = ifelse(is.na(ave_stat_ccf), ave_A_stat_ccf, ave_stat_ccf),
-         sd_stat_ccf = sd_NA_stat_ccf,
-         sd_stat_ccf = ifelse(is.na(sd_stat_ccf), sd_A_stat_ccf, sd_stat_ccf)) %>% 
-  select(Season:Bottle, Addition, ave_init_ccf, sd_init_ccf, ave_stat_ccf, sd_stat_ccf )
+  filter(!Station == "U")
 ```
 
-| Depth | Addition | ave\_init\_ccf | sd\_init\_ccf | ave\_stat\_ccf | sd\_stat\_ccf |
-| ----: | :------- | -------------: | ------------: | -------------: | ------------: |
-|    10 | FALSE    |             11 |             4 |             19 |            10 |
-|    10 | TRUE     |             11 |             4 |             31 |            14 |
-|   200 | FALSE    |              6 |             2 |             25 |            13 |
-|   200 | TRUE     |              6 |             2 |             40 |            11 |
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-99-1.png" style="display: block; margin: auto;" />
 
-Mean Bacterioplankton C:N and Converstion Factors
-
-``` r
-calcs_ave_ccf <- interp_st %>%
-  select(-c(init_ccf, stat_ccf)) %>% 
-  left_join(., mean_ccf) %>% 
-  mutate(init_poc_raw =  0.3 * init_poc_raw,
-         init_poc_corr = 0.3 * init_poc_corr,
-         init_bactC_raw = 0.3 * init_bactC_raw,
-         init_bactC_corr = 0.3 * init_bactC_corr,
-         init_pon_raw =  0.3 * init_pon_raw,
-         init_pon_corr =  0.3 * init_pon_corr,
-         init_bactN_raw =  0.3 * init_bactN_raw,
-         init_bactN_corr =  0.3 * init_bactN_corr) %>% 
-  mutate_at(vars(init_poc_raw:init_bactN_corr), round, 1) %>%
-  rename(init_ccf = ave_init_ccf,
-         stat_ccf = ave_stat_ccf) %>% 
-  group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
- #division rates 
-  mutate(r = round((log(interp_cells) - lag(log(interp_cells)))/(Hours - lag(Hours)), 2),
-         r = ifelse(Hours == 0, 0, r)) %>% 
-  #cell growth phase
-  mutate(cell_div = ifelse(Hours >= stationary & !is.na(interp_cells), "stationary", NA),
-         cell_div = ifelse(Hours > stationary & is.na(cell_div), "out of bounds", cell_div),
-         cell_div = ifelse(Hours < stationary & r > 0.01, "exponential", cell_div)) %>% 
-  fill(cell_div, .direction = "down") %>% 
-  mutate(cell_div = ifelse(Hours < stationary & r == 0 & is.na(cell_div), "lag", cell_div)) %>% 
-  fill(cell_div, .direction = "down") %>% 
-  mutate(full_curve = ifelse(cell_div == "stationary", cell_div, NA)) %>% 
-  fill(full_curve, .direction = "downup") %>% 
-  mutate(full_curve = ifelse(full_curve == "stationary", T, F),
-         full_curve = ifelse(is.na(full_curve), F, full_curve),
-         cell_div = ifelse(full_curve == F, "no growth", cell_div),
-         full_curve = ifelse(cell_div == "exponential", T, NA)) %>% 
-  fill(full_curve, .direction = "downup") %>% 
-  mutate(full_curve = ifelse(is.na(full_curve), F, full_curve),
-         cell_div = ifelse(full_curve == F, "no growth", cell_div)) %>% 
-  # carrying capacity
-  mutate(k = ifelse(cell_div == "stationary", interp_cells, NA),
-         k = ifelse(!is.na(k), mean(k, na.rm = T), NA)) %>% 
-  #exponential growth rate
-  mutate(end_lag_t = ifelse(cell_div == "lag", Hours, NA),
-         end_lag_t = ifelse(!is.na(end_lag_t), max(end_lag_t, na.rm = T), NA),
-         end_lag_cells = ifelse(Hours == end_lag_t, interp_cells, NA),
-         beg_stat_cells = ifelse(Hours == stationary, interp_cells, NA)) %>% 
-  fill(k:beg_stat_cells, .direction = "downup") %>% 
-  mutate(mew = ifelse(!is.na(end_lag_cells), ((log(beg_stat_cells) - log(end_lag_cells))/(stationary - end_lag_t)) * 24, NA )) %>% 
-  #weighted CCFs, raw POC BC, and BC based on CCFs
-  mutate(init_cells = ifelse(Hours == 0, interp_cells, NA)) %>% 
-  fill(init_cells, .direction = "updown") %>% 
-  mutate(delta_cells = interp_cells - init_cells,
-         stat_delta_cells = ifelse(Hours == stationary & stationary != 0 & full_curve == T, delta_cells, NA)) %>% 
-  fill(stat_delta_cells, .direction = "updown") %>% 
-  mutate(norm_cells = ifelse(!is.na(stat_delta_cells), round(delta_cells/stat_delta_cells,2), NA)) %>% 
-  rename(weight = norm_cells) %>% 
-  mutate(ccf = round(init_ccf + (weight * (stat_ccf - init_ccf)),1),
-         ccf_bc =  round((interp_cells * ccf) / (12*10^9), 1),
-         delta_poc = stat_poc_raw - init_poc_raw, 
-         delta_poc_resolve = ifelse(delta_poc > 0.1 , T, F),
-         delta_gf75_bc_raw = stat_bactC_raw - init_bactC_raw,
-         delta_gf75_bc_corr = stat_bactC_corr - init_bactC_corr,
-         init_doc_gf75_raw = first(doc) - init_bactC_raw,
-         init_doc_gf75_corr = first(doc) - init_bactC_corr,
-         stat_doc_gf75_raw = ifelse(Hours == gf75_stationary, doc - stat_bactC_raw, NA), 
-         stat_doc_gf75_corr = ifelse(Hours == gf75_stationary, doc - stat_bactC_corr, NA),
-         ddoc_gf75_raw =  round(init_doc_gf75_raw - stat_doc_gf75_raw,1),
-         ddoc_gf75_corr = round(init_doc_gf75_corr - stat_doc_gf75_corr,1)) %>% 
-  fill(stat_doc_gf75_raw:ddoc_gf75_corr, .direction = "downup") %>% 
-  #BGE_p
-  mutate(ccf_bc_from_t0 = ccf_bc - first(ccf_bc),
-         ccf_bc_corr_doc = interp_doc - ccf_bc,
-         interp_doc_from_t0 = first(interp_doc) - interp_doc,
-         ddoc_p = ifelse(Hours == stationary, interp_doc_from_t0,  NA)) %>% 
-  fill(ddoc_p, .direction = "downup") %>% 
-  mutate(ddoc_resolve_p = ifelse(ddoc_p >= 1.5, T, F),
-         ddoc_gf75_resolve = ifelse(ddoc_gf75_raw >= 1.5, T, F)) %>% 
-  fill(ddoc_resolve_p,  ddoc_gf75_resolve, .direction = "downup") %>% 
-  mutate(bge_p_ccf = ifelse(Hours == stationary & ddoc_resolve_p == T, round(((first(ccf_bc) - ccf_bc))/((interp_doc - ccf_bc) - (first(interp_doc) - ccf_bc)),2), NA),
-         bge_GF75_raw = ifelse(ddoc_gf75_resolve == T, round( delta_gf75_bc_raw/ddoc_gf75_raw,2), NA),
-          bge_GF75_corr = ifelse(ddoc_gf75_resolve == T, round( delta_gf75_bc_corr/ddoc_gf75_corr,2), NA)) %>%
-  fill(bge_p_ccf:bge_GF75_corr, .direction = "downup") %>% 
-  #BGE_ph 
-  ungroup() %>% 
-  group_by(Cruise, Station, Depth, Treatment, Bottle, cell_div) %>% 
-  mutate(bc_cell_div = round(mean(ccf_bc, na.rm = T), 1),
-         doc_cell_div = round(mean(interp_doc, na.rm = T), 1),
-         bc_lag = ifelse(cell_div == "lag", bc_cell_div, NA),
-         bc_stat = ifelse(cell_div == "stationary", bc_cell_div, NA),
-         doc_lag = ifelse(cell_div == "lag", doc_cell_div, NA),
-         doc_stat = ifelse(cell_div == "stationary", doc_cell_div, NA) ) %>%
-  ungroup() %>% 
-  group_by(Cruise, Station, Depth, Treatment, Bottle) %>%
-  fill(bc_lag:doc_stat, .direction = "downup") %>% 
-  mutate(ddoc_ph = doc_lag - doc_stat,
-         ddoc_resolve_ph = ifelse(ddoc_ph >= 1.5, T, F),
-         bge_ph = ifelse(ddoc_resolve_ph == T, round((bc_stat - bc_lag)/(doc_lag - doc_stat), 2), NA)) %>% 
-  ungroup()
-  
-bge_ave_ccf <- calcs_ave_ccf %>%
-  group_by(Cruise, Station, Depth, Treatment, Bottle) %>%
-  filter(full_curve == T) %>% 
-  drop_na(interp_doc_from_t0, ccf_bc_from_t0) %>% 
-  mutate(auc_bc = round(integrateTrapezoid(Hours, ccf_bc_from_t0, type = "A"), 1),
-         auc_doc = round(integrateTrapezoid(Hours, interp_doc_from_t0, type = "A"), 1),
-         bge_ac = round(auc_bc/auc_doc, 2),
-         bge_ac = ifelse(ddoc_resolve_p == F, NA, bge_ac)) %>% 
-  select(Cruise, Station, Depth, Treatment, Bottle, auc_bc:bge_ac) %>%  
-  distinct() %>% 
-  drop_na() %>% 
-  left_join(calcs, .) %>% 
-  ungroup() 
-
-bge_ave_ccf$Season <- factor(bge$Season, levels = levels)
-
-bge_ave_ccf_summary <- bge %>% 
-  select(Season, Cruise, Station, Depth, Treatment, Bottle, delta_poc, delta_poc_resolve, init_bactC_raw, stat_bactC_raw,  delta_gf75_bc_raw,  init_bactC_corr, stat_bactC_corr, delta_gf75_bc_corr,  ddoc_p, ddoc_resolve_p, ddoc_ph, ddoc_resolve_ph, ddoc_gf75_raw, ddoc_gf75_corr, ddoc_gf75_resolve, bge_p_ccf, bge_ph, bge_GF75_raw, bge_GF75_corr, bge_ac ) %>% 
-  distinct() %>% 
-  mutate(Manipulation = ifelse(Treatment == "Control", "Control", "Non-Control")) %>% 
-  select(Season:Treatment, Manipulation, everything())
-```
-
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-113-1.png" style="display: block; margin: auto;" />
-
-Using mean CCF helps, but still provides unreasonable BGEs for surface
-non-addition
+Excluding non-control and 200 m
 experiments.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-114-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-100-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-115-1.png" style="display: block; margin: auto;" />
+## Other Parameters
 
-### Hypotheses on High BGEs in Non-addition Experiments
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-101-1.png" style="display: block; margin: auto;" />
 
-How can the calculated BGEs be so high in our experiments, even above
-the theoretical maximum of 0.7-0.8 constrained by del Giorgio and Cole
-(1998) ? The BGEs would imply that in many cases, the incubating
-bacterioplankton grew more the remineralization of DOC would allow.
-
-  - Was labile DOC being produced as fast as it is being consumed?
-      - since these experiments were dark incubations, photoautotrophy
-        is unlikely, but chemoautotrophy can be a source of labile DOC
-  - Was the microbial pump at play?
-      - the heterotrophic microbes may have been processing the bulk DOM
-        successively and repetitively, transforming reactive DOM pools
-        to a recalcitrant carbon resevoir of a different chemical
-        composition.
-      - the bulk concentration may therefore not change as dramatically
-        as cell abundance
-
-Though the absolute values of the BGEs calculated using mean CCFs are
-nonsensical in relation to the literature, there is some sense to the
-seasonal pattern if we assume that one or both of the processes
-described above were at play:
-
-  - In the early spring just after/during deep convection and before the
-    phytoplankton bloom is in full swing, DOC concentrations and
-    accumulation are low. There’s not a ton of material for microbes to
-    build into biomass, as indicated by the dampened carrying capacities
-    relative to other sesasons.
-
-  - In the late spring, as phytoplankton are blooming, albeit at
-    different stages throughout the NAAMES region, there’s a wide spread
-    of BGEs wuth many over 1. We would presume that phytoplankton blooms
-    lead to the increased production of labile DOC. Capturing different
-    stages of that production may explain the spread in BGEs. The
-    microbial pump may be enhanced in some of these incubations that may
-    have started with more reactive DOM.
-
-  - In the early autumn during the stratified condition, the range of
-    BGEs narrows but some are still elevated above 1. The range likely
-    decreases as the variability in ecosystem states is dampened
-    relative to the late spring. As above, elevated BGEs could reflect
-    the strength of the microbial pump.
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-102-1.png" style="display: block; margin: auto;" />
 
 # Merge Data with Export MS Data
 
@@ -2159,7 +1975,7 @@ export <- readRDS("~/naames_export_ms/Output/processed_export_n2_n3_n4.rds") %>%
   mutate_at(vars(NCP_mol_100:doc_ncp_100), round, 2) %>%
   mutate_at(vars(Station), as.character) 
 
-export_bioav <- left_join(bge_ave_ccf, export) %>% 
+export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>% 
   mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
          degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>%  
   group_by(Cruise, Station, Depth, Treatment, Hours) %>% 
@@ -2180,10 +1996,7 @@ export_bioav <- left_join(bge_ave_ccf, export) %>%
   ungroup() %>% 
   group_by(Cruise, Station, Depth) %>% 
   fill(accm_doc:bioav_accm_doc, .direction = "downup") %>% 
-  select(Season, Cruise, degree_bin, Station, redis_DOC_vol:doc_ncp_100, Depth:sd_doc, interp_doc, trt_ave_doc:norm_doc_from_t0, bioav_doc, persis_doc, per_bioav, per_persis, ddoc, interp_cells, init_ccf, stat_ccf, ccf, delta_poc, delta_poc_resolve, init_bactC_raw, stat_bactC_raw,  delta_gf75_bc_raw,  init_bactC_corr, stat_bactC_corr, delta_gf75_bc_corr,  ddoc_p, ddoc_resolve_p, ddoc_ph, ddoc_resolve_ph, ddoc_gf75_raw, ddoc_gf75_corr, ddoc_gf75_resolve, full_curve, cell_div, r, mew, k, bge_p_ccf, bge_ph, bge_GF75_raw, bge_GF75_corr, bge_ac) %>% 
   ungroup()
-
-export_bioav$Season <- factor(export_bioav$Season, levels = levels)
 ```
 
 # Remineralization of Seasonally Accumulated DOC
@@ -2192,57 +2005,57 @@ export_bioav$Season <- factor(export_bioav$Season, levels = levels)
 
 #### No Addition
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-117-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-104-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-118-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-105-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-119-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-106-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-120-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-107-1.png" style="display: block; margin: auto;" />
 
 ## NAAMES 3
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-121-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-108-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-122-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-109-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-123-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-110-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-124-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-111-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-125-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-112-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-126-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-113-1.png" style="display: block; margin: auto;" />
 
 ### NAAMES 4
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-127-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-114-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-128-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-115-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-129-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-116-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-130-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-117-1.png" style="display: block; margin: auto;" />
 
 ## Seasonal Comparison
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-131-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-118-1.png" style="display: block; margin: auto;" />
 
 | Season       | min\_bioav\_doc | mean\_bioav\_doc | med\_bioav\_doc | max\_bioav\_doc | min\_persis\_doc | mean\_persis\_doc | med\_persis\_doc | max\_persis\_doc | min\_ddoc | mean\_ddoc | med\_ddoc | max\_ddoc | min\_bioav | mean\_bioav | med\_bioav | max\_bioav | min\_persis | mean\_persis | med\_persis | max\_persis |
 | :----------- | --------------: | ---------------: | --------------: | --------------: | ---------------: | ----------------: | ---------------: | ---------------: | --------: | ---------: | --------: | --------: | ---------: | ----------: | ---------: | ---------: | ----------: | -----------: | ----------: | ----------: |
+| Early Autumn |             3.8 |              4.9 |             4.9 |             5.9 |              3.9 |               9.1 |              9.3 |             13.0 |        59 |         75 |        76 |        87 |         25 |          37 |         34 |         56 |          44 |           63 |          66 |          75 |
 | Early Spring |             1.8 |              3.2 |             3.1 |             4.7 |            \-0.5 |               0.2 |              0.2 |              0.8 |        18 |         36 |        38 |        56 |         82 |          94 |         92 |        112 |        \-12 |            6 |           8 |          18 |
 | Late Spring  |             2.1 |              3.0 |             3.0 |             4.0 |            \-0.5 |               4.3 |              5.3 |              7.0 |        38 |        145 |       160 |       224 |         27 |          52 |         34 |        115 |        \-15 |           48 |          66 |          73 |
-| Early Autumn |             3.8 |              4.9 |             4.9 |             5.9 |              3.9 |               9.1 |              9.3 |             13.0 |        59 |         75 |        76 |        87 |         25 |          37 |         34 |         56 |          44 |           63 |          66 |          75 |
 
 Seasonal Accumulated DOC Bioavailability and Persistance
 
@@ -2267,10 +2080,10 @@ early autumn, with greater proportion of the early autumn pool beeing
 more consistently persistant.
 
 Our addition experiments are consistent with our definition of DOC
-persistence. In every cruise, the addition of DOM substrates (different
-quality and substrates) stimulated drawdown of accumulated DOC and
-bacterioplankton growth, but did not result in drawdown into the
+persistence. In every cruise, the addition of SPE-DOM substrates
+(different quality and substrates) stimulated drawdown of accumulated
+DOC and bacterioplankton growth, but did not result in drawdown into the
 persistent
 pool.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-134-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-121-1.png" style="display: block; margin: auto;" />
