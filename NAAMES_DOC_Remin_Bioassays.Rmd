@@ -36,18 +36,24 @@ custom_theme <- function() {
           legend.background = element_rect(fill = "transparent",colour = NA),
           legend.key = element_rect(fill = "transparent",colour = NA),
           panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA)) 
+          plot.background = element_rect(fill = "transparent",colour = NA),
+          strip.text.x = element_text(size = 14, color = "white", face = "bold.italic"),
+          strip.text.y = element_text(size = 14, color = "white", face = "bold.italic", angle = 270),
+          strip.background = element_rect(color = "black", fill = "#005a9c", size = 0.5, linetype = "solid")) 
 }
 
 custom_theme_linedraw <- function() {
   theme_linedraw(base_size = 16) %+replace%
-    theme(legend.position = "right",
+    theme(legend.position = "top",
           legend.title = element_blank(),
           legend.spacing.x = unit(0.5,"cm"),
           legend.background = element_rect(fill = "transparent",colour = NA),
           legend.key = element_rect(fill = "transparent",colour = NA),
           panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA)) 
+          plot.background = element_rect(fill = "transparent",colour = NA),
+          strip.text.x = element_text(size = 14, color = "white", face = "bold.italic"),
+          strip.text.y = element_text(size = 14, color = "white", face = "bold.italic", angle = 270),
+          strip.background = element_rect(color = "black", fill = "#005a9c", size = 0.5, linetype = "solid")) 
 }
 
 custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00", "Filter 1" = "#E41A1C", "Filter 2" = "#377EB8", "10 m" = "#E41A1C", "200 m" = "#377EB8") 
@@ -899,10 +905,12 @@ blank.data <- bigelow %>%
   # filter(!Season == "Early Spring" |  !Depth == 200) %>% 
   mutate(BactC_µM = round(BactC_µg/12,2),
          BactN_µM = round(BactN_µg/14,2),
-         BactC_N = ifelse(BactN_µM > 0, round(BactC_µM/BactN_µM,1), NA))
+         BactC_N = ifelse(BactN_µM > 0, round(BactC_µM/BactN_µM,1), NA)) %>% 
+  filter(!Cruise == "AT34" | !Filter == 2 | !Depth == 10 | !Station == 1,
+         !Cruise == "AT39" | !Filter == 1  | !Depth == 200 | !Station == 2)
 ```
 
-The 0.2 µm filter 2 value of 6.46 and the TFF filter 1 value of 9.8 appears to be outliers relative to all the other filters (across cruises and filtrate types), indicating possible contamination or the compromised integrity of the first filter. These samples (filter 1 & 2) are going to be perserved in the analysis for now.
+The 0.2 µm filter 2 value of 6.46 and the TFF filter 1 value of 9.8 appears to be outliers relative to all the other filters (across cruises and filtrate types), indicating possible contamination or the compromised integrity of the first filter. These samples (filter 1 & 2) are going to be removed from the analysis.
 
 #### Filter Summary Statistics
 
@@ -961,25 +969,6 @@ results <-   t.test(BactC_µg ~ Filter,
 results
 ```
 
-**Significantly different**
-
-###### 0.2 µm and TFF filtrate, filter 1
-
-```{r echo = F}
-filt.data <- t.test.data %>% 
-  filter(Filter == 1, Type == "Blank") 
-  
-results <-   t.test(BactC_µg ~ Filtrate,
-                    data = filt.data,
-                    alternative = "two.sided",
-                    mu = 0,
-                    paired = FALSE,
-                    var.equal = FALSE,
-                    conf.level = 0.95)
- 
-results
-```
-
 **Not signficantly different**
 
 ###### 0.2 µm and TFF filtrate, filter 2
@@ -1019,23 +1008,6 @@ results
 ```
 **Significantly different**
 
-###### Blank and Non-blank (initial condition), filter 1
-
-```{r echo = F}
-filt.data <- t.test.data %>% 
-  filter(Filter == 1, Filtrate %in% c("0.2 µm", "1.2 µm")) 
-  
-results <-   t.test(BactC_µg ~ Type,
-                    data = filt.data,
-                    alternative = "two.sided",
-                    mu = 0,
-                    paired = FALSE,
-                    var.equal = FALSE,
-                    conf.level = 0.95)
- 
-results
-```
-**Significantly different**
 
 ###### Blank and Non-blank (initial condition), filter 2
 
@@ -1074,7 +1046,7 @@ results
 
 **Not signficantly different**
 
-Based on these results, it seems like filter 2 of the blanks and the initial conditions could be a good blank. 
+Based on these results, it seems like filter 2 of the blanks could be a good blank. 
 
 For the filters that had 0.2 µm filtrate run through them:
 
@@ -1276,15 +1248,16 @@ corrfactor <- blank.data %>%
 corrfactor
 ```
 
-The carbon correction factors for the mean of filter 2 for all blanks
-and the mean of filter 2 of only TFF blanks are the same. So, we'll calculate 2 corrected values:
+The carbon correction factors for the mean of the blanks are:
 
-- poc.c1.ug = POC (µg) - poc.cf1 or 2
+- poc.c1.ug = POC (µg) - poc.cf1
+- poc.c2.ug = POC (µg) - poc.cf2
 - poc.c3.ug = POC (µg) - poc.cf3 
 
 and convert the calculated vales to µmol C L^-1^:
 
 - poc.c1.um
+- poc.c2.um
 - poc.c3.um
  
 Since the nitrogen carbon conversion factors are all the same, we'll only calculate 1 corrected value
@@ -1299,6 +1272,7 @@ We'll also calculate C:N ratios:
 
 - cn = poc.um/pon.um
 - cn.c1 = poc.c1.um/pon.um
+- cn.c2 = poc.c2.um/pon.um
 - cn.c3 = poc.c3.um/pon.m
 
 ```{r}
@@ -1309,27 +1283,32 @@ bactcarbon <- bigelow %>%
          poc.ug = BactC_µg) %>% 
   cbind(., corrfactor) %>% 
   mutate(poc.c1.ug = poc.ug - poc.cf1,
+         poc.c2.ug = poc.ug - poc.cf2,
          poc.c3.ug = poc.ug - poc.cf3,
          pon.c.ug = pon.ug - pon.cf1,
          poc.c1.ug = ifelse(poc.c1.ug < 0, 0, poc.c1.ug),
+           poc.c2.ug = ifelse(poc.c1.ug < 0, 0, poc.c2.ug),
          poc.c3.ug = ifelse(poc.c3.ug < 0, 0, poc.c3.ug),
          pon.c.ug = ifelse(pon.c.ug < 0, 0, pon.c.ug)) %>%
   group_by(Cruise, Station, Depth, Bottle, Timepoint) %>%
   mutate(poc.ug = round((sum(poc.ug)),1),
          pon.ug = round((sum(pon.ug)),1),
          poc.c1.ug = round((sum(poc.c1.ug)),1),
+         poc.c2.ug = round((sum(poc.c2.ug)),1),
          poc.c3.ug = round((sum(poc.c3.ug)),1),
          pon.c.ug = round((sum(pon.c.ug)),1)) %>% 
   ungroup() %>% 
   mutate(poc.um = round(poc.ug/12, 1),
          poc.c1.um = round(poc.c1.ug/12, 1),
+         poc.c2.um = round(poc.c2.ug/12, 1),
          poc.c3.um = round(poc.c3.ug/12, 1),
          pon.um = round(pon.ug/14, 1),
          pon.c.um = round(pon.c.ug/14, 1),
          cn = round(poc.um/pon.um),
          cn.c1 = round(poc.c1.um/pon.um),
+         cn.c2 = round(poc.c2.um/pon.um),
          cn.c3 = round(poc.c3.um/pon.um)) %>% 
-  select(Season, Cruise, Station, Depth, facetlabel, Treatment, Bottle, Timepoint, poc.ug, pon.ug, poc.cf1, poc.cf2, poc.cf3, pon.cf1, pon.cf2, pon.cf3, poc.c1.ug, poc.c3.ug, pon.c.ug, poc.um:cn.c3 ) %>% 
+  select(Season, Cruise, Station, Depth, facetlabel, Treatment, Bottle, Timepoint, poc.ug, pon.ug, poc.cf1, poc.cf2, poc.cf3, pon.cf1, pon.cf2, pon.cf3, poc.c1.ug, poc.c2.ug,poc.c3.ug, pon.c.ug, poc.um:cn.c3 ) %>% 
   distinct() %>% 
   arrange(Season, Cruise, Station, Depth, Treatment, Bottle, Timepoint) 
   
@@ -1408,10 +1387,12 @@ s.gf75 <- ba.df %>%
 
 ### Combine Cell Abundance and POC Data, Calculate CCF
 
-We'll calculate 4 CCFs (fg C cell^-1^) from the POC data:
+We'll calculate 6 CCFs (fg C cell^-1^) from the POC data:
 
 - i.ccf.c1 = poc.c1.um/cells on filter * 12 * 10^9^ (initial)
 - s.ccf.c1 = poc.c1.um/cells on filter * 12 * 10^9^ (stationary)
+- i.ccf.c2 = poc.c2.um/cells on filter * 12 * 10^9^ (initial)
+- s.ccf.c2 = poc.c2.um/cells on filter * 12 * 10^9^ (stationary)
 - i.ccf.c3 = poc.c3.um/cells on filter * 12  * 10^9^ (initial)
 - s.ccf.c3 = poc.c3.um/cells on filter * 12  * 10^9^ (stationary)
 
@@ -1435,6 +1416,7 @@ i.fg_cell <-  bactcarbon %>%
          Station = gsub("2RF", "S2RF", Station)) %>% 
   left_join(., i.gf75) %>% 
   mutate(i.ccf.c1 = round(i.poc.c1.um/i.gf75.cells * 12 * 10^9),
+         i.ccf.c2 = round(i.poc.c2.um/i.gf75.cells * 12 * 10^9),
          i.ccf.c3 = round(i.poc.c3.um/i.gf75.cells * 12 * 10^9)) 
 
 #stationary timepoints
@@ -1468,6 +1450,7 @@ s.fg_cell <- bactcarbon %>%
          Bottle = gsub("OP", "O", Bottle)) %>% 
   left_join(., s.gf75) %>% 
   mutate(s.ccf.c1 = round(s.poc.c1.um/s.gf75.cells * 12 * 10^9),
+         s.ccf.c2 = round(s.poc.c2.um/s.gf75.cells * 12 * 10^9),
          s.ccf.c3 = round(s.poc.c3.um/s.gf75.cells * 12 * 10^9)) %>% 
   ungroup() %>% 
   rename(s.timepoint = Timepoint)
@@ -1486,10 +1469,11 @@ fg_cell$Season <- factor(fg_cell$Season, levels = levels)
 
 #### Retention of GF75 Filters
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 10, fig.align = "center", warning = FALSE}
 fg_cell %>% 
   select(Season, Station, Depth, Treatment, Bottle, i.gf75.ret, s.gf75.ret) %>% 
-  mutate(facet_depth = paste(Depth, "m")) %>% 
+  mutate(facet_depth = paste(Depth, "m"),
+         type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
   gather(key, value, i.gf75.ret:s.gf75.ret) %>% 
   mutate(key = gsub("i.gf75.ret", "Initial", key),
          key = gsub("s.gf75.ret", "Stationary", key),
@@ -1500,19 +1484,22 @@ fg_cell %>%
   labs(x = "", y = expression(italic("Bacterioplankton Fraction Retained on GF75")), colour = expression(italic(""))) + 
   scale_fill_brewer(palette = "Set1") +
   custom_theme() +
-  facet_grid(facet_depth~key, scales = "free")
+  facet_grid(facet_depth+type~key, scales = "free")
 
 ```
 
-```{r}
+##### 10m, Initial
+
+```{r echo = F}
 fg_cell %>% 
   select(Season, Cruise, Station, Bottle, Depth, Treatment, i.gf75.ret, s.gf75.ret) %>% 
-  mutate(facet_depth = paste(Depth, "m")) %>% 
+  mutate(facet_depth = paste(Depth, "m"),
+         type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
   gather(key, value, i.gf75.ret:s.gf75.ret) %>% 
   mutate(key = gsub("i.gf75.ret", "Initial", key),
          key = gsub("s.gf75.ret", "Stationary", key),
          value = ifelse(key == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>% 
-  filter(key == "Initial", Treatment == "Control") %>% 
+  filter(key == "Initial", Treatment == "Control", Depth == 10) %>% 
   drop_na() %>% 
   ungroup() %>% 
   rename(Initial_Summary = value) %>% 
@@ -1520,131 +1507,267 @@ fg_cell %>%
   summary()
 ```
 
-This figure shows that while GF75 filter retention is fairly consistent across the samples taken during the stationary phase of cell growth (median 85%, mean 83%), they are pretty variable for the samples taken at the initial condition (median 74%, mean 66%, range 10 - 88%, 1st Qu = ~56%). Those samples with filter retentions <= 0.58 (1st Qu.) likely reflect faulty procedure (i.e. ripped filters) and may be associated with questionable measurements. We'll flag these data.
+##### 200m, Initial
+
+```{r echo = F}
+fg_cell %>% 
+  select(Season, Cruise, Station, Bottle, Depth, Treatment, i.gf75.ret, s.gf75.ret) %>% 
+  mutate(facet_depth = paste(Depth, "m"),
+         type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
+  gather(key, value, i.gf75.ret:s.gf75.ret) %>% 
+  mutate(key = gsub("i.gf75.ret", "Initial", key),
+         key = gsub("s.gf75.ret", "Stationary", key),
+         value = ifelse(key == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>% 
+  filter(key == "Initial", Treatment == "Control", Depth == 200) %>% 
+  drop_na() %>% 
+  ungroup() %>% 
+  rename(Initial_Summary = value) %>% 
+  select(Initial_Summary) %>% 
+  summary()
+```
+
+##### 10m, Stationary, Control
+
+```{r echo = F}
+fg_cell %>% 
+  select(Season, Cruise, Station, Bottle, Depth, Treatment, i.gf75.ret, s.gf75.ret) %>% 
+  mutate(facet_depth = paste(Depth, "m"),
+         type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
+  gather(key, value, i.gf75.ret:s.gf75.ret) %>% 
+  mutate(key = gsub("i.gf75.ret", "Initial", key),
+         key = gsub("s.gf75.ret", "Stationary", key),
+         value = ifelse(key == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>% 
+  filter(key == "Stationary", Treatment == "Control", Depth == 10) %>% 
+  drop_na() %>% 
+  ungroup() %>% 
+  rename(Stat_Summary = value) %>% 
+  select(Stat_Summary) %>% 
+  summary()
+```
+
+##### 10m, Stationary, Non-Control
+
+```{r echo = F}
+fg_cell %>% 
+  select(Season, Cruise, Station, Bottle, Depth, Treatment, i.gf75.ret, s.gf75.ret) %>% 
+  mutate(facet_depth = paste(Depth, "m"),
+         type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
+  gather(key, value, i.gf75.ret:s.gf75.ret) %>% 
+  mutate(key = gsub("i.gf75.ret", "Initial", key),
+         key = gsub("s.gf75.ret", "Stationary", key),
+         value = ifelse(key == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>% 
+  filter(key == "Stationary", type == "Non-control", Depth == 10) %>% 
+  drop_na() %>% 
+  ungroup() %>% 
+  rename(Stat_Summary = value) %>% 
+  select(Stat_Summary) %>% 
+  summary()
+```
+
+##### 200m, Stationary, Control
+
+```{r echo = F}
+fg_cell %>% 
+  select(Season, Cruise, Station, Bottle, Depth, Treatment, i.gf75.ret, s.gf75.ret) %>% 
+  mutate(facet_depth = paste(Depth, "m"),
+         type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
+  gather(key, value, i.gf75.ret:s.gf75.ret) %>% 
+  mutate(key = gsub("i.gf75.ret", "Initial", key),
+         key = gsub("s.gf75.ret", "Stationary", key),
+         value = ifelse(key == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>% 
+  filter(key == "Stationary", type == "Control", Depth == 200) %>% 
+  drop_na() %>% 
+  ungroup() %>% 
+  rename(Stat_Summary = value) %>% 
+  select(Stat_Summary) %>% 
+  summary()
+```
+##### 200m, Stationary, Non-control
+
+```{r echo = F}
+fg_cell %>% 
+  select(Season, Cruise, Station, Bottle, Depth, Treatment, i.gf75.ret, s.gf75.ret) %>% 
+  mutate(facet_depth = paste(Depth, "m"),
+         type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
+  gather(key, value, i.gf75.ret:s.gf75.ret) %>% 
+  mutate(key = gsub("i.gf75.ret", "Initial", key),
+         key = gsub("s.gf75.ret", "Stationary", key),
+         value = ifelse(key == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>% 
+  filter(key == "Stationary", type == "Non-control", Depth == 200) %>% 
+  drop_na() %>% 
+  ungroup() %>% 
+  rename(Stat_Summary = value) %>% 
+  select(Stat_Summary) %>% 
+  summary()
+```
+
+This figure shows that while GF75 filter retention is fairly consistent across the samples taken during the stationary phase of cell growth, they are pretty variable for the samples taken at the initial condition. Those samples with filter retentions below the average for a group could reflect faulty procedure (i.e. ripped filters) and may be associated with questionable measurements. We'll flag these data. The averages are as follows:
+
+- Initial condition, 10 m = 72%
+- Initial condition, 200 m = 51%
+- Stationary condition, 10 m control = 81%
+- Stationary condition, 10 m non-control = 88%
+- Stationary condition, 200 m control = 76%
+- Stationary condition, 200 m non-control = 95%
 
 ```{r}
 fg_cell.qc <- fg_cell %>% 
-  mutate(i.gf75.flag = ifelse(i.gf75.ret <= 0.56, "Questionable", "Acceptable"),
-         i.gf75.flag = ifelse(is.na(i.gf75.flag), "ND", i.gf75.flag),
-         s.gf75.flag = ifelse(s.gf75.ret <= 0.56, "Questionable", "Acceptable"),
-         s.gf75.flag = ifelse(is.na(s.gf75.flag), "ND", s.gf75.flag),
-         gf75.flag = ifelse(i.gf75.flag == "Questionable", "Initial Questionable", NA),
-         gf75.flag = ifelse(s.gf75.flag == "Questionable" & is.na(gf75.flag), "Stationary Questionable", gf75.flag),
-         gf75.flag = ifelse(is.na(gf75.flag) & is.na(i.gf75.flag) & is.na(s.gf75.flag), "ND", gf75.flag),
-         gf75.flag = ifelse(is.na(gf75.flag) & i.gf75.flag == "ND" & s.gf75.flag == "ND", "ND", gf75.flag),
-         gf75.flag = ifelse(is.na(gf75.flag), "Acceptable", gf75.flag),
-         gf75.flag = ifelse(i.gf75.flag == "ND", paste(gf75.flag, "ND Initial", sep = "/" ), gf75.flag),
-          gf75.flag = ifelse(s.gf75.flag == "ND", paste(gf75.flag, "ND Stationary", sep = "/" ), gf75.flag)) %>% 
-  select(-c(i.gf75.flag, s.gf75.flag))
+  mutate(type = ifelse(Treatment == "Control", "Control", "Non-control"),
+         i.gf75.flag = ifelse(Depth == 10 & i.gf75.ret < 0.72, "< Ave. Ret.", NA),
+         i.gf75.flag = ifelse(Depth == 200 & i.gf75.ret < 0.51, "< Ave. Ret.", i.gf75.flag ),
+         i.gf75.flag = ifelse(is.na(i.gf75.ret), "ND", i.gf75.flag),
+         i.gf75.flag = ifelse(is.na(i.gf75.flag), "No Flag", i.gf75.flag),
+         s.gf75.flag = ifelse(Depth == 10 & type == "Control" & s.gf75.ret < 0.81, "< Ave. Ret.", NA),
+         s.gf75.flag = ifelse(Depth == 10 & type == "Non-control" & s.gf75.ret < 0.88, "< Ave. Ret.",  s.gf75.flag ),
+         s.gf75.flag = ifelse(Depth == 200 & type == "Control" & s.gf75.ret < 0.76, "< Ave. Ret.",  s.gf75.flag ),
+         s.gf75.flag = ifelse(Depth == 200 & type == "Non-control" & s.gf75.ret < 0.95, "< Ave. Ret.",  s.gf75.flag ),
+         s.gf75.flag = ifelse(is.na(s.gf75.ret), "ND", s.gf75.flag),
+         s.gf75.flag = ifelse(is.na(s.gf75.flag), "No Flag", s.gf75.flag),
+         gf75.flag = ifelse(i.gf75.flag == "No Flag" & s.gf75.flag == "No Flag", "No Flag", NA),
+         gf75.flag = ifelse(i.gf75.flag == "< Ave. Ret." & s.gf75.flag == "No Flag", "Init. < Ave. Ret.", gf75.flag),
+         gf75.flag = ifelse(s.gf75.flag == "< Ave. Ret." & i.gf75.flag == "No Flag", "Stat. < Ave. Ret.", gf75.flag),
+         gf75.flag = ifelse(i.gf75.flag == "< Ave. Ret." & s.gf75.flag == "ND", "Init. < Ave. Ret./Stat. ND", gf75.flag),
+         gf75.flag = ifelse(i.gf75.flag == "< Ave. Ret." & s.gf75.flag == "< Ave. Ret.", "< Ave. Ret.", gf75.flag),
+         gf75.flag = ifelse(i.gf75.flag == "No Flag" & s.gf75.flag == "ND", "Stat. ND", gf75.flag),
+         gf75.flag = ifelse(s.gf75.flag == "No Flag" & i.gf75.flag == "ND", "Init. ND", gf75.flag),
+         gf75.flag = ifelse(s.gf75.flag == "ND" & i.gf75.flag == "ND", "ND", gf75.flag)) %>% 
+  select(Season:Bottle, type, i.gf75.ret, s.gf75.ret, i.gf75.flag, s.gf75.flag, gf75.flag, contains("i."), contains("s."), contains("ccf"))
 
 ```
+
 
 
 #### CCFs and C:N ratios
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 16, fig.align = "center", warning = FALSE}
+##### CCF Early Spring Control, 10 m
+
+```{r echo = FALSE, results = 'asis'}
+fg_cell.qc %>% 
+  filter(Treatment == "Control", Depth == 10, Cruise == "AT39") %>% 
+  select(contains("i.ccf"), contains("s.ccf")) %>% 
+  summary()
+```
+
+##### CCF Late Spring Control, 10 m
+
+```{r echo = FALSE, results = 'asis'}
+fg_cell.qc %>% 
+  filter(Treatment == "Control", Depth == 10, Cruise == "AT34") %>% 
+  select(contains("i.ccf"), contains("s.ccf")) %>% 
+  summary()
+```
+
+##### CCF Early Autumn Control, 10 m
+
+```{r echo = FALSE, results = 'asis'}
+fg_cell.qc %>% 
+  filter(Treatment == "Control", Depth == 10, Cruise == "AT38") %>% 
+  select(contains("i.ccf"), contains("s.ccf")) %>% 
+  summary()
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 20, fig.align = "center", warning = FALSE}
 fg_cell.qc %>% 
   filter(!Station == "U") %>% 
-  select(Season, Station, Depth, Bottle, Treatment, gf75.flag, i.ccf.c1, i.ccf.c3, s.ccf.c1, s.ccf.c3) %>% 
+  filter(Depth == 10) %>% 
+  select(Season, Station, Depth, Bottle, Treatment, gf75.flag, i.ccf.c1, i.ccf.c2, i.ccf.c3, s.ccf.c1, s.ccf.c2, s.ccf.c3) %>% 
   mutate(facet_depth = paste(Depth, "m"),
-         type = ifelse(Treatment == "Control", "Control", "Non-Control"),
+         type = ifelse(Treatment == "Control", "Control", "Non-control"),
          i.ccf.c1 = ifelse(type != "Control", NA, i.ccf.c1),
+         i.ccf.c2 = ifelse(type != "Control", NA, i.ccf.c2),
          i.ccf.c3 = ifelse(type != "Control", NA, i.ccf.c3)) %>% 
   gather(key, value, i.ccf.c1:s.ccf.c3) %>% 
   mutate(label = key,
-         label = gsub("i.ccf.c1", "POC corr. filt 2, all or only TFF blanks", label),
-         label = gsub("i.ccf.c3", "POC corr. filter 1 + 2, TFF blanks", label),
-         label = gsub("s.ccf.c1", "POC corr. filt 2, all or only TFF blanks", label),
-         label = gsub("s.ccf.c3", "POC corr. filter 1 + 2, TFF blanks", label),
-         time = ifelse(key %in% c("i.ccf.c1", "i.ccf.c3"), "Initial", "Stationary"),
+         label = gsub("i.ccf.c1", "POC corr. filt 2, all blanks", label),
+         label = gsub("i.ccf.c2", "POC corr. filt 2, TFF blanks", label),
+         label = gsub("i.ccf.c3", "POC corr. filt 1 + 2, TFF blanks", label),
+         label = gsub("s.ccf.c1", "POC corr. filt 2, all blanks", label),
+         label = gsub("s.ccf.c2", "POC corr. filt 2, TFF blanks", label),
+         label = gsub("s.ccf.c3", "POC corr. filt 1 + 2, TFF blanks", label),
+         time = ifelse(key %in% c("i.ccf.c1", "i.ccf.c2", "i.ccf.c3"), "Initial", "Stationary"),
          value = ifelse(time == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>% 
+  filter(!type == "Non-control" | !time == "Initial") %>% 
   ggplot(aes(x = Season, y = value)) + 
   geom_boxplot(width = 0.3) +
-  geom_jitter(aes(color = time, shape = gf75.flag), width = 0.1,  size = 4, alpha = 0.6) + 
-  labs(x = "", y = expression(italic("CCF, fg C cell"^-1)), colour = expression(italic(""))) + 
-  scale_color_brewer(palette = "Set1") +
-  #scale_shape_manual(values = c("OK" = 16, "Initial Questionable" = 2, "Stationary Questionable" = 3)) +
+  geom_jitter(aes(fill = factor(gf75.flag, levels = c("No Flag", "Init. < Ave. Ret.", "Stat. < Ave. Ret.", "< Ave. Ret.", "Init. < Ave. Ret./Stat. ND", "Init. ND", "Stat. ND"))), shape = 21, width = 0.1,  size = 4, alpha = 0.6) + 
+  labs(x = "", y = expression(italic("Cellular Carbon, fg C cell"^-1)), colour = expression(italic(""))) + 
   custom_theme() +
-  facet_grid(facet_depth~type+label, scales = "free") + 
+  facet_grid(type+time~factor(label, levels = c("POC uncorr.", "POC corr. filt 2, all blanks","POC corr. filt 2, TFF blanks", "POC corr. filt 1 + 2, TFF blanks" )), scales = "free") + 
   ggtitle("Carbon Conversion Factors")
 
 ```
 
-There's a lot going on this plot. "Questionable" refers to samples with retentions >= 56%, where cell slippage may have occured. "ND" refers to points where there is missing filter retention data. We've faceted the plot by (1) control or non-control, (2) the type of blank correction, and (3) depth. 
 
-Overall, there are mostly questionable measurements at 200 m. It is peculiar that the acceptable measurements at that depth horizon have CCFs >20. There are a lot of acceptable measurments at 10 m, with outliers at the initial condition being questionalble measurements. The CCFs for the Early Autumn still seem high even excluding the outliers. 
 
-The POC correction using both filters of the TFF blanks appears to dampen the CCFs. 
-
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 22, fig.align = "center", warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 20, fig.align = "center", warning = FALSE}
 fg_cell.qc %>% 
   filter(!Station == "U") %>% 
-  select(Season, Station, Depth, Bottle, Treatment, gf75.flag, i.cn, i.cn.c1, i.cn.c3, s.cn, s.cn.c1, s.cn.c3) %>% 
+  filter(Depth == 10) %>% 
+  select(Season, Station, Depth, Bottle, Treatment, gf75.flag, i.cn, i.cn.c1, i.cn.c2, i.cn.c3, s.cn, s.cn.c1, s.cn.c2, s.cn.c3) %>% 
   mutate(facet_depth = paste(Depth, "m"),
-         type = ifelse(Treatment == "Control", "Control", "Non-Control"),
+         type = ifelse(Treatment == "Control", "Control", "Non-control"),
          i.cn = ifelse(type != "Control", NA, i.cn),
          i.cn.c1 = ifelse(type != "Control", NA, i.cn.c1),
+         i.cn.c2 = ifelse(type != "Control", NA, i.cn.c2),
          i.cn.c3 = ifelse(type != "Control", NA, i.cn.c3)) %>% 
   gather(key, value, i.cn:s.cn.c3) %>% 
   mutate(label = key,
-         label = gsub("i.cn.c1", "POC corr. filt 2, all or only TFF blanks", label),
-         label = gsub("i.cn.c3", "POC corr. filter 1 + 2, TFF blanks", label),
+         label = gsub("i.cn.c1", "POC corr. filt 2, all blanks", label),
+         label = gsub("i.cn.c2", "POC corr. filt 2, TFF blanks", label),
+         label = gsub("i.cn.c3", "POC corr. filt 1 + 2, TFF blanks", label),
          label = gsub("i.cn", "POC uncorr.", label),
-          label = gsub("s.cn.c1", "POC corr. filt 2, all or only TFF blanks", label),
-         label = gsub("s.cn.c3", "POC corr. filter 1 + 2, TFF blanks", label),
+         label = gsub("s.cn.c1", "POC corr. filt 2, all blanks", label),
+         label = gsub("s.cn.c2", "POC corr. filt 2, TFF blanks", label),
+         label = gsub("s.cn.c3", "POC corr. filt 1 + 2, TFF blanks", label),
          label = gsub("s.cn", "POC uncorr.", label),
-         time = ifelse(key %in% c("i.cn", "i.cn.c1", "i.cn.c3"), "Initial", "Stationary"),
-         value = ifelse(time == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>% 
+         time = ifelse(key %in% c("i.cn", "i.cn.c1", "i.cn.c2", "i.cn.c3"), "Initial", "Stationary"),
+         value = ifelse(time == "Initial" & Bottle %in% c("B", "D", "F"), NA, value)) %>%
+  filter(!type == "Non-control" | !time == "Initial") %>% 
   ggplot(aes(x = Season, y = value)) + 
   geom_boxplot(width = 0.3) +
-  geom_jitter(aes(color = time, shape = gf75.flag), width = 0.1,  size = 4, alpha = 0.6) + 
-  labs(x = "", y = expression(italic("C:N")), colour = expression(italic(""))) + 
-  scale_color_brewer(palette = "Set1") +
-  #scale_shape_manual(values = c("OK" = 16, "Initial Questionable" = 2, "Stationary Questionable" = 3)) +
+  geom_jitter(aes(fill = factor(gf75.flag, levels = c("No Flag", "Init. < Ave. Ret.", "Stat. < Ave. Ret.", "< Ave. Ret.", "Init. < Ave. Ret./Stat. ND", "Init. ND", "Stat. ND"))), shape = 21, width = 0.1,  size = 4, alpha = 0.6) + 
+  labs(x = "", y = expression(italic("Cellular C:N")), colour = expression(italic(""))) + 
   custom_theme() +
-  facet_grid(facet_depth~type+factor(label, levels = c("POC uncorr.", "POC corr. filt 2, all or only TFF blanks", "POC corr. filter 1 + 2, TFF blanks" )), scales = "free") + 
-  ggtitle("C:N ratios")
+  facet_grid(type+time~factor(label, levels = c("POC uncorr.", "POC corr. filt 2, all blanks","POC corr. filt 2, TFF blanks", "POC corr. filt 1 + 2, TFF blanks" )), scales = "free") + 
+  ggtitle("Cellular C:N")
 
 ```
 
-C:N ratios of POC-corrected samples appear to be more realistic than uncorrected values. However, even exluding questionable measurements, N3 still has an outlier for the initial condition. The points on the line intersecting the max of the y-axis represent "Inf" values, where PON values are 0. 
+C:N ratios of POC-corrected samples appear to be a little more realistic than uncorrected values (closer to 6.8 of Fukuda et al). Generally, these C:Ns are pretty good. The points on the line intersecting the max of the y-axis represent "Inf" values, where PON values are 0. 
 
-Summary Statistics including N3:
+##### Early Spring Control, 10 m
+
 ```{r echo = FALSE, results = 'asis'}
 fg_cell.qc %>% 
-  filter(Treatment == "Control") %>% 
-  select(i.cn:i.cn.c3) %>% 
+  filter(Treatment == "Control", Depth == 10, Cruise == "AT39", !i.cn == "Inf") %>% 
+  select(i.cn:i.cn.c3, i.ccf.c1:i.ccf.c3) %>% 
   summary()
 ```
 
 
+##### Late Spring Control, 10 m
+
 ```{r echo = FALSE, results = 'asis'}
 fg_cell.qc %>% 
-  filter(Treatment == "Control") %>% 
-  select(i.ccf.c1:i.ccf.c3) %>%
+  filter(Treatment == "Control", Depth == 10, Cruise == "AT34", !i.cn == "Inf") %>% 
+  select(i.cn:i.cn.c3, i.ccf.c1:i.ccf.c3) %>% 
   summary()
 ```
 
-Summary Statistics excluding N3:
-```{r echo = FALSE, results = 'asis'}
-fg_cell.qc %>% 
-  filter(Treatment == "Control", Cruise != "AT38") %>% 
-  select(i.cn:i.cn.c3) %>% 
-  summary()
-```
-
+##### Early Autumn Control, 10 m
 
 ```{r echo = FALSE, results = 'asis'}
 fg_cell.qc %>% 
-  filter(Treatment == "Control", Cruise != "AT38") %>% 
-  select(i.ccf.c1:i.ccf.c3) %>%
+  filter(Treatment == "Control", Depth == 10, Cruise == "AT38", !i.cn == "Inf") %>% 
+  select(i.cn:i.cn.c3, i.ccf.c1:i.ccf.c3) %>% 
   summary()
 ```
 
 
 Overall (including AT38), the median corrected bacterial C:N ratios for the in situ community (initial condition) estimated here are are comparable to those reported for oceanic bacteria by Fukuda et al. (1998): $$6.8 \pm 1.2$$ 
 
-While the medians are within the range, the mean aveage contents of carbon are  higher than those reported by Fukuda et al. (1998): $$12.4 \pm 6.3$$ fg C cell^-1^
+Especially if the outlier in the early spring is removed, the spring cell carbon contents within the range of those reported by Fukuda et al. (1998): $$12.4 \pm 6.3$$ fg C cell^-1^
 
 Deviations from Fukuda et al. may be in part due to differences in sampling locations (NA v Pacific and Southern Ocean) and time of collection (range of seasons for NAAMES, winter in both Pacific and Southern Ocean). They could also be due to differences in growth conditions (i.e nutrient limitation) and differences in bacterial communities (Vrede et al 2002). The estimates become more in agreement with Fukuda et al when N3 data are excluded. 
 
@@ -1652,13 +1775,15 @@ Deviations from Fukuda et al. may be in part due to differences in sampling loca
 #### Cell Carbon v GF75 Retention
 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 16, fig.align = "center", warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 14, fig.align = "center", warning = FALSE}
 
 fg_cell.qc %>%
-  select(Season:Bottle, i.ccf.c1, i.ccf.c3, s.ccf.c1, s.ccf.c3 ) %>% 
+  select(Season:Bottle, i.ccf.c1, i.ccf.c2, i.ccf.c3, s.ccf.c1, s.ccf.c2, s.ccf.c3 ) %>% 
   gather(key, ccf, i.ccf.c1:s.ccf.c3) %>% 
   mutate(time = ifelse(str_detect(key, "i"), "Initial", "Stationary" ),
-         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all or only TFF blanks", "POC corr. filter 1 + 2, TFF blanks"),
+         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all blanks", NA),
+         corr = ifelse(str_detect(key, "c2"), "POC corr. filt 2, TFF blanks", corr),
+         corr = ifelse(str_detect(key, "c3"),  "POC corr. filt 1 + 2, TFF blanks", corr),
          ccf = ifelse(time == "Initial" & Bottle %in% c("B", "D", "F"), NA, ccf), 
           ccf = ifelse(time == "Initial" & Treatment != "Control", NA, ccf), 
          type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
@@ -1669,15 +1794,20 @@ fg_cell.qc %>%
               gather(time, ret, i.gf75.ret:s.gf75.ret) %>%
               mutate(time = ifelse(str_detect(time, "i"), "Initial", "Stationary" )) ) %>% 
   mutate(facetlabel = paste(Depth, "m")) %>% 
+  filter(Depth == 10) %>% 
+  mutate(vline = ifelse(Treatment == "Control" & time == "Initial", 66, NA),
+         vline = ifelse(Treatment == "Control" & time == "Stationary", 80, vline),
+         vline = ifelse(!Treatment == "Control" & time == "Stationary", 90, vline)) %>% 
   #####PLOT####
   ggplot(aes(x =  ret*100, y = ccf)) +
   geom_point( aes(fill = Season), shape = 21, size = 4, alpha = 0.7 ) +
+  geom_vline(aes(xintercept = vline), color  = "blue", linetype = 2) +
   labs(x = expression(paste("GF75 Filter Cell Retention, %")), y = expression(paste("Cellular C, fg C Cell"^-1))) +
   scale_x_continuous(trans = 'log10', breaks = pretty_breaks()) +
   scale_y_continuous(trans = 'log10', breaks = pretty_breaks()) +
   scale_fill_manual(values = custom.colors) +
   custom_theme_linedraw()  +
-  facet_grid(facetlabel+type~time+corr, scales = "free")
+  facet_grid(type + time~factor(corr, levels = c("POC corr. filt 2, all blanks", "POC corr. filt 2, TFF blanks", "POC corr. filt 1 + 2, TFF blanks")), scales = "free") 
   
 ```
 
@@ -1686,14 +1816,15 @@ fg_cell.qc %>%
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 16, fig.align = "center", warning = FALSE}
 
 fg_cell.qc %>%
-  select(Season:Bottle, i.ccf.c1, i.ccf.c3, s.ccf.c1, s.ccf.c3 ) %>% 
+  select(Season:Bottle, i.ccf.c1, i.ccf.c2, i.ccf.c3, s.ccf.c1, s.ccf.c2, s.ccf.c3 ) %>% 
   gather(key, ccf, i.ccf.c1:s.ccf.c3) %>% 
   mutate(time = ifelse(str_detect(key, "i"), "Initial", "Stationary" ),
-         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all or only TFF blanks", "POC corr. filter 1 + 2, TFF blanks"),
-         ccf = ifelse(time == "Initial" & Bottle %in% c("B", "D", "F"), NA, ccf), 
-          ccf = ifelse(time == "Initial" & Treatment != "Control", NA, ccf), 
+         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all blanks", NA),
+         corr = ifelse(str_detect(key, "c2"), "POC corr. filt 2, TFF blanks", corr),
+         corr = ifelse(str_detect(key, "c3"),  "POC corr. filt 1 + 2, TFF blanks", corr),
+         ccf = ifelse(time == "Initial" & Treatment != "Control", NA, ccf), 
          type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
-  drop_na(ccf) %>% 
+  drop_na(ccf) %>%
   select(-key) %>% 
   left_join(., fg_cell.qc %>% 
               select(Season:Bottle, i.gf75.cells, s.gf75.cells ) %>%
@@ -1708,7 +1839,7 @@ fg_cell.qc %>%
   scale_y_continuous(trans = 'log10', breaks = pretty_breaks()) +
   scale_fill_manual(values = custom.colors) +
   custom_theme_linedraw()  +
-  facet_grid(facetlabel+type~time+corr, scales = "free")
+  facet_grid(type + time~factor(corr, levels = c("POC corr. filt 2, all blanks", "POC corr. filt 2, TFF blanks", "POC corr. filt 1 + 2, TFF blanks")), scales = "free") 
   
 ```
 
@@ -1716,21 +1847,24 @@ fg_cell.qc %>%
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 18, fig.align = "center", warning = FALSE}
 fg_cell.qc %>%
-  select(Season:Bottle, i.ccf.c1, i.ccf.c3, s.ccf.c1, s.ccf.c3 ) %>% 
+  select(Season:Bottle, i.ccf.c1, i.ccf.c2, i.ccf.c3, s.ccf.c1, s.ccf.c2, s.ccf.c3 ) %>% 
   gather(key, ccf, i.ccf.c1:s.ccf.c3) %>% 
   mutate(time = ifelse(str_detect(key, "i"), "Initial", "Stationary" ),
-         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all or only TFF blanks", "POC corr. filter 1 + 2, TFF blanks"),
-         ccf = ifelse(time == "Initial" & Bottle %in% c("B", "D", "F"), NA, ccf), 
-          ccf = ifelse(time == "Initial" & Treatment != "Control", NA, ccf), 
+         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all blanks", NA),
+         corr = ifelse(str_detect(key, "c2"), "POC corr. filt 2, TFF blanks", corr),
+         corr = ifelse(str_detect(key, "c3"),  "POC corr. filt 1 + 2, TFF blanks", corr),
+         ccf = ifelse(time == "Initial" & Treatment != "Control", NA, ccf), 
          type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
-  drop_na(ccf) %>% 
+  drop_na(ccf) %>%
   select(-key) %>% 
   left_join(., fg_cell.qc %>% 
               select(Season:Bottle, i.poc.um:i.poc.c3.um, s.poc.um:s.poc.c3.um ) %>%
               gather(key, poc, i.poc.um:s.poc.c3.um) %>%
               mutate(time = ifelse(str_detect(key, "i"), "Initial", "Stationary" ),
-                     corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all or only TFF blanks", "POC corr. filter 1 + 2, TFF blanks"),
-                     corr = ifelse(key %in% c("i.poc.um", "s.poc.um"), "Not Corrected", corr)) %>% 
+                   corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all blanks", NA),
+                   corr = ifelse(str_detect(key, "c2"), "POC corr. filt 2, TFF blanks", corr),
+                   corr = ifelse(str_detect(key, "c3"),  "POC corr. filt 1 + 2, TFF blanks", corr),
+                   corr = ifelse(key %in% c("i.poc.um", "s.poc.um"), "POC uncorr.", corr)) %>% 
               drop_na(poc) %>% 
               select(-key)) %>% 
   mutate(facetlabel = paste(Depth, "m")) %>% 
@@ -1742,42 +1876,127 @@ fg_cell.qc %>%
   scale_y_continuous(trans = 'log10', breaks = pretty_breaks()) +
   scale_fill_manual(values = custom.colors) +
   custom_theme_linedraw()  +
-  facet_grid(facetlabel+type~time+corr, scales = "free")
+  facet_grid(type + time~factor(corr, levels = c("POC uncorr.", "POC corr. filt 2, all blanks", "POC corr. filt 2, TFF blanks", "POC corr. filt 1 + 2, TFF blanks")), scales = "free") 
+  
+```
+
+
+####  POC v Cell Abundance
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 18, fig.align = "center", warning = FALSE}
+
+ fg_cell.qc %>% 
+  select(Season:Bottle, i.poc.um:i.poc.c3.um, s.poc.um:s.poc.c3.um ) %>%
+  gather(key, poc, i.poc.um:s.poc.c3.um) %>%
+  mutate(time = ifelse(str_detect(key, "i"), "Initial", "Stationary" ),
+         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all blanks", NA),
+         corr = ifelse(str_detect(key, "c2"), "POC corr. filt 2, TFF blanks", corr),
+         corr = ifelse(str_detect(key, "c3"),  "POC corr. filt 1 + 2, TFF blanks", corr),
+         corr = ifelse(key %in% c("i.poc.um", "s.poc.um"), "POC uncorr.", corr),
+         poc = ifelse(time == "Initial" & Bottle %in% c("B", "D", "F"), NA, poc), 
+         poc = ifelse(time == "Initial" & Treatment != "Control", NA, poc), 
+         type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
+  drop_na(poc) %>% 
+  select(-key) %>% 
+   left_join(., fg_cell.qc %>% 
+              select(Season:Bottle, i.gf75.cells, s.gf75.cells ) %>%
+              gather(time, cells, i.gf75.cells:s.gf75.cells) %>%
+              mutate(time = ifelse(str_detect(time, "i"), "Initial", "Stationary" )) ) %>% 
+  mutate(facetlabel = paste(Depth, "m")) %>% 
+  filter(Depth == 10) %>% 
+  #####PLOT####
+  ggplot(aes(x =  cells/10^9, y = poc)) +
+  geom_point( aes(fill = Season), shape = 21, size = 4, alpha = 0.7 ) +
+  labs(x = expression(paste("10"^9," Cells L"^-1)), y = expression(paste("POC, µmol C L"^-1))) +
+  scale_x_continuous(trans = 'log10', breaks = pretty_breaks()) +
+  scale_y_continuous(trans = 'log10', breaks = pretty_breaks()) +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme_linedraw()  +
+  facet_grid(type + time~factor(corr, levels = c("POC uncorr.", "POC corr. filt 2, all blanks", "POC corr. filt 2, TFF blanks", "POC corr. filt 1 + 2, TFF blanks")), scales = "free") 
+  
+```
+####  POC v GF75 retention
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 24, fig.align = "center", warning = FALSE}
+
+ fg_cell.qc %>% 
+  select(Season:Bottle, i.poc.um:i.poc.c3.um, s.poc.um:s.poc.c3.um ) %>%
+  gather(key, poc, i.poc.um:s.poc.c3.um) %>%
+  mutate(time = ifelse(str_detect(key, "i"), "Initial", "Stationary" ),
+         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all blanks", NA),
+         corr = ifelse(str_detect(key, "c2"), "POC corr. filt 2, TFF blanks", corr),
+         corr = ifelse(str_detect(key, "c3"),  "POC corr. filt 1 + 2, TFF blanks", corr),
+         corr = ifelse(key %in% c("i.poc.um", "s.poc.um"), "POC uncorr.", corr),
+         poc = ifelse(time == "Initial" & Bottle %in% c("B", "D", "F"), NA, poc), 
+         poc = ifelse(time == "Initial" & Treatment != "Control", NA, poc), 
+         type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
+  drop_na(poc) %>% 
+  select(-key) %>% 
+  left_join(., fg_cell.qc %>% 
+              select(Season:Bottle, i.gf75.ret, s.gf75.ret ) %>%
+              gather(time, ret, i.gf75.ret:s.gf75.ret) %>%
+              mutate(time = ifelse(str_detect(time, "i"), "Initial", "Stationary" )) ) %>% 
+  mutate(facetlabel = paste(Depth, "m")) %>% 
+  filter(Depth == 10) %>% 
+  mutate(vline = ifelse(Treatment == "Control" & time == "Initial", 66, NA),
+         vline = ifelse(Treatment == "Control" & time == "Stationary", 80, vline),
+         vline = ifelse(!Treatment == "Control" & time == "Stationary", 90, vline)) %>% 
+  #####PLOT####
+  ggplot(aes(x =  ret*100, y = poc)) +
+  geom_point( aes(fill = Season), shape = 21, size = 4, alpha = 0.7 ) +
+  geom_vline(aes(xintercept = vline), color  = "blue", linetype = 2) +
+  labs(x = expression(paste("GF75 Filter Cell Retention, %")), y = expression(paste("POC, µmol C L"^-1))) +
+  scale_x_continuous(trans = 'log10', breaks = pretty_breaks()) +
+  scale_y_continuous(trans = 'log10', breaks = pretty_breaks()) +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme_linedraw()  +
+  facet_grid(type + time~factor(corr, levels = c("POC uncorr.", "POC corr. filt 2, all blanks", "POC corr. filt 2, TFF blanks", "POC corr. filt 1 + 2, TFF blanks")), scales = "free") 
   
 ```
 
 #### Cell Carbon v C:N 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 18, fig.align = "center", warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 20, fig.align = "center", warning = FALSE}
 fg_cell.qc %>%
-  select(Season:Bottle, i.ccf.c1, i.ccf.c3, s.ccf.c1, s.ccf.c3 ) %>% 
+  select(Season:Bottle, i.ccf.c1, i.ccf.c2, i.ccf.c3, s.ccf.c1, s.ccf.c2, s.ccf.c3 ) %>% 
   gather(key, ccf, i.ccf.c1:s.ccf.c3) %>% 
   mutate(time = ifelse(str_detect(key, "i"), "Initial", "Stationary" ),
-         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all or only TFF blanks", "POC corr. filter 1 + 2, TFF blanks"),
-         ccf = ifelse(time == "Initial" & Bottle %in% c("B", "D", "F"), NA, ccf), 
-          ccf = ifelse(time == "Initial" & Treatment != "Control", NA, ccf), 
+         corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all blanks", NA),
+         corr = ifelse(str_detect(key, "c2"), "POC corr. filt 2, TFF blanks", corr),
+         corr = ifelse(str_detect(key, "c3"),  "POC corr. filt 1 + 2, TFF blanks", corr),
+         ccf = ifelse(time == "Initial" & Treatment != "Control", NA, ccf), 
          type = ifelse(Treatment == "Control", "Control", "Non-control")) %>% 
-  drop_na(ccf) %>% 
+  drop_na(ccf) %>%
   select(-key) %>% 
   left_join(., fg_cell.qc %>% 
               select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3 ) %>%
               gather(key, cn, i.cn:s.cn.c3) %>%
               mutate(time = ifelse(str_detect(key, "i"), "Initial", "Stationary" ),
-                     corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all or only TFF blanks", "POC corr. filter 1 + 2, TFF blanks"),
-                     corr = ifelse(key %in% c("i.cn", "s.cn"), "Not Corrected", corr)) %>% 
+                    corr = ifelse(str_detect(key, "c1"), "POC corr. filt 2, all blanks", NA),
+                    corr = ifelse(str_detect(key, "c2"), "POC corr. filt 2, TFF blanks", corr),
+                    corr = ifelse(str_detect(key, "c3"),  "POC corr. filt 1 + 2, TFF blanks", corr),
+                    corr = ifelse(key %in% c("i.cn", "s.cn"), "POC uncorr.", corr)) %>% 
               drop_na(cn) %>% 
               select(-key)) %>% 
   mutate(facetlabel = paste(Depth, "m")) %>% 
+  filter(Depth == 10) %>% 
   #####PLOT####
   ggplot(aes(x = cn, y = ccf)) +
   geom_point( aes(fill = Season), shape = 21, size = 4, alpha = 0.7 ) +
+  geom_vline(xintercept = 5, linetype = 2, color = "blue") +
+  geom_hline(yintercept = 12.4, linetype = 2, color = "red" ) +
   labs(x = expression(paste("Bacterial C:N")), y = expression(paste("Cellular C, fg C Cell"^-1))) +
   scale_x_continuous(trans = 'log10', breaks = pretty_breaks()) +
   scale_y_continuous(trans = 'log10', breaks = pretty_breaks()) +
   scale_fill_manual(values = custom.colors) +
   custom_theme_linedraw()  +
-  facet_grid(facetlabel+type~time+corr, scales = "free")
-  
+  facet_grid(type + time~corr, scales = "free") +
+  annotate(geom = "text", x = 30, y = 80, label = "Q1", color = "#005a9c") +
+  annotate(geom = "text", x = 30, y = 5, label = "Q2", color = "#005a9c") +
+  annotate(geom = "text", x = 1, y = 5, label = "Q3", color = "#005a9c") +
+  annotate(geom = "text", x = 1, y = 80, label = "Q4", color = "#005a9c") 
 ```
 
 ## Biovolume
@@ -2043,7 +2262,7 @@ tidy_merge <- merge %>%
   select(-Timepoint) %>% 
   # merge duplicate stationary timepoints
   group_by(Cruise, Station, Depth, Treatment, Bottle, Hours) %>%
-  fill(cells:ccf.lee, .direction = "downup") %>% 
+  fill(cells:doc_from_t0, i.poc.cf1:ccf.lee, .direction = "downup") %>% 
   distinct() %>% 
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) 
@@ -2073,7 +2292,7 @@ interp.func <- function(x) {
 interp_st <- lapply(tidy_merge_list, interp.func) %>% 
   plyr::ldply(., as.data.frame) %>% 
   select(-.id) %>% 
-  mutate_at(vars(Depth, Hours:interp_doc), as.numeric) %>% 
+  mutate_at(vars(Depth, Hours:doc_from_t0, i.poc.cf1:interp_doc), as.numeric) %>% 
   select(Season:doc_from_t0, interp_cells, interp_doc, everything())
 ```
 
@@ -2122,15 +2341,14 @@ calcs <- interp_st %>%
   fill(cell_div, .direction = "down") %>% 
   mutate(cell_div = ifelse(Hours < stationary & r == 0 & is.na(cell_div), "lag", cell_div)) %>% 
   fill(cell_div, .direction = "down") %>% 
-  mutate(full_curve = ifelse(cell_div == "stationary", cell_div, NA)) %>%
-  fill(full_curve, .direction = "downup") %>% 
-  mutate(full_curve = ifelse(full_curve == "stationary", T, F),
-         full_curve = ifelse(is.na(full_curve), F, full_curve),
-         cell_div = ifelse(full_curve == F, "no growth", cell_div),
-         full_curve = ifelse(cell_div == "exponential", T, NA)) %>% 
-  fill(full_curve, .direction = "downup") %>% 
-  mutate(full_curve = ifelse(is.na(full_curve), F, full_curve),
-         cell_div = ifelse(full_curve == F, "no growth", cell_div)) %>% 
+  mutate(growth = ifelse(cell_div == "stationary" | cell_div == "exponential", cell_div, NA)) %>%
+  fill(growth, .direction = "downup") %>% 
+  mutate(growth = ifelse(growth == "stationary" | growth == "exponential", T, F),
+         growth = ifelse(is.na(growth), F, growth),
+         cell_div = ifelse(growth == F, "no growth", cell_div)) %>% 
+  fill(growth, .direction = "downup") %>% 
+  fill(interp_cells, .direction = "down") %>% 
+  mutate(interp_cells = ifelse(Days > 24, NA, interp_cells)) %>% 
   # carrying capacity
   mutate(k = ifelse(cell_div == "stationary", interp_cells, NA),
          k = ifelse(!is.na(k), mean(k, na.rm = T), NA)) %>% 
@@ -2145,18 +2363,23 @@ calcs <- interp_st %>%
   mutate(i.cells = ifelse(Hours == 0, cells, NA)) %>% 
   fill(i.cells, .direction = "updown") %>% 
   mutate(delta_cells = interp_cells - i.cells,
-         s.delta_cells = ifelse(Hours == stationary & stationary != 0 & full_curve == T, delta_cells, NA)) %>% 
+         s.delta_cells = ifelse(Hours == stationary & stationary != 0 & growth == T, delta_cells, NA)) %>% 
   fill(s.delta_cells, .direction = "updown") %>% 
   mutate(norm_cells = ifelse(!is.na(s.delta_cells), round(delta_cells/s.delta_cells,2), NA)) %>% 
   rename(weight = norm_cells) %>% 
   mutate(dyn.ccf.c1 = round(i.ccf.c1 + (weight * (s.ccf.c1 - i.ccf.c1)),1),
+         dyn.ccf.c2 = round(i.ccf.c2 + (weight * (s.ccf.c2 - i.ccf.c2)),1),
          dyn.ccf.c3 = round(i.ccf.c3 + (weight * (s.ccf.c3 - i.ccf.c3)),1),
-         dyn.ccf.c1 = round(i.ccf.c1 + (weight * (s.ccf.c1 - i.ccf.c1)),1),
          dyn.ccf.white_fukuda = round(ccf.white + (weight * (ccf.fukuda - ccf.white)),1),
          dyn.ccf.white_lee = round(ccf.white + (weight * (ccf.lee - ccf.white)),1),
-         bc.ccf.c1 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * i.ccf.c1) / (12*10^9), 1), NA), 
-         bc.ccf.c3 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * i.ccf.c3) / (12*10^9), 1), NA), 
-         bc.dyn.ccf.c1 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * dyn.ccf.c1) / (12*10^9), 1), NA), 
+         i.bc.ccf.c1 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * i.ccf.c1) / (12*10^9), 1), NA), 
+         i.bc.ccf.c2 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * i.ccf.c2) / (12*10^9), 1), NA), 
+         i.bc.ccf.c3 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * i.ccf.c3) / (12*10^9), 1), NA), 
+         s.bc.ccf.c1 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * s.ccf.c1) / (12*10^9), 1), NA), 
+         s.bc.ccf.c2 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * s.ccf.c2) / (12*10^9), 1), NA), 
+         s.bc.ccf.c3 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * s.ccf.c3) / (12*10^9), 1), NA), 
+         bc.dyn.ccf.c1 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * dyn.ccf.c1) / (12*10^9), 1), NA),
+         bc.dyn.ccf.c2 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * dyn.ccf.c2) / (12*10^9), 1), NA), 
          bc.dyn.ccf.c3 =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * dyn.ccf.c3) / (12*10^9), 1), NA), 
          bc.ccf.white =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * ccf.white) / (12*10^9), 1), NA), 
          bc.ccf.fukuda =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * ccf.fukuda) / (12*10^9), 1), NA), 
@@ -2165,9 +2388,14 @@ calcs <- interp_st %>%
          bc.dyn.ccf.white_lee =  ifelse(cell_div %in% c("lag", "exponential", "stationary"), round((interp_cells * dyn.ccf.white_lee) / (12*10^9), 1), NA)) %>% 
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle, cell_div) %>% 
-  mutate(ph.bc.ccf.c1 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.ccf.c1, na.rm = T), 1), NA),
-         ph.bc.ccf.c3 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.ccf.c3, na.rm = T), 1), NA),
+  mutate(ph.i.bc.ccf.c1 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(i.bc.ccf.c1, na.rm = T), 1), NA),
+         ph.i.bc.ccf.c2 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(i.bc.ccf.c2, na.rm = T), 1), NA),
+         ph.i.bc.ccf.c3 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(i.bc.ccf.c3, na.rm = T), 1), NA),
+         ph.s.bc.ccf.c1 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(s.bc.ccf.c1, na.rm = T), 1), NA),
+         ph.s.bc.ccf.c2 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(s.bc.ccf.c2, na.rm = T), 1), NA),
+         ph.s.bc.ccf.c3 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(s.bc.ccf.c3, na.rm = T), 1), NA),
          ph.bc.dyn.ccf.c1 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.dyn.ccf.c1, na.rm = T), 1), NA),
+         ph.bc.dyn.ccf.c2 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.dyn.ccf.c2, na.rm = T), 1), NA),
          ph.bc.dyn.ccf.c3 = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.dyn.ccf.c3, na.rm = T), 1), NA),
          ph.bc.ccf.white = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean(bc.ccf.white, na.rm = T), 1), NA),
          ph.bc.ccf.fukuda = ifelse(!cell_div %in% c("no growth", "out of bounds"), round(mean( bc.ccf.fukuda, na.rm = T), 1), NA),
@@ -2178,58 +2406,68 @@ calcs <- interp_st %>%
          ) %>% 
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
-  fill(ph.bc.ccf.c1:ph.doc, .direction = "down") %>%
+  fill(ph.i.bc.ccf.c1:ph.doc, .direction = "down") %>%
   mutate(del.bc.poc = s.poc.um - i.poc.um,
          del.bc.poc.c1 = s.poc.c1.um - i.poc.c1.um,
+         del.bc.poc.c2 = s.poc.c2.um - i.poc.c2.um,
          del.bc.poc.c3 = s.poc.c3.um - i.poc.c3.um,
-         del.p.bc.ccf.c1 = ifelse(Hours == stationary, bc.ccf.c1, NA) - first(bc.ccf.c1),
-         del.p.bc.ccf.c3 = ifelse(Hours == stationary, bc.ccf.c3, NA) - first(bc.ccf.c3),
-         del.p.bc.dyn.ccf.c1 = ifelse(Hours == stationary, bc.dyn.ccf.c1, NA) - first(bc.dyn.ccf.c1),
-         del.p.bc.dyn.ccf.c3 = ifelse(Hours == stationary, bc.dyn.ccf.c3, NA) - first(bc.dyn.ccf.c3),
-          del.p.bc.ccf.white = ifelse(Hours == stationary, bc.ccf.white, NA) - first(bc.ccf.white),
-         del.p.bc.ccf.fukuda = ifelse(Hours == stationary, bc.ccf.fukuda, NA) - first(bc.ccf.fukuda),
-         del.p.bc.ccf.lee = ifelse(Hours == stationary, bc.ccf.lee, NA) - first(bc.ccf.lee),
-         del.p.bc.dyn.ccf.white_fukuda = ifelse(Hours == stationary, bc.dyn.ccf.white_fukuda, NA) - first(bc.dyn.ccf.white_fukuda),
-         del.p.bc.dyn.ccf.white_lee = ifelse(Hours == stationary, bc.dyn.ccf.white_lee, NA) - first(bc.dyn.ccf.white_lee),
+         del.bc.p.ccf.c1 = ifelse(Hours == stationary, s.bc.ccf.c1, NA) - first(i.bc.ccf.c1),
+         del.bc.p.ccf.c2 = ifelse(Hours == stationary, s.bc.ccf.c2, NA) - first(i.bc.ccf.c2),
+         del.bc.p.ccf.c3 = ifelse(Hours == stationary, s.bc.ccf.c3, NA) - first(i.bc.ccf.c3),
+         del.bc.p.dyn.ccf.c1 = ifelse(Hours == stationary, bc.dyn.ccf.c1, NA) - first(bc.dyn.ccf.c1),
+         del.bc.p.dyn.ccf.c2 = ifelse(Hours == stationary, bc.dyn.ccf.c2, NA) - first(bc.dyn.ccf.c2),
+         del.bc.p.dyn.ccf.c3 = ifelse(Hours == stationary, bc.dyn.ccf.c3, NA) - first(bc.dyn.ccf.c3),
+         del.bc.p.ccf.white = ifelse(Hours == stationary, bc.ccf.white, NA) - first(bc.ccf.white),
+         del.bc.p.ccf.fukuda = ifelse(Hours == stationary, bc.ccf.fukuda, NA) - first(bc.ccf.fukuda),
+         del.bc.p.ccf.lee = ifelse(Hours == stationary, bc.ccf.lee, NA) - first(bc.ccf.lee),
+         del.bc.p.dyn.ccf.white_fukuda = ifelse(Hours == stationary, bc.dyn.ccf.white_fukuda, NA) - first(bc.dyn.ccf.white_fukuda),
+         del.bc.p.dyn.ccf.white_lee = ifelse(Hours == stationary, bc.dyn.ccf.white_lee, NA) - first(bc.dyn.ccf.white_lee),
          
          
-          del.ph.bc.ccf.c1 = ifelse(Hours == stationary, ph.bc.ccf.c1, NA) - first(ph.bc.ccf.c1),
-          del.ph.bc.ccf.c3 = ifelse(Hours == stationary, ph.bc.ccf.c3, NA) - first(ph.bc.ccf.c3),
-         del.ph.bc.dyn.ccf.c1 = ifelse(Hours == stationary, ph.bc.dyn.ccf.c1, NA) - first(ph.bc.dyn.ccf.c1),
-         del.ph.bc.dyn.ccf.c3 = ifelse(Hours == stationary, ph.bc.dyn.ccf.c3, NA) - first(ph.bc.dyn.ccf.c3),
-          del.ph.bc.ccf.white = ifelse(Hours == stationary, ph.bc.ccf.white, NA) - first(ph.bc.ccf.white),
-         del.ph.bc.ccf.fukuda = ifelse(Hours == stationary, ph.bc.ccf.fukuda, NA) - first(ph.bc.ccf.fukuda),
-         del.ph.bc.ccf.lee = ifelse(Hours == stationary, ph.bc.ccf.lee, NA) - first(ph.bc.ccf.lee),
-         del.ph.bc.dyn.ccf.white_fukuda = ifelse(Hours == stationary, ph.bc.dyn.ccf.white_fukuda, NA) - first(ph.bc.dyn.ccf.white_fukuda),
-         del.ph.bc.dyn.ccf.white_lee = ifelse(Hours == stationary, ph.bc.dyn.ccf.white_lee, NA) - first(ph.bc.dyn.ccf.white_lee),
+         del.bc.ph.ccf.c1 = ifelse(Hours == stationary, ph.s.bc.ccf.c1, NA) - first(ph.i.bc.ccf.c1),
+         del.bc.ph.ccf.c2 = ifelse(Hours == stationary, ph.s.bc.ccf.c2, NA) - first(ph.i.bc.ccf.c2),
+         del.bc.ph.ccf.c3 = ifelse(Hours == stationary, ph.s.bc.ccf.c3, NA) - first(ph.i.bc.ccf.c3),
+         del.bc.ph.dyn.ccf.c1 = ifelse(Hours == stationary, ph.bc.dyn.ccf.c1, NA) - first(ph.bc.dyn.ccf.c1),
+         del.bc.ph.dyn.ccf.c2 = ifelse(Hours == stationary, ph.bc.dyn.ccf.c2, NA) - first(ph.bc.dyn.ccf.c2),
+         del.bc.ph.dyn.ccf.c3 = ifelse(Hours == stationary, ph.bc.dyn.ccf.c3, NA) - first(ph.bc.dyn.ccf.c3),
+         del.bc.ph.ccf.white = ifelse(Hours == stationary, ph.bc.ccf.white, NA) - first(ph.bc.ccf.white),
+         del.bc.ph.ccf.fukuda = ifelse(Hours == stationary, ph.bc.ccf.fukuda, NA) - first(ph.bc.ccf.fukuda),
+         del.bc.ph.ccf.lee = ifelse(Hours == stationary, ph.bc.ccf.lee, NA) - first(ph.bc.ccf.lee),
+         del.bc.ph.dyn.ccf.white_fukuda = ifelse(Hours == stationary, ph.bc.dyn.ccf.white_fukuda, NA) - first(ph.bc.dyn.ccf.white_fukuda),
+         del.bc.ph.dyn.ccf.white_lee = ifelse(Hours == stationary, ph.bc.dyn.ccf.white_lee, NA) - first(ph.bc.dyn.ccf.white_lee),
          del.ph.doc = first(ph.doc) - last(ph.doc),
          del.doc = first(doc) - ifelse(Hours == stationary, interp_doc, NA),
          ) %>% 
-  fill(del.p.bc.ccf.c1:del.doc, .direction = "downup") %>% 
+  fill(del.bc.p.ccf.c1:del.doc, .direction = "downup") %>% 
   mutate(del.ph.doc.flag = ifelse(del.ph.doc >= 1.5, "Acceptable", "NR"),
          del.doc.flag = ifelse(del.doc >= 1.5, "Acceptable", "NR"),
          bge.bc.poc = ifelse(del.doc.flag != "NR", del.bc.poc/(del.doc + del.bc.poc), NA),
          bge.bc.poc.c1 = ifelse(del.doc.flag != "NR", del.bc.poc.c1/(del.doc + del.bc.poc.c1), NA),
+         bge.bc.poc.c2 = ifelse(del.doc.flag != "NR", del.bc.poc.c2/(del.doc + del.bc.poc.c2), NA),
          bge.bc.poc.c3 = ifelse(del.doc.flag != "NR", del.bc.poc.c3/(del.doc + del.bc.poc.c3), NA),
-         bge.p.bc.ccf.c1 = ifelse(del.doc.flag != "NR", del.p.bc.ccf.c1/(del.doc + del.p.bc.ccf.c1), NA),
-         bge.p.bc.ccf.c3 = ifelse(del.doc.flag != "NR", del.p.bc.ccf.c3/(del.doc + del.p.bc.ccf.c3), NA),
-         bge.p.bc.dyn.ccf.c1 = ifelse(del.doc.flag != "NR", del.p.bc.dyn.ccf.c1/(del.doc + del.p.bc.dyn.ccf.c1), NA),
-         bge.p.bc.dyn.ccf.c3 = ifelse(del.doc.flag != "NR", del.p.bc.dyn.ccf.c3/(del.doc + del.p.bc.dyn.ccf.c3), NA),
-         bge.p.bc.ccf.white = ifelse(del.doc.flag != "NR", del.p.bc.ccf.white/(del.doc + del.p.bc.ccf.white), NA),
-         bge.p.bc.ccf.fukuda = ifelse(del.doc.flag != "NR", del.p.bc.ccf.fukuda/(del.doc +  del.p.bc.ccf.fukuda), NA),
-         bge.p.bc.ccf.lee = ifelse(del.doc.flag != "NR", del.p.bc.ccf.lee/(del.doc + del.p.bc.ccf.lee), NA),
-         bge.p.bc.dyn.ccf.white_fukuda = ifelse(del.doc.flag != "NR", del.p.bc.dyn.ccf.white_fukuda/(del.doc + del.p.bc.dyn.ccf.white_fukuda), NA),
-         bge.p.bc.dyn.ccf.white_lee = ifelse(del.doc.flag != "NR", del.p.bc.dyn.ccf.white_lee/(del.doc + del.p.bc.dyn.ccf.white_lee), NA),
+         bge.p.bc.ccf.c1 = ifelse(del.doc.flag != "NR", del.bc.p.ccf.c1/(del.doc + del.bc.p.ccf.c1), NA),
+         bge.p.bc.ccf.c2 = ifelse(del.doc.flag != "NR", del.bc.p.ccf.c2/(del.doc + del.bc.p.ccf.c2), NA),
+         bge.p.bc.ccf.c3 = ifelse(del.doc.flag != "NR", del.bc.p.ccf.c3/(del.doc + del.bc.p.ccf.c3), NA),
+         bge.p.bc.dyn.ccf.c1 = ifelse(del.doc.flag != "NR", del.bc.p.dyn.ccf.c1/(del.doc + del.bc.p.dyn.ccf.c1), NA),
+         bge.p.bc.dyn.ccf.c2 = ifelse(del.doc.flag != "NR", del.bc.p.dyn.ccf.c2/(del.doc + del.bc.p.dyn.ccf.c2), NA),
+         bge.p.bc.dyn.ccf.c3 = ifelse(del.doc.flag != "NR", del.bc.p.dyn.ccf.c3/(del.doc + del.bc.p.dyn.ccf.c3), NA),
+         bge.p.bc.ccf.white = ifelse(del.doc.flag != "NR", del.bc.p.ccf.white/(del.doc + del.bc.p.ccf.white), NA),
+         bge.p.bc.ccf.fukuda = ifelse(del.doc.flag != "NR", del.bc.p.ccf.fukuda/(del.doc +  del.bc.p.ccf.fukuda), NA),
+         bge.p.bc.ccf.lee = ifelse(del.doc.flag != "NR", del.bc.p.ccf.lee/(del.doc + del.bc.p.ccf.lee), NA),
+         bge.p.bc.dyn.ccf.white_fukuda = ifelse(del.doc.flag != "NR", del.bc.p.dyn.ccf.white_fukuda/(del.doc + del.bc.p.dyn.ccf.white_fukuda), NA),
+         bge.p.bc.dyn.ccf.white_lee = ifelse(del.doc.flag != "NR", del.bc.p.dyn.ccf.white_lee/(del.doc + del.bc.p.dyn.ccf.white_lee), NA),
          
-         bge.ph.bc.ccf.c1 = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.c1/(del.ph.doc + del.ph.bc.ccf.c1), NA),
-         bge.ph.bc.ccf.c3 = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.c3/(del.ph.doc + del.ph.bc.ccf.c3), NA),
-         bge.ph.bc.dyn.ccf.c1 = ifelse(del.ph.doc.flag != "NR", del.ph.bc.dyn.ccf.c1/(del.ph.doc + del.ph.bc.dyn.ccf.c1), NA),
-         bge.ph.bc.dyn.ccf.c3 = ifelse(del.ph.doc.flag != "NR", del.ph.bc.dyn.ccf.c3/(del.ph.doc + del.ph.bc.dyn.ccf.c3), NA),
-         bge.ph.bc.ccf.white = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.white/(del.ph.doc + del.ph.bc.ccf.white), NA),
-         bge.ph.bc.ccf.fukuda = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.fukuda/(del.ph.doc + del.ph.bc.ccf.fukuda), NA),
-         bge.ph.bc.ccf.lee = ifelse(del.ph.doc.flag != "NR", del.ph.bc.ccf.lee/(del.ph.doc + del.ph.bc.ccf.lee), NA),
-         bge.ph.bc.dyn.ccf.white_fukuda = ifelse(del.ph.doc.flag != "NR", del.ph.bc.dyn.ccf.white_fukuda/(del.ph.doc + del.ph.bc.dyn.ccf.white_fukuda), NA),
-         bge.ph.bc.dyn.ccf.white_lee = ifelse(del.ph.doc.flag != "NR", del.ph.bc.dyn.ccf.white_lee/(del.ph.doc + del.ph.bc.dyn.ccf.white_lee), NA)
+         bge.ph.bc.ccf.c1 = ifelse(del.ph.doc.flag != "NR", del.bc.ph.ccf.c1/(del.ph.doc + del.bc.ph.ccf.c1), NA),
+         bge.ph.bc.ccf.c2 = ifelse(del.ph.doc.flag != "NR", del.bc.ph.ccf.c2/(del.ph.doc + del.bc.ph.ccf.c2), NA),
+         bge.ph.bc.ccf.c3 = ifelse(del.ph.doc.flag != "NR", del.bc.ph.ccf.c3/(del.ph.doc + del.bc.ph.ccf.c3), NA),
+         bge.ph.bc.dyn.ccf.c1 = ifelse(del.ph.doc.flag != "NR", del.bc.ph.dyn.ccf.c1/(del.ph.doc + del.bc.ph.dyn.ccf.c1), NA),
+         bge.ph.bc.dyn.ccf.c2 = ifelse(del.ph.doc.flag != "NR", del.bc.ph.dyn.ccf.c2/(del.ph.doc + del.bc.ph.dyn.ccf.c2), NA),
+         bge.ph.bc.dyn.ccf.c3 = ifelse(del.ph.doc.flag != "NR", del.bc.ph.dyn.ccf.c3/(del.ph.doc + del.bc.ph.dyn.ccf.c3), NA),
+         bge.ph.bc.ccf.white = ifelse(del.ph.doc.flag != "NR", del.bc.ph.ccf.white/(del.ph.doc + del.bc.ph.ccf.white), NA),
+         bge.ph.bc.ccf.fukuda = ifelse(del.ph.doc.flag != "NR", del.bc.ph.ccf.fukuda/(del.ph.doc + del.bc.ph.ccf.fukuda), NA),
+         bge.ph.bc.ccf.lee = ifelse(del.ph.doc.flag != "NR", del.bc.ph.ccf.lee/(del.ph.doc + del.bc.ph.ccf.lee), NA),
+         bge.ph.bc.dyn.ccf.white_fukuda = ifelse(del.ph.doc.flag != "NR", del.bc.ph.dyn.ccf.white_fukuda/(del.ph.doc + del.bc.ph.dyn.ccf.white_fukuda), NA),
+         bge.ph.bc.dyn.ccf.white_lee = ifelse(del.ph.doc.flag != "NR", del.bc.ph.dyn.ccf.white_lee/(del.ph.doc + del.bc.ph.dyn.ccf.white_lee), NA)
          ) %>% 
   ungroup() %>% 
   mutate_at(vars(bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee), round, 2) %>% 
@@ -2255,27 +2493,170 @@ calcs <- interp_st %>%
 #   ungroup() 
 
 bge_summary <- calcs %>% 
-  select(Season:Station, ave_lat:Subregion, Depth:facet_bottle, stationary:s.gf75, gf75.flag, del.doc, del.doc.flag, del.ph.doc, del.ph.doc.flag, del.bc.poc:del.ph.bc.dyn.ccf.white_lee, bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee) %>% 
+  select(Season:Station, ave_lat:Subregion, Depth:facet_bottle, stationary:s.gf75, gf75.flag, del.doc, del.doc.flag, del.ph.doc, del.ph.doc.flag, del.bc.poc:del.bc.ph.dyn.ccf.white_lee, bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee, i.cn:i.cn.c3, s.cn:s.cn.c3) %>% 
   distinct() %>% 
-  mutate(type = ifelse(Treatment == "Control", "Control", "Non-Control")) %>% 
-  select(Season:Treatment, type, everything())
-
+  mutate(type = ifelse(Treatment == "Control", "Control", "Non-Control"),
+         degree_bin = ifelse(Station %in% c("S2RD", "S2RF"), 39, degree_bin),
+         Subregion = ifelse(Station %in% c("S2RD", "S2RF"), "GS/Sargasso", Subregion)) %>% 
+  select(Season:Treatment, type, everything()) %>% 
+  arrange(Cruise, Station, Depth, Treatment, Bottle) %>% 
+  #remove outliers
+  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+   filter(!Station == "U", Depth == 10)
+  
 ```
+
+```{r}
+bge_summary %>% 
+  select(Season:Bottle, contains("bge")) %>% 
+  group_by(Season, type) %>% 
+  gather(appr, bge, contains("bge")) %>% 
+  drop_na(bge) %>% 
+  group_by(Cruise, type, appr) %>% 
+  mutate(ave_bge = mean(bge),
+         sd_bge = sd(bge),
+         min_bge = min(bge),
+         max_bge = max(bge),
+         med_bge = median(bge)) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+  select(Season, type, appr, ave_bge:med_bge, n) %>% 
+  distinct() %>% 
+  arrange(type, Season) %>% 
+  mutate_at(vars(ave_bge:med_bge), round, 2) %>% 
+  filter(!appr %in% c("bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3")) 
+  
+```
+
+```{r}
+bge_summary %>% 
+  select(Season:Bottle, contains("bge")) %>% 
+  group_by(Season, type) %>% 
+  gather(appr, bge, contains("bge")) %>% 
+  drop_na(bge) %>% 
+  group_by(Cruise, type, appr) %>% 
+  mutate(ave_bge = mean(bge),
+         sd_bge = sd(bge),
+         min_bge = min(bge),
+         max_bge = max(bge),
+         med_bge = median(bge)) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+  select(Season, type,  appr, ave_bge:med_bge, n) %>% 
+  distinct() %>% 
+  arrange(type, Season) %>% 
+  mutate_at(vars(ave_bge:med_bge), round, 2) %>% 
+  filter(!appr %in% c("bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3")) 
+  
+```
+
+```{r}
+bge_summary %>% 
+  select(Season:Bottle, contains("bge")) %>% 
+  group_by(Season, type) %>% 
+  gather(appr, bge, contains("bge")) %>% 
+  drop_na(bge) %>% 
+  group_by(Cruise, type, appr) %>% 
+  mutate(ave_bge = mean(bge),
+         sd_bge = sd(bge),
+         min_bge = min(bge),
+         max_bge = max(bge),
+         med_bge = median(bge)) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+  select(Season, type, Bottle,  appr, ave_bge:med_bge, n) %>% 
+  distinct() %>% 
+  arrange(type, Season) %>% 
+  mutate_at(vars(ave_bge:med_bge), round, 2) %>% 
+  filter(!appr %in% c("bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf
+```
+
+
+
+## Delta POC
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 16, fig.align = "center", warning = FALSE}
+bge_summary %>% 
+  select(Season:gf75.flag, contains("del.bc"))  %>% 
+  distinct() %>% 
+  gather(key, del.bc, contains("bc")) %>% 
+  #filter(del.doc.flag == "Acceptable") %>% 
+  mutate(appr = key,
+         appr = ifelse(appr == "del.bc.poc", "p2p, POC", appr),
+         appr = ifelse(appr == "del.bc.poc.c1", "p2p, POC c1", appr),
+         appr = ifelse(appr == "del.bc.poc.c2", "p2p, POC c2", appr),
+         appr = ifelse(appr == "del.bc.poc.c3", "p2p, POC c3", appr),
+         appr = ifelse(appr == "del.bc.p.ccf.c1", "p2p, CCF c1", appr),
+         appr = ifelse(appr == "del.bc.p.ccf.c2", "p2p, CCF c2", appr),
+         appr = ifelse(appr == "del.bc.p.ccf.c3", "p2p, CCF c3", appr),
+         appr = ifelse(appr == "del.bc.p.dyn.ccf.c1", "p2p, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "del.bc.p.dyn.ccf.c2", "p2p, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "del.bc.p.dyn.ccf.c3", "p2p, Dyn. CCF c3", appr),
+         appr = ifelse(appr == "del.bc.p.ccf.white", "p2p, White CCF", appr),
+         appr = ifelse(appr == "del.bc.p.ccf.fukuda", "p2p, Fukuda CCF", appr),
+         appr = ifelse(appr == "del.bc.p.ccf.lee", "p2p, Lee CCF", appr),
+         appr = ifelse(appr == "del.bc.p.dyn.ccf.white_fukuda", "p2p, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "del.bc.p.dyn.ccf.white_lee", "p2p, Dyn. White_Lee CCF", appr),
+         appr = ifelse(appr == "del.bc.ph.ccf.c1", "ph2ph, CCF c1", appr),
+         appr = ifelse(appr == "del.bc.ph.ccf.c2", "ph2ph, CCF c2", appr),
+         appr = ifelse(appr == "del.bc.ph.ccf.c3", "ph2ph, CCF c3", appr),
+         appr = ifelse(appr == "del.bc.ph.dyn.ccf.c1", "ph2ph, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "del.bc.ph.dyn.ccf.c2", "ph2ph, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "del.bc.ph.dyn.ccf.c3", "ph2ph, Dyn. CCF c3", appr),
+         appr = ifelse(appr == "del.bc.ph.ccf.white", "ph2ph, White CCF", appr),
+         appr = ifelse(appr == "del.bc.ph.ccf.fukuda", "ph2ph, Fukuda CCF", appr),
+         appr = ifelse(appr == "del.bc.ph.ccf.lee", "ph2ph, Lee CCF", appr),
+         appr = ifelse(appr == "del.bc.ph.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "del.bc.ph.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
+         p = appr) %>% 
+  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
+  group_by(Cruise, type, appr) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+  filter(!Station == "U", Depth == 10, points == "p2p", !key %in% c("del.bc.p.dyn.ccf.c1", "del.bc.p.dyn.ccf.c2", "del.bc.p.dyn.ccf.c3", "del.bc.ph.dyn.ccf.c1", "del.bc.ph.dyn.ccf.c2", "del.bc.ph.dyn.ccf.c3")) %>% 
+  #remove outliers
+  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  drop_na(del.bc) %>% 
+  distinct() %>% 
+  
+  ggplot(aes(x = factor(appr, levels = bge_lvls), y = del.bc)) +
+  geom_boxplot(width = 0.3) +
+  geom_jitter(aes(fill = factor(appr, levels = bge_lvls)), width = 0.1, shape = 21, size = 3, alpha = 0.7) +
+  labs(x = "", y = expression(italic("∆POC, µmol C L"^-1)), colour = expression(italic(""))) + 
+  scale_y_continuous(breaks = pretty_breaks()) +
+  custom_theme() +
+  facet_grid(type~factor(Season, levels = levels) , scales = "free") +
+  #ggtitle("Delta POC") +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+  
+```
+
+
 
 ## BGEs 
 
 ```{r}
 bge_lvls <- c("p2p, POC", 
-              "p2p, POC 1f corr.", 
-              "p2p, POC 2f corr.", 
-              "p2p, CCF 1f corr.", 
-              "ph2ph, CCF 1f corr.", 
-              "p2p, CCF 2f corr.", 
-              "ph2ph, CCF 2f corr.", 
-              "p2p, Dyn. CCF 1f corr.", 
-              "ph2ph, Dyn. CCF 1f corr.", 
-              "p2p, Dyn. CCF 2f corr.", 
-              "ph2ph, Dyn. CCF 2f corr.", 
+              "p2p, POC c1", 
+              "p2p, POC c2", 
+              "p2p, POC c3", 
+              "p2p, CCF c1", 
+              "ph2ph, CCF c1", 
+              "p2p, CCF c2", 
+              "ph2ph, CCF c2", 
+              "p2p, CCF c3", 
+              "ph2ph, CCF c3", 
+              "p2p, Dyn. CCF c1", 
+              "ph2ph, Dyn. CCF c1", 
+              "p2p, Dyn. CCF c2", 
+              "ph2ph, Dyn. CCF c2", 
+              "p2p, Dyn. CCF c3", 
+              "ph2ph, Dyn. CCF c3", 
               "p2p, White CCF", 
               "ph2ph, White CCF", 
               "p2p, Fukuda CCF", 
@@ -2287,28 +2668,51 @@ bge_lvls <- c("p2p, POC",
               "p2p, Dyn. White_Lee CCF", 
               "ph2ph, Dyn. White_Lee CCF" )
 
+bge_lvls2 <- c("POC", 
+              "POC c1", 
+              "POC c2", 
+              "POC c3", 
+              "CCF c1", 
+              "CCF c2",  
+              "CCF c3", 
+              "Dyn. CCF c1", 
+              "Dyn. CCF c2", 
+              "Dyn. CCF c3", 
+              "White CCF", 
+              "Fukuda CCF",  
+              "Lee CCF", 
+              "Dyn. White_Fukuda CCF", 
+              "Dyn. White_Lee CCF" )
+
+
+
 bge_summary.plot.data <- bge_summary %>%
-  select(Season:Bottle, contains("bge")) %>% 
+  select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3, gf75.flag, del.doc.flag, del.ph.doc.flag, contains("bge")) %>% 
   distinct() %>% 
   gather(key, bge, contains("bge")) %>% 
   drop_na(bge) %>% 
   mutate(appr = key,
          appr = ifelse(appr == "bge.bc.poc", "p2p, POC", appr),
-         appr = ifelse(appr == "bge.bc.poc.c1", "p2p, POC 1f corr.", appr),
-         appr = ifelse(appr == "bge.bc.poc.c3", "p2p, POC 2f corr.", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c1", "p2p, CCF 1f corr.", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c3", "p2p, CCF 2f corr.", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c1", "p2p, Dyn. CCF 1f corr.", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c3", "p2p, Dyn. CCF 2f corr.", appr),
+         appr = ifelse(appr == "bge.bc.poc.c1", "p2p, POC c1", appr),
+         appr = ifelse(appr == "bge.bc.poc.c2", "p2p, POC c2", appr),
+         appr = ifelse(appr == "bge.bc.poc.c3", "p2p, POC c3", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c1", "p2p, CCF c1", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c2", "p2p, CCF c2", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c3", "p2p, CCF c3", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c1", "p2p, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c2", "p2p, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c3", "p2p, Dyn. CCF c3", appr),
          appr = ifelse(appr == "bge.p.bc.ccf.white", "p2p, White CCF", appr),
          appr = ifelse(appr == "bge.p.bc.ccf.fukuda", "p2p, Fukuda CCF", appr),
          appr = ifelse(appr == "bge.p.bc.ccf.lee", "p2p, Lee CCF", appr),
          appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_fukuda", "p2p, Dyn. White_Fukuda CCF", appr),
          appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_lee", "p2p, Dyn. White_Lee CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c1", "ph2ph, CCF 1f corr.", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c3", "ph2ph, CCF 2f corr.", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c1", "ph2ph, Dyn. CCF 1f corr.", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c3", "ph2ph, Dyn. CCF 2f corr.", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c1", "ph2ph, CCF c1", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c2", "ph2ph, CCF c2", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c3", "ph2ph, CCF c3", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c1", "ph2ph, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c2", "ph2ph, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c3", "ph2ph, Dyn. CCF c3", appr),
          appr = ifelse(appr == "bge.ph.bc.ccf.white", "ph2ph, White CCF", appr),
          appr = ifelse(appr == "bge.ph.bc.ccf.fukuda", "ph2ph, Fukuda CCF", appr),
          appr = ifelse(appr == "bge.ph.bc.ccf.lee", "ph2ph, Lee CCF", appr),
@@ -2318,48 +2722,65 @@ bge_summary.plot.data <- bge_summary %>%
   separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
   group_by(Cruise, type, appr) %>% 
   add_tally() %>% 
-  ungroup() %>% 
-  filter(!Station == "U")
+  ungroup() 
 
 ```
 
+
+
+
+
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 16, fig.align = "center", warning = FALSE}
-bge_summary.plot.data %>%    
+bge_summary.plot.data %>% 
+   filter(!Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3")) %>% 
+  #remove outliers
+  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
   ggplot(aes(x = factor(appr, levels = bge_lvls), y = bge)) +
   geom_boxplot(width = 0.3) +
-  geom_jitter(aes(fill = factor(appr, levels = bge_lvls)), width = 0.1, shape = 21, size = 3, alpha = 0.7) + 
-  # geom_label(aes(label = n, fill = factor(appr, levels = bge_lvls)), color = "white", size = 3, alpha = 0.7) + 
+  geom_jitter(aes(fill = factor(appr, levels = bge_lvls)), width = 0.1, shape = 21, size = 3, alpha = 0.7) +
   labs(x = "", y = expression(italic("BGE")), colour = expression(italic(""))) + 
   scale_y_continuous(breaks = pretty_breaks()) +
   custom_theme() +
-  facet_grid(facet_depth + type~factor(Season, levels = levels) , scales = "free") +
-  ggtitle("Bacterial Growth Efficiences") +
+  facet_grid(type~factor(Season, levels = levels) , scales = "free") +
+  #ggtitle("Bacterial Growth Efficiences") +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 ```
 
-Excluding non-control and 200 m experiments.
+Excluding non-control and 200 m experiments....these are the experiments that have ∆DOC values >= 1.5 µmol C L^-1^ and acceptable BGEs. 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 16, fig.align = "center", warning = FALSE}
+
+
+
+```{r}
+bge_summary.plot.data %>% 
+  filter(type == "Control", Depth == 10) %>% 
+  select(Cruise, Station,  Subregion, Bottle, gf75.flag) %>% 
+  distinct() %>% 
+  arrange(Cruise, Station, Bottle)
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 16, fig.align = "center", warning = FALSE}
 
 bge_summary.plot.data %>% 
   filter(type == "Control", Depth == 10) %>% 
   ggplot(aes(x = factor(appr, levels = bge_lvls), y = bge)) +
   geom_boxplot(width = 0.3) +
   geom_jitter(aes(fill = factor(appr, levels = bge_lvls)), width = 0.1, shape = 21, size = 3, alpha = 0.7) + 
-  # geom_label(aes(label = n, fill = factor(appr, levels = bge_lvls)), color = "white", size = 3, alpha = 0.7) + 
   labs(x = "", y = expression(italic("BGE")), colour = expression(italic(""))) + 
   scale_y_continuous(breaks = pretty_breaks()) +
-  #scale_fill_manual(values = custom.colors) +
   custom_theme() +
-  facet_grid(factor(Subregion, levels = levels) ~ factor(Season, levels = levels) , scales = "free") +
+  # facet_grid(factor(Subregion, levels = levels) ~ factor(Season, levels = levels) , scales = "free") +
+  facet_grid(gf75.flag + Subregion ~ factor(Season, levels = levels) , scales = "free") +
   ggtitle("Bacterial Growth Efficiences") +
   theme(axis.title.x = element_blank(),
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 ```
-
+`
 
 ## Other Parameters
 
@@ -2425,24 +2846,33 @@ export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>%
   mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
          degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>%  
   group_by(Cruise, Station, Depth, Treatment, Hours) %>% 
-  mutate(trt_ave_doc = ifelse(!is.na(doc), round(mean(doc, na.rm = T),1), NA),
+  mutate(trt_ave_doc = ifelse(!is.na(interp_doc), round(mean(interp_doc, na.rm = T),1), NA),
          trt_sd_doc = ifelse(!is.na(doc), round(sd(doc, na.rm = T),1), NA)) %>% 
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment) %>% 
   mutate(norm_doc = ifelse(Depth != 200 | Treatment == "MixDS", trt_ave_doc - redis_DOC_vol, NA),
-         accm_doc = ifelse(Depth == 10 & Treatment == "Control", first(trt_ave_doc) - redis_DOC_vol, NA),
-         bioav_accm_doc = ifelse(Depth == 10 & Treatment == "Control", last(trt_ave_doc) - redis_DOC_vol, NA),
          norm_doc_from_t0 = ifelse(!is.na(norm_doc), first(norm_doc) - norm_doc, NA),
-         bioav_doc = first(norm_doc) - last(norm_doc),
-         persis_doc = accm_doc - bioav_doc,
-         per_bioav = round((bioav_doc/accm_doc * 100)),
+         accm_doc = ifelse(Depth == 10 & Treatment == "Control", first(trt_ave_doc) - redis_DOC_vol, NA),
+         total.bioav_accm_doc = ifelse(Depth == 10 & Treatment == "Control" & last(Days) > 30, last(trt_ave_doc) - redis_DOC_vol, NA),
+         st.bioav_accm_doc = ifelse(Depth == 10 & Treatment == "Control" & Days == 7, trt_ave_doc - redis_DOC_vol, NA),
+         lt.bioav_accm_doc = total.bioav_accm_doc - st.bioav_accm_doc,
+         time.total.bioav_accm_doc = ifelse(Depth == 10 & Treatment == "Control" & last(Days) > 30, last(Days), NA),
+         time.lt.bioav_accm_doc = time.total.bioav_accm_doc - 7,
+         total.bioav_doc = ifelse(Depth == 10 & Treatment == "Control" & last(Days) > 30, first(norm_doc) - last(norm_doc), NA),
+         st.bioav_doc = ifelse(Depth == 10 & Treatment == "Control" & Days == 7, first(norm_doc) - norm_doc, NA),
+         lt.bioav_doc = total.bioav_doc - st.bioav_doc,
+         total.per_bioav = round((total.bioav_doc/accm_doc * 100)),
+         st.per_bioav = round((st.bioav_doc/accm_doc * 100)),
+         lt.per_bioav = round((lt.bioav_doc/accm_doc * 100)),
+         persis_doc = accm_doc - total.bioav_doc,
          per_persis = round((persis_doc/accm_doc * 100)),
-         time = last(Days),
-         ddoc = round((bioav_doc/time) * 1000)) %>%   
+         st.ddoc = round((st.bioav_doc/7) * 1000),
+         lt.ddoc = round((lt.bioav_doc/time.lt.bioav_accm_doc) * 1000)) %>%   
   ungroup() %>% 
   group_by(Cruise, Station, Depth) %>% 
-  fill(accm_doc:bioav_accm_doc, .direction = "downup") %>% 
-  ungroup()
+  fill(accm_doc:lt.ddoc, .direction = "downup") %>% 
+  ungroup() %>% 
+  select(Season:Station, ave_lat:Subregion, Depth:interp_doc, redis_DOC_vol:lt.ddoc, everything() )
 
     
 ```
