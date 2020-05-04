@@ -2310,14 +2310,13 @@ We'll calculate and define:
   + we do not determine growth phases where there is no observable growth
 - Carrying Capacity (**k**), mean of cell abundance during stationary
 - Exponential growth rate day^-1^
-- Dynamic CCFs: we use a weighted function to determine the CCF from the initial condition to the beginning of stationary, end members which we have measured:
+- Dynamic CCFs: we use a weighted function to determine the CCF from the initial condition to the beginning of stationary, end members which we have measured (this really only affects BGEs calculated using AUC:
   + CCF~t~ = CCF~initial~ + w(CCF~stationary~ - CCF~initial~), where w = cells~t~ / cells~st~
   + for this to work, we normalize the cell counts to those at stationary
 - Cell carbon in µmol C L^-1^, using the dynamic CCFS 
 - Bacterial growth efficiencies (BGE) using multiple approaches, only where ∆DOC is resolvable:
   + point-to-point (**BGE_p**), ∆BC and ∆DOC from T0 to stationary
   + phase-to-phase (**BGE_ph**), ∆BC and ∆DOC using means of lag phase and stationary phase values
-  + area under the curve (**BGE_ac**)
   
 ```{r}
 interp_st %>% 
@@ -2491,7 +2490,10 @@ calcs <- interp_st %>%
 #   drop_na() %>% 
 #   left_join(calcs, .) %>% 
 #   ungroup() 
+  
+```
 
+```{r}
 bge_summary <- calcs %>% 
   select(Season:Station, ave_lat:Subregion, Depth:facet_bottle, stationary:s.gf75, gf75.flag, del.doc, del.doc.flag, del.ph.doc, del.ph.doc.flag, del.bc.poc:del.bc.ph.dyn.ccf.white_lee, bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee, i.cn:i.cn.c3, s.cn:s.cn.c3) %>% 
   distinct() %>% 
@@ -2504,30 +2506,8 @@ bge_summary <- calcs %>%
   filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
          !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
    filter(!Station == "U", Depth == 10)
-  
 ```
 
-```{r}
-bge_summary %>% 
-  select(Season:Bottle, contains("bge")) %>% 
-  group_by(Season, type) %>% 
-  gather(appr, bge, contains("bge")) %>% 
-  drop_na(bge) %>% 
-  group_by(Cruise, type, appr) %>% 
-  mutate(ave_bge = mean(bge),
-         sd_bge = sd(bge),
-         min_bge = min(bge),
-         max_bge = max(bge),
-         med_bge = median(bge)) %>% 
-  add_tally() %>% 
-  ungroup() %>% 
-  select(Season, type, appr, ave_bge:med_bge, n) %>% 
-  distinct() %>% 
-  arrange(type, Season) %>% 
-  mutate_at(vars(ave_bge:med_bge), round, 2) %>% 
-  filter(!appr %in% c("bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3")) 
-  
-```
 
 ```{r}
 bge_summary %>% 
@@ -2551,30 +2531,50 @@ bge_summary %>%
   
 ```
 
-```{r}
-bge_summary %>% 
-  select(Season:Bottle, contains("bge")) %>% 
-  group_by(Season, type) %>% 
-  gather(appr, bge, contains("bge")) %>% 
-  drop_na(bge) %>% 
-  group_by(Cruise, type, appr) %>% 
-  mutate(ave_bge = mean(bge),
-         sd_bge = sd(bge),
-         min_bge = min(bge),
-         max_bge = max(bge),
-         med_bge = median(bge)) %>% 
-  add_tally() %>% 
-  ungroup() %>% 
-  select(Season, type, Bottle,  appr, ave_bge:med_bge, n) %>% 
-  distinct() %>% 
-  arrange(type, Season) %>% 
-  mutate_at(vars(ave_bge:med_bge), round, 2) %>% 
-  filter(!appr %in% c("bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf
+
+```{r include = FALSE}
+bge_lvls <- c("p2p, POC", 
+              "p2p, POC c1", 
+              "p2p, POC c2", 
+              "p2p, POC c3", 
+              "p2p, CCF c1", 
+              "ph2ph, CCF c1", 
+              "p2p, CCF c2", 
+              "ph2ph, CCF c2", 
+              "p2p, CCF c3", 
+              "ph2ph, CCF c3", 
+              "p2p, Dyn. CCF c1", 
+              "ph2ph, Dyn. CCF c1", 
+              "p2p, Dyn. CCF c2", 
+              "ph2ph, Dyn. CCF c2", 
+              "p2p, Dyn. CCF c3", 
+              "ph2ph, Dyn. CCF c3", 
+              "p2p, White CCF", 
+              "ph2ph, White CCF", 
+              "p2p, Fukuda CCF", 
+              "ph2ph, Fukuda CCF", 
+              "p2p, Lee CCF", 
+              "ph2ph, Lee CCF", 
+              "p2p, Dyn. White_Fukuda CCF", 
+              "ph2ph, Dyn. White_Fukuda CCF", 
+              "p2p, Dyn. White_Lee CCF", 
+              "ph2ph, Dyn. White_Lee CCF" )
+
+bge_lvls2 <- c("POC", 
+              "POC c1", 
+              "POC c2", 
+              "POC c3", 
+              "CCF c1", 
+              "CCF c2", 
+              "CCF c3",
+              "Fukuda CCF", 
+              "Lee CCF")
+
 ```
 
 
 
-## Delta POC
+## ∆POC
 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 16, fig.align = "center", warning = FALSE}
@@ -2615,13 +2615,13 @@ bge_summary %>%
   group_by(Cruise, type, appr) %>% 
   add_tally() %>% 
   ungroup() %>% 
-  filter(!Station == "U", Depth == 10, points == "p2p", !key %in% c("del.bc.p.dyn.ccf.c1", "del.bc.p.dyn.ccf.c2", "del.bc.p.dyn.ccf.c3", "del.bc.ph.dyn.ccf.c1", "del.bc.ph.dyn.ccf.c2", "del.bc.ph.dyn.ccf.c3")) %>% 
   #remove outliers
   filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
          !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  filter(!Station == "U", Depth == 10, points == "p2p", !key %in% c("del.bc.p.dyn.ccf.c1", "del.bc.p.dyn.ccf.c2", "del.bc.p.dyn.ccf.c3", "del.bc.ph.dyn.ccf.c1", "del.bc.ph.dyn.ccf.c2", "del.bc.ph.dyn.ccf.c3")) %>%
   drop_na(del.bc) %>% 
   distinct() %>% 
-  
+  ##PLOT
   ggplot(aes(x = factor(appr, levels = bge_lvls), y = del.bc)) +
   geom_boxplot(width = 0.3) +
   geom_jitter(aes(fill = factor(appr, levels = bge_lvls)), width = 0.1, shape = 21, size = 3, alpha = 0.7) +
@@ -2636,57 +2636,39 @@ bge_summary %>%
   
 ```
 
+## ∆TOC
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 6, fig.align = "center", warning = FALSE}
+bge_summary %>% 
+  select(Season:gf75.flag, del.doc)  %>% 
+  distinct() %>% 
+  #remove outliers
+  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  filter(!Station == "U", Depth == 10) %>%
+  drop_na(del.doc) %>% 
+  distinct() %>% 
+  ##PLOT
+  ggplot(aes(x = Season, y = del.doc)) +
+  geom_boxplot(width = 0.2) +
+  geom_jitter(width = 0.1, shape = 21, size = 3, alpha = 0.7) +
+  labs(x = "", y = expression(italic("∆TOC, µmol C L"^-1)), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  custom_theme() +
+  facet_grid(type~factor(Season, levels = levels) , scales = "free") +
+  #ggtitle("Delta POC") +
+  theme(axis.title.x = element_blank(),
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+  
+```
 
 
 ## BGEs 
 
-```{r}
-bge_lvls <- c("p2p, POC", 
-              "p2p, POC c1", 
-              "p2p, POC c2", 
-              "p2p, POC c3", 
-              "p2p, CCF c1", 
-              "ph2ph, CCF c1", 
-              "p2p, CCF c2", 
-              "ph2ph, CCF c2", 
-              "p2p, CCF c3", 
-              "ph2ph, CCF c3", 
-              "p2p, Dyn. CCF c1", 
-              "ph2ph, Dyn. CCF c1", 
-              "p2p, Dyn. CCF c2", 
-              "ph2ph, Dyn. CCF c2", 
-              "p2p, Dyn. CCF c3", 
-              "ph2ph, Dyn. CCF c3", 
-              "p2p, White CCF", 
-              "ph2ph, White CCF", 
-              "p2p, Fukuda CCF", 
-              "ph2ph, Fukuda CCF", 
-              "p2p, Lee CCF", 
-              "ph2ph, Lee CCF", 
-              "p2p, Dyn. White_Fukuda CCF", 
-              "ph2ph, Dyn. White_Fukuda CCF", 
-              "p2p, Dyn. White_Lee CCF", 
-              "ph2ph, Dyn. White_Lee CCF" )
 
-bge_lvls2 <- c("POC", 
-              "POC c1", 
-              "POC c2", 
-              "POC c3", 
-              "CCF c1", 
-              "CCF c2",  
-              "CCF c3", 
-              "Dyn. CCF c1", 
-              "Dyn. CCF c2", 
-              "Dyn. CCF c3", 
-              "White CCF", 
-              "Fukuda CCF",  
-              "Lee CCF", 
-              "Dyn. White_Fukuda CCF", 
-              "Dyn. White_Lee CCF" )
-
-
-
-bge_summary.plot.data <- bge_summary %>%
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 16, fig.align = "center", warning = FALSE}
+bge_summary %>%
   select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3, gf75.flag, del.doc.flag, del.ph.doc.flag, contains("bge")) %>% 
   distinct() %>% 
   gather(key, bge, contains("bge")) %>% 
@@ -2722,20 +2704,12 @@ bge_summary.plot.data <- bge_summary %>%
   separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
   group_by(Cruise, type, appr) %>% 
   add_tally() %>% 
-  ungroup() 
-
-```
-
-
-
-
-
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 16, fig.align = "center", warning = FALSE}
-bge_summary.plot.data %>% 
-   filter(!Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3")) %>% 
-  #remove outliers
+  ungroup() %>% 
+   #remove outliers
   filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
          !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  filter(!Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3")) %>%
+ ##PLOT
   ggplot(aes(x = factor(appr, levels = bge_lvls), y = bge)) +
   geom_boxplot(width = 0.3) +
   geom_jitter(aes(fill = factor(appr, levels = bge_lvls)), width = 0.1, shape = 21, size = 3, alpha = 0.7) +
@@ -2749,38 +2723,205 @@ bge_summary.plot.data %>%
         axis.ticks.x = element_blank())
 ```
 
-Excluding non-control and 200 m experiments....these are the experiments that have ∆DOC values >= 1.5 µmol C L^-1^ and acceptable BGEs. 
+## Overall BGEs
 
-
-
-
-```{r}
-bge_summary.plot.data %>% 
-  filter(type == "Control", Depth == 10) %>% 
-  select(Cruise, Station,  Subregion, Bottle, gf75.flag) %>% 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+bge_summary %>%
+  select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3, gf75.flag, del.doc.flag, del.ph.doc.flag, contains("bge")) %>% 
   distinct() %>% 
-  arrange(Cruise, Station, Bottle)
-```
-
-
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 16, fig.align = "center", warning = FALSE}
-
-bge_summary.plot.data %>% 
-  filter(type == "Control", Depth == 10) %>% 
-  ggplot(aes(x = factor(appr, levels = bge_lvls), y = bge)) +
+  gather(key, bge, contains("bge")) %>% 
+  drop_na(bge) %>% 
+   mutate(appr = key,
+         appr = ifelse(appr == "bge.bc.poc", "p2p, POC", appr),
+         appr = ifelse(appr == "bge.bc.poc.c1", "p2p, POC c1", appr),
+         appr = ifelse(appr == "bge.bc.poc.c2", "p2p, POC c2", appr),
+         appr = ifelse(appr == "bge.bc.poc.c3", "p2p, POC c3", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c1", "p2p, CCF c1", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c2", "p2p, CCF c2", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c3", "p2p, CCF c3", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c1", "p2p, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c2", "p2p, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c3", "p2p, Dyn. CCF c3", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.white", "p2p, White CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.fukuda", "p2p, Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.lee", "p2p, Lee CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_fukuda", "p2p, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_lee", "p2p, Dyn. White_Lee CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c1", "ph2ph, CCF c1", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c2", "ph2ph, CCF c2", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c3", "ph2ph, CCF c3", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c1", "ph2ph, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c2", "ph2ph, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c3", "ph2ph, Dyn. CCF c3", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.white", "ph2ph, White CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.fukuda", "ph2ph, Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.lee", "ph2ph, Lee CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
+         p = appr) %>% 
+  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
+  group_by(Cruise, type, appr) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+   #remove outliers
+  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  filter(type == "Control", !Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.bc.poc", "bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3", "bge.p.bc.ccf.white",  "bge.p.bc.dyn.ccf.white_fukuda", "bge.p.bc.dyn.ccf.white_lee" )) %>%
+  filter(!Cruise == "AT34" | !Station == 3 | ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
+  select(Cruise:Bottle, ccf, bge) %>% 
+  distinct() %>% 
+  mutate(ccf = as_factor(ccf)) %>% 
+ ##PLOT
+  ggplot(aes(x = ccf, y = bge)) +
   geom_boxplot(width = 0.3) +
-  geom_jitter(aes(fill = factor(appr, levels = bge_lvls)), width = 0.1, shape = 21, size = 3, alpha = 0.7) + 
+  geom_jitter(aes(fill = ccf), width = 0.1, shape = 21, size = 3, alpha = 0.7) +
   labs(x = "", y = expression(italic("BGE")), colour = expression(italic(""))) + 
   scale_y_continuous(breaks = pretty_breaks()) +
   custom_theme() +
-  # facet_grid(factor(Subregion, levels = levels) ~ factor(Season, levels = levels) , scales = "free") +
-  facet_grid(gf75.flag + Subregion ~ factor(Season, levels = levels) , scales = "free") +
-  ggtitle("Bacterial Growth Efficiences") +
-  theme(axis.title.x = element_blank(),
-        axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+  guides(fill = F)
+  #facet_grid(~type, scales = "free") +
+  #ggtitle("Bacterial Growth Efficiences") +
+  # theme(axis.title.x = element_blank(),
+  #       axis.text.x = element_blank(),
+  #       axis.ticks.x = element_blank())
 ```
-`
+
+```{r}
+bge_summary %>%
+  select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3, gf75.flag, del.doc.flag, del.ph.doc.flag, contains("bge")) %>% 
+  distinct() %>% 
+  gather(key, bge, contains("bge")) %>% 
+  drop_na(bge) %>% 
+   mutate(appr = key,
+         appr = ifelse(appr == "bge.bc.poc", "p2p, POC", appr),
+         appr = ifelse(appr == "bge.bc.poc.c1", "p2p, POC c1", appr),
+         appr = ifelse(appr == "bge.bc.poc.c2", "p2p, POC c2", appr),
+         appr = ifelse(appr == "bge.bc.poc.c3", "p2p, POC c3", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c1", "p2p, CCF c1", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c2", "p2p, CCF c2", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c3", "p2p, CCF c3", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c1", "p2p, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c2", "p2p, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c3", "p2p, Dyn. CCF c3", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.white", "p2p, White CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.fukuda", "p2p, Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.lee", "p2p, Lee CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_fukuda", "p2p, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_lee", "p2p, Dyn. White_Lee CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c1", "ph2ph, CCF c1", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c2", "ph2ph, CCF c2", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c3", "ph2ph, CCF c3", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c1", "ph2ph, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c2", "ph2ph, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c3", "ph2ph, Dyn. CCF c3", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.white", "ph2ph, White CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.fukuda", "ph2ph, Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.lee", "ph2ph, Lee CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
+         p = appr) %>% 
+  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
+  group_by(Cruise, type, appr) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+   #remove outliers
+  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  filter(type == "Control", !Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.bc.poc", "bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3", "bge.p.bc.ccf.white",  "bge.p.bc.dyn.ccf.white_fukuda", "bge.p.bc.dyn.ccf.white_lee" )) %>%
+  filter(!Cruise == "AT34" | !Station == 3 | ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
+  select(Season:Bottle, ccf, bge) %>% 
+  distinct() %>%
+  mutate(appr_group = ccf,
+         appr_group = gsub("POC c1", "NAAMES", appr_group),
+         appr_group = gsub("POC c2", "NAAMES", appr_group),
+         appr_group = gsub("POC c3", "NAAMES", appr_group),
+         appr_group = gsub("CCF c1", "NAAMES", appr_group),
+         appr_group = gsub("CCF c2", "NAAMES", appr_group),
+         appr_group = gsub("CCF c3", "NAAMES", appr_group)
+         ) %>% 
+  group_by(appr_group) %>% 
+  mutate(ave_bge = mean(bge),
+         sd_bge = sd(bge),
+         min_bge = min(bge),
+         max_bge = max(bge),
+         med_bge = median(bge)) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+  select(appr_group, ave_bge:med_bge, n) %>% 
+  distinct() %>% 
+  mutate_at(vars(ave_bge:med_bge), round, 2)
+
+
+```
+
+```{r}
+bge_summary %>%
+  select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3, gf75.flag, del.doc.flag, del.ph.doc.flag, contains("bge")) %>% 
+  distinct() %>% 
+  gather(key, bge, contains("bge")) %>% 
+  drop_na(bge) %>% 
+   mutate(appr = key,
+         appr = ifelse(appr == "bge.bc.poc", "p2p, POC", appr),
+         appr = ifelse(appr == "bge.bc.poc.c1", "p2p, POC c1", appr),
+         appr = ifelse(appr == "bge.bc.poc.c2", "p2p, POC c2", appr),
+         appr = ifelse(appr == "bge.bc.poc.c3", "p2p, POC c3", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c1", "p2p, CCF c1", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c2", "p2p, CCF c2", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.c3", "p2p, CCF c3", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c1", "p2p, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c2", "p2p, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c3", "p2p, Dyn. CCF c3", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.white", "p2p, White CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.fukuda", "p2p, Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.ccf.lee", "p2p, Lee CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_fukuda", "p2p, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_lee", "p2p, Dyn. White_Lee CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c1", "ph2ph, CCF c1", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c2", "ph2ph, CCF c2", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.c3", "ph2ph, CCF c3", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c1", "ph2ph, Dyn. CCF c1", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c2", "ph2ph, Dyn. CCF c2", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c3", "ph2ph, Dyn. CCF c3", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.white", "ph2ph, White CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.fukuda", "ph2ph, Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.ccf.lee", "ph2ph, Lee CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
+         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
+         p = appr) %>% 
+  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
+  group_by(Cruise, type, appr) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+   #remove outliers
+  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  filter(type == "Control", !Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.bc.poc", "bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3", "bge.p.bc.ccf.white",  "bge.p.bc.dyn.ccf.white_fukuda", "bge.p.bc.dyn.ccf.white_lee" )) %>%
+  filter(!Cruise == "AT34" | !Station == 3 | ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
+  select(Season:Bottle, ccf, bge) %>% 
+  distinct() %>%
+  mutate(appr_group = ccf,
+         appr_group = gsub("POC c1", "NAAMES", appr_group),
+         appr_group = gsub("POC c2", "NAAMES", appr_group),
+         appr_group = gsub("POC c3", "NAAMES", appr_group),
+         appr_group = gsub("CCF c1", "NAAMES", appr_group),
+         appr_group = gsub("CCF c2", "NAAMES", appr_group),
+         appr_group = gsub("CCF c3", "NAAMES", appr_group)
+         ) %>% 
+  group_by(Season, appr_group) %>% 
+  mutate(ave_bge = mean(bge),
+         sd_bge = sd(bge),
+         min_bge = min(bge),
+         max_bge = max(bge),
+         med_bge = median(bge)) %>% 
+  add_tally() %>% 
+  ungroup() %>% 
+  select(Season, appr_group, ave_bge:med_bge, n) %>% 
+  distinct() %>% 
+  mutate_at(vars(ave_bge:med_bge), round, 2)
+
+
+```
+
 
 ## Other Parameters
 
@@ -2819,6 +2960,69 @@ calcs %>%
   
   
 ```
+
+## BCD 
+
+We'll estimate BCD for each station of all the cruises using bacterial production and the global average BGE of 22%. Not that we'll be averaging casts taken throughout the day/night. 
+
+```{r}
+bcd <- read_rds("Input/processed_bf.2.2020.rds") %>% 
+  select(Cruise:Station, degree_bin, CampCN, Target_Z, BactProd_C, BactProd_C_sd) %>%  
+  mutate(degree_bin = ifelse(Cruise == "AT34" & Station == 4, 48, degree_bin)) %>% 
+  mutate_at(vars(BactProd_C:BactProd_C_sd), round, 2) %>% 
+  drop_na(BactProd_C) %>% 
+  rename(Depth = Target_Z,
+         bp = BactProd_C, 
+         sd_bp = BactProd_C_sd) %>% 
+  group_by(Cruise, Station, CampCN) %>% 
+  mutate(max_depth = max(Depth, na.rm = T)) %>% 
+  ungroup() %>% 
+  select(Cruise:Depth, max_depth, everything()) %>% 
+  group_by(Cruise, Station, CampCN, Depth) %>% 
+  mutate(bge = 0.22,
+         cruise_bge 
+         bcd = bp/bge,
+         ) %>% 
+  mutate_at(vars(bcd), round) %>% 
+  ungroup() %>% 
+  group_by(Cruise, Station, Depth) %>% 
+  mutate(bcd.station = mean(bcd) * 10^3,
+         sd_bcd.station = sd(bcd) * 10^3) %>% 
+  mutate_at(vars(bcd.station, sd_bcd.station), round) %>% 
+  ungroup() %>% 
+  select(Cruise:degree_bin, Depth, bcd.station, sd_bcd.station) %>% 
+  distinct() %>% 
+  arrange(Cruise, Station, Depth) %>% 
+  group_by(Cruise, Station) %>% 
+  filter(Depth <= 500) %>% 
+  mutate(int_bcd_500 = integrateTrapezoid(Depth, bcd.station, type = "A")) %>% 
+  filter(Depth <= 300) %>% 
+  mutate(int_bcd_300 = integrateTrapezoid(Depth, bcd.station, type = "A")) %>% 
+  filter(Depth <= 100) %>% 
+  mutate(int_bcd_100 = integrateTrapezoid(Depth, bcd.station, type = "A"),
+         int_bcd_100_300 = int_bcd_300 - int_bcd_100) %>% 
+  mutate_at(vars(contains("int_bcd")), round)
+    
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+bcd %>% 
+  select(Cruise:Station, degree_bin, contains("int_bcd"))  %>% 
+  distinct() %>% 
+  ##PLOT
+  ggplot(aes(x = factor(Season, levels = levels), y = (int_bcd_100/10^3) * (12/10^3) ))  +
+  geom_boxplot(width = 0.2) +
+  geom_jitter(width = 0.1, shape = 21, size = 3, alpha = 0.7) +
+  labs(x = "", y = expression(italic(paste("BCD, µmol C m"^-2, "d"^-1))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  custom_theme() +
+  ggtitle("Bacterial Carbon Demand, Surface 100 m")
+#facet_grid(type~factor(Season, levels = levels) , scales = "free") +
+  #ggtitle("Delta POC") 
+```
+
+
 
 
 # Merge Data with Export MS Data
