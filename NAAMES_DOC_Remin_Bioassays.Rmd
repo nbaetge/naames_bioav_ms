@@ -13,6 +13,7 @@ This document shows how **individual bottle** data from NAAMES DOC remineralizat
 library(tidyverse) 
 library(rmarkdown)
 library(knitr)
+library(readxl)
 library(data.table) 
 library(scales)
 library(zoo)
@@ -56,7 +57,7 @@ custom_theme_linedraw <- function() {
           strip.background = element_rect(color = "black", fill = "#005a9c", size = 0.5, linetype = "solid")) 
 }
 
-custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00", "Filter 1" = "#E41A1C", "Filter 2" = "#377EB8", "10 m" = "#E41A1C", "200 m" = "#377EB8") 
+custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00", "Filter 1" = "#E41A1C", "Filter 2" = "#377EB8", "10 m" = "#E41A1C", "200 m" = "#377EB8", "BCD" = "#E41A1C", "NPP" = "#377EB8", "Cruise Specific BGE" = "#E41A1C", "Global BGE" = "#377EB8") 
 
 custom.shapes <- c("Early Spring" = 21, "Late Spring" = 22,"Early Autumn" = 23)
 
@@ -2961,67 +2962,196 @@ calcs %>%
   
 ```
 
-## BCD 
+## BCD and NPP
 
-We'll estimate BCD for each station of all the cruises using bacterial production and the global average BGE of 22%. Not that we'll be averaging casts taken throughout the day/night. 
+We'll estimate BCD for each station of all the cruises using bacterial production and the global average BGE of 22%. Parameters are integrated to euphotic zone determined by Fox et al 2020. Not that we'll be averaging casts taken throughout the day/night. 
 
 ```{r}
-bcd <- read_rds("Input/processed_bf.2.2020.rds") %>% 
+#import and wrangle NPP data
+#we'll convert NPP from mg C/ m2 / d to umol C/ m2 / d 
+npp <- read_xlsx("Input/NPP for Nick.xlsx", sheet = 2) %>% 
+  filter(!station %in% c("NA","N4S2RF")) %>% 
+  separate(station, into = c("Cruise", "Station"), sep = "S") %>% 
+  select(-Cruise) %>% 
+  mutate(Cruise = ifelse(Bloom_phase == "Accumulation phase", "AT39", NA),
+         Cruise = ifelse(Bloom_phase == "Climax transition", "AT34", Cruise),
+         Cruise = ifelse(Bloom_phase == "Equilibrium phase", "AT38", Cruise),
+         Cruise = ifelse(Bloom_phase == "Winter transition", "AT32", Cruise)) %>% 
+  select(Cruise, Station, Ez, Ez_NPP) %>% 
+  mutate(Station = ifelse(Station %in% c("4a", "4b", "4c", "4d"), 4, Station),
+         Station = ifelse(Station %in% c("6a", "6b", "6c", "6d", "6e"), 6, Station),
+         Station = as.numeric(Station)) %>% 
+  group_by(Cruise, Station) %>% 
+  mutate(ave_Ez = mean(Ez),
+         sd_Ez = sd(Ez),
+         Ez_NPP = Ez_NPP * (10^3/12),
+         ave_NPP = mean(Ez_NPP),
+         sd_NPP = sd(Ez_NPP)) %>%
+  ungroup() %>% 
+  select(-c(Ez, Ez_NPP)) %>% 
+  distinct() %>% 
+  mutate_at(vars(ave_Ez:sd_NPP), round)
+```
+
+
+
+```{r warning = F, message = F}
+#import bp data and join with npp data
+bp <- read_rds("Input/processed_bf.2.2020.rds") %>% 
+  filter(Target_Z %in% c(0, 5, 10, 25, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000, 1250, 1500 )) %>% 
   select(Cruise:Station, degree_bin, CampCN, Target_Z, BactProd_C, BactProd_C_sd) %>%  
+  mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
   mutate(degree_bin = ifelse(Cruise == "AT34" & Station == 4, 48, degree_bin)) %>% 
   mutate_at(vars(BactProd_C:BactProd_C_sd), round, 2) %>% 
+  filter(!is.na(BactProd_C) | Target_Z == 0) %>% 
+  group_by(Cruise, Station, CampCN) %>% 
+  fill(BactProd_C:BactProd_C_sd, .direction = "up") %>% 
   drop_na(BactProd_C) %>% 
   rename(Depth = Target_Z,
          bp = BactProd_C, 
          sd_bp = BactProd_C_sd) %>% 
-  group_by(Cruise, Station, CampCN) %>% 
   mutate(max_depth = max(Depth, na.rm = T)) %>% 
   ungroup() %>% 
-  select(Cruise:Depth, max_depth, everything()) %>% 
+  select(Cruise:CampCN, max_depth, Depth,  everything()) %>% 
+  left_join(., npp) %>% 
+  select(Cruise:max_depth, ave_Ez:sd_NPP, everything()) 
+
+#interpolate data for Ez depth
+#split the df by CampCN  
+add_ez.list <- split(bp, bp$CampCN)
+
+#create a function to add an empty row to each cast, then add the Ez to the Target Z column 
+add.func <- function(morty){
+  morty[nrow(morty) + 1,] <- NA
+  morty$Depth[is.na(morty$Depth)] <- morty$ave_Ez
+  rick <- morty %>% 
+    fill(., Cruise:sd_NPP, .direction = c("updown")) %>% 
+    arrange(CampCN, Depth)
+ }
+
+#apply function to list 
+added_ez.list <- lapply(add_ez.list, add.func)
+
+
+#save the list as a data frame 
+added_ez.df <- plyr::ldply(added_ez.list, data.frame) %>% 
+  drop_na(Depth) %>% 
+  select(-.id)  %>% 
   group_by(Cruise, Station, CampCN, Depth) %>% 
-  mutate(bge = 0.22,
-         cruise_bge 
-         bcd = bp/bge,
-         ) %>% 
-  mutate_at(vars(bcd), round) %>% 
+  fill(bp:sd_bp, .direction = "downup") %>% 
   ungroup() %>% 
+  distinct()
+
+#split the data frame into lists based on the campaign cast number
+to_interpolate.list <- split(added_ez.df, added_ez.df$CampCN)
+
+#create a function that will linearly interpolate each VOI according to the depth intervals of the casts 
+interpolate.func <- function(copper) {
+to_interpolate.df <- copper %>% 
+  select(Depth:ncol(.)) %>% 
+  zoo(., order.by = .$Depth) 
+
+interp_bp <- as.numeric(na.approx(to_interpolate.df$bp, na.rm = F))
+Depth <- to_interpolate.df$Depth
+interpolations.df <- data.frame(Depth, interp_bp)
+}
+
+#apply function to list 
+interpolations.list <- lapply(to_interpolate.list, interpolate.func)
+
+#save the list as a data frame 
+interpolations.df <- plyr::ldply(interpolations.list, data.frame) %>% 
+  rename(., CampCN = .id) 
+
+#combine the interpolated and non-interpolated data frames
+interpolations.df$CampCN <- as.numeric(interpolations.df$CampCN)
+interpolated.df <- right_join(bp, interpolations.df) %>% 
+  fill(Cruise:max_depth, .direction = "downup") %>% 
+  group_by(Cruise, Station, CampCN) %>% 
+  fill(ave_Ez:sd_NPP, .direction = "updown") %>% 
+  ungroup() %>% 
+  mutate_at(vars(interp_bp), round, 2)
+
+#calculate bcd
+bcd <- interpolated.df %>% 
+  mutate(cr_bge = ifelse(Cruise == "AT32", 0.21, NA),
+         cr_bge = ifelse(Cruise == "AT34", 0.23, cr_bge),
+         cr_bge = ifelse(Cruise == "AT38", 0.21, cr_bge),
+         cr_bge = ifelse(Cruise == "AT39", 0.23, cr_bge),
+         bge = 0.22,
+         #bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
+         bcd.cr_bge = interp_bp/cr_bge,
+         bcd = interp_bp/bge)  %>%
+  mutate_at(vars(bcd, bcd.cr_bge), round) %>% 
   group_by(Cruise, Station, Depth) %>% 
-  mutate(bcd.station = mean(bcd) * 10^3,
-         sd_bcd.station = sd(bcd) * 10^3) %>% 
-  mutate_at(vars(bcd.station, sd_bcd.station), round) %>% 
+  mutate(bcd.stat.cr_bge = mean(bcd.cr_bge),
+         bcd.stat = mean(bcd)) %>% 
+  mutate_at(vars(bcd.stat.cr_bge, bcd.stat), round) %>% 
   ungroup() %>% 
-  select(Cruise:degree_bin, Depth, bcd.station, sd_bcd.station) %>% 
+  select(Cruise:degree_bin, ave_Ez:sd_NPP, bge, cr_bge, Depth, bcd.stat.cr_bge, bcd.stat) %>% 
   distinct() %>% 
-  arrange(Cruise, Station, Depth) %>% 
   group_by(Cruise, Station) %>% 
-  filter(Depth <= 500) %>% 
-  mutate(int_bcd_500 = integrateTrapezoid(Depth, bcd.station, type = "A")) %>% 
-  filter(Depth <= 300) %>% 
-  mutate(int_bcd_300 = integrateTrapezoid(Depth, bcd.station, type = "A")) %>% 
-  filter(Depth <= 100) %>% 
-  mutate(int_bcd_100 = integrateTrapezoid(Depth, bcd.station, type = "A"),
-         int_bcd_100_300 = int_bcd_300 - int_bcd_100) %>% 
-  mutate_at(vars(contains("int_bcd")), round)
+  filter(Depth <= ave_Ez) %>% 
+  mutate(int.bcd.cr_bge.ez = integrateTrapezoid(Depth, bcd.stat.cr_bge, type = "A"),
+         int.bcd.ez = integrateTrapezoid(Depth, bcd.stat, type = "A"),
+         bcd.ez_npp.cr_bge = int.bcd.cr_bge.ez/ave_NPP * 100,
+         bcd.ez_npp = int.bcd.ez/ave_NPP * 100)  %>% 
+  mutate_at(vars(contains("int.bcd"), contains("bcd.ez_npp")), round) %>% 
+  select(Cruise:cr_bge, int.bcd.cr_bge.ez:bcd.ez_npp) %>% 
+  distinct()
     
 ```
 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 12, fig.align = "center", warning = FALSE}
 bcd %>% 
-  select(Cruise:Station, degree_bin, contains("int_bcd"))  %>% 
-  distinct() %>% 
+  pivot_longer(cols = c(bcd.ez_npp.cr_bge, bcd.ez_npp), names_to = "bge_used", values_to = "bcd.npp") %>% 
+  mutate(bge_used = ifelse(bge_used == "bcd.ez_npp.cr_bge", "Cruise Specific BGE", "Global BGE"),
+         degree_bin = as.character(degree_bin)) %>% 
   ##PLOT
-  ggplot(aes(x = factor(Season, levels = levels), y = (int_bcd_100/10^3) * (12/10^3) ))  +
-  geom_boxplot(width = 0.2) +
-  geom_jitter(width = 0.1, shape = 21, size = 3, alpha = 0.7) +
-  labs(x = "", y = expression(italic(paste("BCD, µmol C m"^-2, "d"^-1))), colour = expression(italic(""))) +
+  ggplot(aes(x = degree_bin, fill = bge_used, y =  bcd.npp))  +
+  geom_bar(position = position_dodge2( preserve = "single"), stat = "identity", color = "black", alpha = 0.7) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("BCD:NPP, %"))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
+  scale_fill_brewer(palette = "Set1") +
+  #scale_fill_manual(values = custom.colors) +
   custom_theme() +
-  ggtitle("Bacterial Carbon Demand, Surface 100 m")
-#facet_grid(type~factor(Season, levels = levels) , scales = "free") +
-  #ggtitle("Delta POC") 
+  facet_grid(~factor(Season, levels = levels), scales = "free")
 ```
 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 7, fig.align = "center", warning = FALSE}
+bcd %>% 
+  pivot_longer(cols = c(bcd.ez_npp.cr_bge, bcd.ez_npp), names_to = "bge_used", values_to = "bcd.npp") %>% 
+  mutate(bge_used = ifelse(bge_used == "bcd.ez_npp.cr_bge", "Cruise Specific BGE", "Global BGE")) %>% 
+  mutate(degree_bin = as.character(degree_bin)) %>% 
+  ##PLOT
+  ggplot(aes(x = factor(Season, levels = levels),  y =  bcd.npp))  +
+  geom_point(aes( fill =  bge_used, group = interaction(Cruise, Station,  bge_used)), color = "black", size = 3, shape = 21, position = position_dodge(width = 0.2), stat = "identity", alpha = 0.7) +
+  labs(x = expression(italic("")), y = expression(italic(paste("BCD:NPP, %"))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_fill_brewer(palette = "Set1") +
+  #scale_fill_manual(values = custom.colors) +
+  custom_theme() 
+  #facet_grid(~factor(Season, levels = levels), scales = "free")
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 12, fig.align = "center", warning = FALSE}
+bcd %>% 
+  select(Cruise:Station, degree_bin, ave_NPP, int.bcd.cr_bge.ez) %>% 
+  pivot_longer(cols = c(ave_NPP, int.bcd.cr_bge.ez), names_to = "rate", values_to = "value") %>% 
+  mutate(rate = ifelse(rate == "int.bcd.cr_bge.ez", "BCD", "NPP"),
+         degree_bin = as.character(degree_bin)) %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, fill = factor(rate, levels = c("NPP", "BCD")), y =  value/10^3, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("mmol C m"^-2, "d"^-1))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_fill_brewer(palette = "Set1") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free")
+```
 
 
 
