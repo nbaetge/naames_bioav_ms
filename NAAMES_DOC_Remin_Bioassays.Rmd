@@ -3154,13 +3154,19 @@ bcd %>%
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 12, fig.align = "center", warning = FALSE}
 bcd %>% 
-  select(Cruise:Station, degree_bin, ave_NPP, int.bcd.cr_bge.ez) %>% 
-  pivot_longer(cols = c(ave_NPP, int.bcd.cr_bge.ez), names_to = "rate", values_to = "value") %>% 
-  mutate(rate = ifelse(rate == "int.bcd.cr_bge.ez", "BCD", "NPP"),
+  select(Cruise:Station, degree_bin, ave_NPP, sd_NPP, int.bcd.cr_bge.ez, int.bcd.ez) %>% 
+  pivot_longer(cols = c(ave_NPP, int.bcd.cr_bge.ez, int.bcd.ez), names_to = "rate", values_to = "value") %>% 
+  mutate(rate = ifelse(rate %in% c("int.bcd.cr_bge.ez", "int.bcd.ez"), "BCD", "NPP"),
          degree_bin = as.character(degree_bin)) %>% 
+  group_by(Cruise, Station, rate) %>% 
+  mutate(ave = mean(value)/10^3,
+         sd = sd(value)/10^3,
+         sd = ifelse(rate == "NPP", sd_NPP/10^3, sd )) %>% 
+  ungroup() %>% 
   ##PLOT
-  ggplot(aes(x = degree_bin, fill = factor(rate, levels = c("NPP", "BCD")), y =  value/10^3, group = interaction(Season, Station, degree_bin)))  + 
+  ggplot(aes(x = degree_bin, fill = factor(rate, levels = c("NPP", "BCD")), y =  ave, group = interaction(Season, Station, degree_bin)))  + 
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1) +
+  geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
   labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("mmol C m"^-2, "d"^-1))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
   #scale_fill_brewer(palette = "Set1") +
