@@ -57,7 +57,7 @@ custom_theme_linedraw <- function() {
           strip.background = element_rect(color = "black", fill = "#005a9c", size = 0.5, linetype = "solid")) 
 }
 
-custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00", "Filter 1" = "#E41A1C", "Filter 2" = "#377EB8", "10 m" = "#E41A1C", "200 m" = "#377EB8", "BCD" = "#E41A1C", "NPP" = "#377EB8", "Cruise Specific BGE" = "#E41A1C", "Global BGE" = "#377EB8") 
+custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00", "Filter 1" = "#E41A1C", "Filter 2" = "#377EB8", "10 m" = "#E41A1C", "200 m" = "#377EB8", "BCD" = "#377EB8" , "NPP" = "#4DAF4A" , "Cruise Specific BGE" = "#377EB8", "Global BGE" = "#4DAF4A") 
 
 custom.shapes <- c("Early Spring" = 21, "Late Spring" = 22,"Early Autumn" = 23)
 
@@ -2108,6 +2108,7 @@ merge <- full_join(ba.merge, oc.merge) %>%
    
 ```
 
+
 # Bottle v. Vial Incubation Comparisons
 
 ## PTOC v. PDOC
@@ -2268,6 +2269,7 @@ tidy_merge <- merge %>%
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) 
 
+
 tidy_merge_keys <- tidy_merge %>% 
   group_keys() %>%
   mutate(key = paste(Cruise, ", S", Station, ", Z =", Depth, ",", Treatment, ",", Bottle))
@@ -2278,6 +2280,46 @@ tidy_merge_list <- tidy_merge %>%
 names(tidy_merge_list) <- tidy_merge_header
 
 ```
+
+
+```{r}
+
+two_newrow.func <- function(morty){
+   morty[nrow(morty) + 1,] <- NA
+   morty$Days[is.na(morty$Days)] <- 7
+  rick <- morty %>% 
+    fill(., Season:facet_bottle, stationary:s.gf75, .direction = c("updown")) 
+  
+   rick[nrow(rick) + 1,] <- NA
+  rick$Days[is.na(rick$Days)] <- 30
+  summer <- rick %>% 
+    fill(., Season:facet_bottle, stationary:s.gf75, .direction = c("updown")) 
+}
+
+add_tidy_merge <- lapply(tidy_merge_list, two_newrow.func) %>% 
+  plyr::ldply(., as.data.frame) %>% 
+  select(-.id) %>% 
+  arrange(Cruise, Station, Depth, Treatment, Bottle, Days) %>% 
+  group_by(Cruise, Station, Depth, Treatment, Bottle, Days) %>%
+  fill(Hours, gf75.flag, cells:doc_from_t0, i.poc.cf1:ccf.lee, .direction = "downup") %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  mutate(Hours = ifelse(Days == 30, 720, Hours ),
+         Hours = ifelse(Days == 7, 168, Hours )) %>% 
+  group_by(Cruise, Station, Depth, Treatment, Bottle)  
+
+add_tidy_merge_keys <- add_tidy_merge %>% 
+  group_keys() %>%
+  mutate(key = paste(Cruise, ", S", Station, ", Z =", Depth, ",", Treatment, ",", Bottle))
+add_tidy_merge_header <- add_tidy_merge_keys$key
+
+add_tidy_merge_list <- add_tidy_merge %>%
+  group_split()
+names(add_tidy_merge_list) <- add_tidy_merge_header
+
+```
+
+
 
 ## Interpolate Stationary Timepoint
 
@@ -2290,7 +2332,7 @@ interp.func <- function(x) {
   as_tibble(z)
 }
 
-interp_st <- lapply(tidy_merge_list, interp.func) %>% 
+interp_st <- lapply(add_tidy_merge_list, interp.func) %>% 
   plyr::ldply(., as.data.frame) %>% 
   select(-.id) %>% 
   mutate_at(vars(Depth, Hours:doc_from_t0, i.poc.cf1:interp_doc), as.numeric) %>% 
@@ -2726,7 +2768,7 @@ bge_summary %>%
 
 ## Overall BGEs
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 16, fig.align = "center", warning = FALSE}
 bge_summary %>%
   select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3, gf75.flag, del.doc.flag, del.ph.doc.flag, contains("bge")) %>% 
   distinct() %>% 
@@ -2760,31 +2802,36 @@ bge_summary %>%
          appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
          appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
          p = appr) %>% 
-  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
+  separate(., p, into = c("points", "ccf"), sep = ", " ) %>% 
   group_by(Cruise, type, appr) %>% 
-  add_tally() %>% 
   ungroup() %>% 
    #remove outliers
-  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
-         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  filter(!Cruise == "AT38" | !Station == "1" | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == "1" | !Depth == 10 | !Treatment == "Control") %>% 
   filter(type == "Control", !Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.bc.poc", "bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3", "bge.p.bc.ccf.white",  "bge.p.bc.dyn.ccf.white_fukuda", "bge.p.bc.dyn.ccf.white_lee" )) %>%
-  filter(!Cruise == "AT34" | !Station == 3 | ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
-  select(Cruise:Bottle, ccf, bge) %>% 
-  distinct() %>% 
-  mutate(ccf = as_factor(ccf)) %>% 
+  filter(!Cruise == "AT34" | !Station == "3" | !ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
+  mutate(group = "GF75 POC", 
+         group = ifelse(ccf %in% c("CCF c1", "CCF c2", "CCF c3"), "NAAMES CCF", group),
+         group = ifelse(ccf %in% c("Fukuda CCF", "Lee CCF"), ccf, group) ) %>% 
+  select(Season:Bottle, ccf, group, bge) %>% 
+  distinct() %>%
+  group_by(Cruise, group) %>% 
+  mutate(group_bge = mean(bge, na.rm = T),
+         sd_group_bge = sd(bge, na.rm = T)) %>% 
+  ungroup() %>% 
+  group_by(Cruise, ccf) %>% 
+  add_tally() %>% 
+  mutate(n = paste("n = ", n)) %>% 
  ##PLOT
-  ggplot(aes(x = ccf, y = bge)) +
-  geom_boxplot(width = 0.3) +
-  geom_jitter(aes(fill = ccf), width = 0.1, shape = 21, size = 3, alpha = 0.7) +
-  labs(x = "", y = expression(italic("BGE")), colour = expression(italic(""))) + 
-  scale_y_continuous(breaks = pretty_breaks()) +
-  custom_theme() +
-  guides(fill = F)
-  #facet_grid(~type, scales = "free") +
-  #ggtitle("Bacterial Growth Efficiences") +
-  # theme(axis.title.x = element_blank(),
-  #       axis.text.x = element_blank(),
-  #       axis.ticks.x = element_blank())
+  ggplot(aes(x = factor(group, levels = c("GF75 POC", "NAAMES CCF", "Fukuda CCF", "Lee CCF" )), y = group_bge)) +
+    geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#999999", width = 0.4) +
+    geom_errorbar(aes(ymin = group_bge - sd_group_bge, ymax = group_bge + sd_group_bge), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+    #geom_label(aes(label = n), fontface = 3) +
+   scale_y_continuous(breaks = pretty_breaks()) +
+    scale_fill_manual(values = custom.colors) +
+    labs(x = expression(italic("")), y = expression(italic(paste("BGE"))), colour = expression(italic(""))) +
+    custom_theme() +
+    facet_grid(~factor(Season, levels = levels), scales = "free") 
 ```
 
 ```{r}
@@ -2821,104 +2868,41 @@ bge_summary %>%
          appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
          appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
          p = appr) %>% 
-  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
+  separate(., p, into = c("points", "ccf"), sep = ", " ) %>% 
   group_by(Cruise, type, appr) %>% 
-  add_tally() %>% 
   ungroup() %>% 
    #remove outliers
-  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
-         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  filter(!Cruise == "AT38" | !Station == "1" | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == "1" | !Depth == 10 | !Treatment == "Control") %>% 
   filter(type == "Control", !Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.bc.poc", "bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3", "bge.p.bc.ccf.white",  "bge.p.bc.dyn.ccf.white_fukuda", "bge.p.bc.dyn.ccf.white_lee" )) %>%
-  filter(!Cruise == "AT34" | !Station == 3 | ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
-  select(Season:Bottle, ccf, bge) %>% 
+  filter(!Cruise == "AT34" | !Station == "3" | !ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
+  mutate(group = "GF75 POC", 
+         group = ifelse(ccf %in% c("CCF c1", "CCF c2", "CCF c3"), "NAAMES CCF", group),
+         group = ifelse(ccf %in% c("Fukuda CCF", "Lee CCF"), ccf, group) ) %>% 
+  select(Season:Bottle, ccf, group, bge) %>% 
   distinct() %>%
-  mutate(appr_group = ccf,
-         appr_group = gsub("POC c1", "NAAMES", appr_group),
-         appr_group = gsub("POC c2", "NAAMES", appr_group),
-         appr_group = gsub("POC c3", "NAAMES", appr_group),
-         appr_group = gsub("CCF c1", "NAAMES", appr_group),
-         appr_group = gsub("CCF c2", "NAAMES", appr_group),
-         appr_group = gsub("CCF c3", "NAAMES", appr_group)
-         ) %>% 
-  group_by(appr_group) %>% 
-  mutate(ave_bge = mean(bge),
-         sd_bge = sd(bge),
-         min_bge = min(bge),
-         max_bge = max(bge),
-         med_bge = median(bge)) %>% 
-  add_tally() %>% 
+  group_by(Cruise, group) %>% 
+  mutate(group_bge = mean(bge, na.rm = T),
+         sd_group_bge = sd(bge, na.rm = T),
+         min_group_bge = min(bge),
+         max_group_bge = max(bge),
+         med_group_bge = median(bge)) %>% 
   ungroup() %>% 
-  select(appr_group, ave_bge:med_bge, n) %>% 
-  distinct() %>% 
-  mutate_at(vars(ave_bge:med_bge), round, 2)
-
-
-```
-
-```{r}
-bge_summary %>%
-  select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3, gf75.flag, del.doc.flag, del.ph.doc.flag, contains("bge")) %>% 
-  distinct() %>% 
-  gather(key, bge, contains("bge")) %>% 
-  drop_na(bge) %>% 
-   mutate(appr = key,
-         appr = ifelse(appr == "bge.bc.poc", "p2p, POC", appr),
-         appr = ifelse(appr == "bge.bc.poc.c1", "p2p, POC c1", appr),
-         appr = ifelse(appr == "bge.bc.poc.c2", "p2p, POC c2", appr),
-         appr = ifelse(appr == "bge.bc.poc.c3", "p2p, POC c3", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c1", "p2p, CCF c1", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c2", "p2p, CCF c2", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c3", "p2p, CCF c3", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c1", "p2p, Dyn. CCF c1", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c2", "p2p, Dyn. CCF c2", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c3", "p2p, Dyn. CCF c3", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.white", "p2p, White CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.fukuda", "p2p, Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.lee", "p2p, Lee CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_fukuda", "p2p, Dyn. White_Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_lee", "p2p, Dyn. White_Lee CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c1", "ph2ph, CCF c1", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c2", "ph2ph, CCF c2", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c3", "ph2ph, CCF c3", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c1", "ph2ph, Dyn. CCF c1", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c2", "ph2ph, Dyn. CCF c2", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c3", "ph2ph, Dyn. CCF c3", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.white", "ph2ph, White CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.fukuda", "ph2ph, Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.lee", "ph2ph, Lee CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
-         p = appr) %>% 
-  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
-  group_by(Cruise, type, appr) %>% 
+  group_by(Cruise, ccf) %>% 
   add_tally() %>% 
+  mutate(n = paste("n = ", n),
+         group2 = ifelse(group %in% c("GF75 POC", "NAAMES CCF"), "NAAMES", group)) %>%
   ungroup() %>% 
-   #remove outliers
-  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
-         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
-  filter(type == "Control", !Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.bc.poc", "bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3", "bge.p.bc.ccf.white",  "bge.p.bc.dyn.ccf.white_fukuda", "bge.p.bc.dyn.ccf.white_lee" )) %>%
-  filter(!Cruise == "AT34" | !Station == 3 | ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
-  select(Season:Bottle, ccf, bge) %>% 
-  distinct() %>%
-  mutate(appr_group = ccf,
-         appr_group = gsub("POC c1", "NAAMES", appr_group),
-         appr_group = gsub("POC c2", "NAAMES", appr_group),
-         appr_group = gsub("POC c3", "NAAMES", appr_group),
-         appr_group = gsub("CCF c1", "NAAMES", appr_group),
-         appr_group = gsub("CCF c2", "NAAMES", appr_group),
-         appr_group = gsub("CCF c3", "NAAMES", appr_group)
-         ) %>% 
-  group_by(Season, appr_group) %>% 
-  mutate(ave_bge = mean(bge),
-         sd_bge = sd(bge),
-         min_bge = min(bge),
-         max_bge = max(bge),
-         med_bge = median(bge)) %>% 
-  add_tally() %>% 
+  group_by(Cruise, group2) %>% 
+  mutate(group2_bge = mean(bge, na.rm = T),
+         sd_group2_bge = sd(bge, na.rm = T),
+         min_group2_bge = min(bge),
+         max_group2_bge = max(bge),
+         med_group2_bge = median(bge)) %>% 
   ungroup() %>% 
-  select(Season, appr_group, ave_bge:med_bge, n) %>% 
+  select(Season, group, group2, group_bge:med_group_bge, n, group2_bge:med_group2_bge) %>% 
   distinct() %>% 
-  mutate_at(vars(ave_bge:med_bge), round, 2)
+  mutate_at(vars(group_bge:med_group_bge, group2_bge:med_group2_bge), round, 2)
 
 
 ```
@@ -3096,96 +3080,234 @@ bcd <- interpolated.df %>%
   group_by(Cruise, Station, Depth) %>% 
   mutate(bcd.stat.cr_bge = mean(bcd.cr_bge, na.rm = T),
          bcd.stat = mean(bcd, na.rm = T),
-         ba.stat = mean(interp_ba, na.rm = T),
+         #convert to cells / m3
+         ba.stat = mean(interp_ba, na.rm = T) * 1000,
+         sd_ba.stat = sd(interp_ba, na.rm = T) * 1000,
+         bp.stat = mean(interp_bp, na.rm = T),
+         sd_bp.stat = sd(interp_bp, na.rm = T),
          phytodet.stat = mean(interp_phytodet, na.rm = T),
          phyto.stat = mean(interp_phyto, na.rm = T)) %>% 
   mutate_at(vars(bcd.stat.cr_bge, bcd.stat), round) %>% 
   ungroup() %>% 
-  select(Cruise:degree_bin, ave_Ez:sd_NPP, bge, cr_bge, Depth, contains("stat")) %>% 
-  distinct() %>% 
+  group_by(Cruise, Subregion, Depth) %>% 
+  mutate(ba.cr.sr = mean(interp_ba, na.rm = T) * 1000,
+         sd_ba.cr.sr = sd(interp_ba, na.rm = T) * 1000,
+         bp.cr.sr = mean(interp_bp, na.rm = T),
+         sd_bp.cr.sr = sd(interp_bp, na.rm = T)) %>% 
+  ungroup() %>% 
+  select(Cruise:degree_bin, ave_Ez:sd_NPP, bge, cr_bge, Depth, contains("stat"), contains("sr")) %>% 
+  distinct() 
+
+int_bcd <- bcd %>% 
   group_by(Cruise, Station) %>% 
   filter(Depth <= ave_Ez) %>% 
   mutate(int.bcd.cr_bge.ez = integrateTrapezoid(Depth, bcd.stat.cr_bge, type = "A"),
          int.bcd.ez = integrateTrapezoid(Depth, bcd.stat, type = "A"),
+         int.bp.ez = integrateTrapezoid(Depth, bp.stat, type = "A"),
+         sd_int.bp.ez = integrateTrapezoid(Depth, sd_bp.stat, type = "A"),
          int.ba.ez = integrateTrapezoid(Depth, ba.stat, type = "A"),
+         sd_int.ba.ez = integrateTrapezoid(Depth, sd_ba.stat, type = "A"),
          int.phyodet.ez = integrateTrapezoid(Depth, phytodet.stat, type = "A"),
-         int.phyto.ez = integrateTrapezoid(Depth, phyto.stat, type = "A"),
-         bcd.ez_npp.cr_bge = int.bcd.cr_bge.ez/ave_NPP * 100,
-         bcd.ez_npp = int.bcd.ez/ave_NPP * 100,
-         )  %>% 
+         int.phyto.ez = integrateTrapezoid(Depth, phyto.stat, type = "A"))  %>% 
   mutate_at(vars(contains("int.bcd"), contains("bcd.ez_npp")), round) %>% 
-  select(Cruise:cr_bge, int.bcd.cr_bge.ez:bcd.ez_npp) %>% 
+  # depth normalize 
+  mutate_at(vars(int.bcd.cr_bge.ez:int.phyto.ez), funs(./ave_Ez)) %>% 
+  mutate(int.NPP = ave_NPP/ave_Ez,
+         sd_int.NPP = sd_NPP/ave_Ez, 
+         bcd.ez_npp.cr_bge = int.bcd.cr_bge.ez/int.NPP * 100,
+         bcd.ez_npp = int.bcd.ez/int.NPP * 100) %>% 
+  select(Cruise:cr_bge, int.bcd.cr_bge.ez:bcd.ez_npp, Depth, contains("stat"), contains("cr.sr")) %>% 
   distinct() %>% 
   ungroup()
     
 ```
 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 12, fig.align = "center", warning = FALSE}
-bcd %>% 
-  pivot_longer(cols = c(bcd.ez_npp.cr_bge, bcd.ez_npp), names_to = "bge_used", values_to = "bcd.npp") %>% 
-  mutate(bge_used = ifelse(bge_used == "bcd.ez_npp.cr_bge", "Cruise Specific BGE", "Global BGE"),
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 12, fig.align = "center", warning = FALSE}
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.bcd.ez, int.bcd.cr_bge.ez) %>% 
+  distinct() %>% 
+  mutate(degree_bin = as.character(degree_bin)) %>% 
+  pivot_longer(cols = c(int.bcd.cr_bge.ez, int.bcd.ez), names_to = "bcd", values_to = "value") %>%  
+  mutate(bcd = ifelse(bcd == "int.bcd.cr_bge.ez", "Cruise-Specific BGE", "Campaign BGE"),
          degree_bin = as.character(degree_bin)) %>% 
+  group_by(Cruise, Station) %>% 
+  mutate(ave = mean(value)/10^3,
+         sd = sd(value)/10^3) %>% 
+  ungroup() %>% 
   ##PLOT
-  ggplot(aes(x = degree_bin, fill = bge_used, y =  bcd.npp, group = interaction(Season, Station, degree_bin)))  +
-  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1) +
-  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("BCD:NPP, %"))), colour = expression(italic(""))) +
+  ggplot(aes(x = degree_bin, y = ave, group = interaction(Season, Station, degree_bin)))  +
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#377EB8") +
+  geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("BCD, mmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
-  scale_fill_brewer(palette = "Set1") +
-  #scale_fill_manual(values = custom.colors) +
   custom_theme() +
-  facet_grid(~factor(Season, levels = levels), scales = "free")
+  facet_grid(~factor(Season, levels = levels), scales = "free") 
 ```
 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3, fig.width = 7, fig.align = "center", warning = FALSE}
-bcd %>% 
-  pivot_longer(cols = c(bcd.ez_npp.cr_bge, bcd.ez_npp), names_to = "bge_used", values_to = "bcd.npp") %>% 
-  mutate(bge_used = ifelse(bge_used == "bcd.ez_npp.cr_bge", "Cruise Specific BGE", "Global BGE"),
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 12, fig.align = "center", warning = FALSE}
+int_bcd %>% 
+  select(Cruise:Station, degree_bin,  bcd.ez_npp.cr_bge, bcd.ez_npp) %>% 
+  distinct() %>% 
+  mutate(degree_bin = as.character(degree_bin)) %>% 
+  pivot_longer(cols = c(bcd.ez_npp.cr_bge, bcd.ez_npp), names_to = "bcd_npp", values_to = "value") %>%  
+  mutate(bcd_npp = ifelse(bcd_npp == "bcd.ez_npp.cr_bge", "Cruise-Specific BGE", "Campaign BGE"),
          degree_bin = as.character(degree_bin)) %>% 
+  group_by(Cruise, Station) %>% 
+  mutate(ave = mean(value),
+         sd = sd(value)) %>% 
+  ungroup() %>% 
   ##PLOT
-  ggplot(aes(x = factor(Season, levels = levels),  y =  bcd.npp))  + 
-  geom_boxplot( size = 0.5, width = 0.2) +
-  labs(x = expression(italic("")), y = expression(italic(paste("BCD:NPP, %"))), colour = expression(italic(""))) +
+  ggplot(aes(x = degree_bin, y = ave, group = interaction(Season, Station, degree_bin)))  +
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#377EB8") +
+  geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("BCD:NPP"))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
-  scale_fill_manual(values = custom.colors) +
-  custom_theme() 
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") #+
+  #theme(strip.background = element_blank(), strip.text = element_blank())
 ```
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 12, fig.align = "center", warning = FALSE}
-bcd %>% 
-  select(Cruise:Station, degree_bin, ave_NPP, sd_NPP, int.bcd.cr_bge.ez, int.bcd.ez) %>% 
-  pivot_longer(cols = c(ave_NPP, int.bcd.cr_bge.ez, int.bcd.ez), names_to = "rate", values_to = "value") %>% 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 12, fig.align = "center", warning = FALSE}
+
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.NPP, sd_int.NPP, int.bcd.cr_bge.ez, int.bcd.ez) %>% 
+  distinct() %>% 
+  pivot_longer(cols = c(int.NPP, int.bcd.cr_bge.ez, int.bcd.ez), names_to = "rate", values_to = "value") %>%  
   mutate(rate = ifelse(rate %in% c("int.bcd.cr_bge.ez", "int.bcd.ez"), "BCD", "NPP"),
          degree_bin = as.character(degree_bin)) %>% 
   group_by(Cruise, Station, rate) %>% 
   mutate(ave = mean(value)/10^3,
          sd = sd(value)/10^3,
-         sd = ifelse(rate == "NPP", sd_NPP/10^3, sd )) %>% 
+         sd = ifelse(rate == "NPP", sd_int.NPP/10^3, sd )) %>% 
   ungroup() %>% 
   ##PLOT
   ggplot(aes(x = degree_bin, fill = factor(rate, levels = c("NPP", "BCD")), y =  ave, group = interaction(Season, Station, degree_bin)))  + 
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1) +
   geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("mmol C m"^-2, "d"^-1))), colour = expression(italic(""))) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("mmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
   #scale_fill_brewer(palette = "Set1") +
   scale_fill_manual(values = custom.colors) +
   custom_theme() +
-  facet_grid(~factor(Season, levels = levels), scales = "free")
+  facet_grid(~factor(Season, levels = levels), scales = "free") #+
+  # theme(strip.background = element_blank(), strip.text = element_blank()) +
+  # guides(fill = F)
 ```
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 12, fig.align = "center", warning = FALSE}
-bcd %>% 
-  select(Cruise:Station, degree_bin, ave_Ez, int.ba.ez) %>% 
-  mutate(degree_bin = as.character(degree_bin)) %>% 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 12, fig.align = "center", warning = FALSE}
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.ba.ez, int.bp.ez, sd_int.bp.ez, sd_int.ba.ez) %>%
+  distinct() %>% 
+  pivot_longer(cols = c(int.ba.ez, int.bp.ez), names_to = "var", values_to = "value") %>% 
+  mutate(var = ifelse(var == "int.ba.ez", "Abundance", "Production"),
+         degree_bin = as.character(degree_bin)) %>% 
+  group_by(Cruise, Station, var) %>% 
+  mutate(sd = ifelse(var == "Abundance", sd_int.ba.ez, sd_int.bp.ez)) %>% 
   ##PLOT
-  ggplot(aes(x = degree_bin, y =  int.ba.ez/ave_Ez, group = interaction(Season, Station, degree_bin)))  +
-  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1) +
-  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("Cells m"^-3))), colour = expression(italic(""))) +
+  ggplot(aes(x = degree_bin, y = value), group = interaction(Season, Station, degree_bin))  +
+  geom_bar( position = position_dodge2(), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
+  geom_errorbar(aes(ymin = value - sd, ymax = value + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("µmol C m"^-3, "d"^-1, "                     ", "Cells m"^-3))), colour = expression(italic(""))) +
+  #hahahaha this ain't pretty but it works ^
   scale_y_continuous(breaks = pretty_breaks()) +
   custom_theme() +
-  facet_grid(~factor(Season, levels = levels), scales = "free")
+  facet_grid(var~factor(Season, levels = levels), 
+             scales = "free", 
+             switch = "y") 
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 12, fig.align = "center", warning = FALSE}
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.ba.ez, int.bp.ez, sd_int.bp.ez, sd_int.ba.ez) %>%
+  distinct() %>% 
+  pivot_longer(cols = c(int.ba.ez, int.bp.ez), names_to = "var", values_to = "value") %>% 
+  mutate(var = ifelse(var == "int.ba.ez", "Abundance", "Production"),
+         degree_bin = as.character(degree_bin)) %>% 
+  group_by(Cruise, Station, var) %>% 
+  mutate(sd = ifelse(var == "Abundance", sd_int.ba.ez, sd_int.bp.ez)) %>% 
+  filter(var == "Abundance") %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, y = value, group = interaction(Season, Station, degree_bin)))  +
+  geom_bar( position = position_dodge(width = 0.9), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
+  geom_errorbar(aes(ymin = value - sd, ymax = value + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste( "Bacterial Abundance, Cells m"^-3))), colour = expression(italic(""))) +
+  #hahahaha this ain't pretty but it works ^
+  scale_y_continuous(breaks = pretty_breaks()) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), 
+             scales = "free") 
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 12, fig.align = "center", warning = FALSE}
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.ba.ez, int.bp.ez, sd_int.bp.ez, sd_int.ba.ez) %>%
+  distinct() %>% 
+  pivot_longer(cols = c(int.ba.ez, int.bp.ez), names_to = "var", values_to = "value") %>% 
+  mutate(var = ifelse(var == "int.ba.ez", "Abundance", "Production"),
+         degree_bin = as.character(degree_bin)) %>% 
+  group_by(Cruise, Station, var) %>% 
+  mutate(sd = ifelse(var == "Abundance", sd_int.ba.ez, sd_int.bp.ez)) %>% 
+  filter(var == "Production") %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, y = value, group = interaction(Season, Station, degree_bin)))  +
+  geom_bar(position = position_dodge(width = 0.9), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
+  geom_errorbar(aes(ymin = value - sd, ymax = value + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("Bacterial Production, µmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), 
+             scales = "free") #+
+  # theme(strip.background = element_blank(), strip.text = element_blank())
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 20, fig.align = "center", warning = FALSE}
+bcd %>% 
+  drop_na(bp.cr.sr) %>% 
+  filter(Depth %in% c(0, 5, 10, 25, 75, 100, 150, 200, 300)) %>% 
+  select(Season, Cruise, Subregion, Depth, ave_Ez, bp.cr.sr, sd_bp.cr.sr) %>% 
+  distinct() %>% 
+  ggplot(aes(x = Depth, y = bp.cr.sr, group = interaction(Cruise, Subregion))) +
+  geom_errorbar(aes(x = Depth, ymin = bp.cr.sr - sd_bp.cr.sr, ymax = bp.cr.sr + sd_bp.cr.sr, color = Season), width = 2, size = 0.5) +
+  geom_line(aes(colour = factor(Season, levels = levels)), size = 0.7) +
+  geom_point(aes(fill = factor(Season, levels = levels)), size = 4, shape = 21, color = "black", stroke = 1, alpha = 0.7) + 
+  labs(x = expression(italic(paste("Depth, m"))), y = expression(italic(paste("Bacterial Production, µmol C m"^3, "d"^-1))), colour = "") +
+  scale_x_reverse(breaks = pretty_breaks(), expand = c(0,0)) +
+  coord_flip() +
+  #scale_y_continuous(expand = c(0,0)) +
+  scale_colour_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  guides(colour = F) +
+  #guides(fill = F) +
+  custom_theme() +
+  facet_grid(~factor(Subregion, levels = levels), scales = "free") +
+  theme(panel.spacing.x = unit(1, "cm"))
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 20, fig.align = "center", warning = FALSE}
+bcd %>% 
+  drop_na(ba.cr.sr) %>% 
+  filter(Depth %in% c(0, 5, 10, 25, 75, 100, 150, 200, 300)) %>% 
+  select(Season, Cruise, Subregion, Depth, ba.cr.sr, sd_ba.cr.sr) %>% 
+  distinct() %>% 
+  ggplot(aes(x = Depth, y = ba.cr.sr, group = interaction(Cruise, Subregion))) +
+  geom_errorbar(aes(x = Depth, ymin = ba.cr.sr - sd_ba.cr.sr, ymax = ba.cr.sr + sd_ba.cr.sr, color = Season), width = 2, size = 0.5) +
+  geom_line(aes(colour = factor(Season, levels = levels)), size = 0.7) +
+  geom_point(aes(fill = factor(Season, levels = levels)), size = 4, shape = 21, color = "black", stroke = 1, alpha = 0.7) + 
+  labs(x = expression(italic(paste("Depth, m"))), y = expression(italic(paste("Bacterial Abundance, Cells m"^3))), colour = "") +
+  scale_x_reverse(breaks = pretty_breaks(), expand = c(0,0)) +
+  coord_flip() +
+  #scale_y_continuous(expand = c(0,0)) +
+  scale_colour_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  guides(colour = F) +
+  #guides(fill = F) +
+  custom_theme() +
+  facet_grid(~factor(Subregion, levels = levels), scales = "free") +
+  theme(panel.spacing.x = unit(1, "cm"))
 ```
 
 # Merge Data with Export MS Data
@@ -3196,18 +3318,22 @@ Here, we put our experimental data in the context of the results from the export
 - For the surface values at each station, we then subtract the DOC concentration of the winter/early springtime deeply mixed condition (from the export MS) from the DOC concentrations in the experiments conducted at the respective station (**norm_doc**).
 - We estimate the concentration of the seasonally accumulated DOC pool as the difference between the initial DOC concentration in each experiment and the DOC concentration of the mixed condition (**accm_doc**)
 - We then estimate the total DOC drawdown for the experiments (**bioav_doc**), the total remaining DOC after drawdown(**persis_doc**), the percent DOC bioavalability and persistence (**per_bioav** and **per_persis**, respectively)
-- Lastly we calculate the rate of DOC drawdown (nmol C d^-1^, **ddoc**)
+- Lastly we calculate the rate of DOC drawdown (nmol C L^-1^ d^-1^, **ddoc**)
 
 
 ```{r message = F, warning = F}
 
-export <- readRDS("~/naames_export_ms/Output/processed_export_n2_n3_n4.rds") %>% 
+export <- readRDS("~/naames_export_ms/Output/processed_export_for_bioavMS.5.7.20.rds") %>% 
   mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
-  select(Cruise, Season, degree_bin, Station, redis_DOC_vol, NCP_mol_100, doc_ncp_100) %>% 
+  select(Cruise, Season, degree_bin, Station, redis_DOC_vol, NCP_mol_100, doc_ncp_100, int_delta_DOC_100, doc_don_100 ) %>% 
   distinct() %>% 
   mutate_at(vars(redis_DOC_vol), round, 1) %>% 
-  mutate_at(vars(NCP_mol_100:doc_ncp_100), round, 2) %>%
-  mutate_at(vars(Station), as.character) 
+  mutate_at(vars(NCP_mol_100:doc_ncp_100, int_delta_DOC_100), round, 2) %>%
+  mutate_at(vars(doc_don_100), round) %>% 
+  mutate_at(vars(Station), as.character) %>% 
+  #error associated with the approach in calculating seasonally accumulated DON led to 17%  of total samples (5 of 29) being negative.  As a result these data were removed from further analyses.
+  mutate(doc_don_100 = ifelse(doc_don_100 < 0, NA, doc_don_100))
+
 
 export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>% 
   mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
@@ -3245,6 +3371,68 @@ export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>%
 
     
 ```
+
+# ∆DOC & DOC:DON
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 6, fig.align = "center", warning = FALSE}
+export %>%
+  select(Season, int_delta_DOC_100) %>% 
+  distinct() %>% 
+  drop_na(int_delta_DOC_100) %>% 
+  ggplot(aes(x = factor(Season, levels = levels), y = int_delta_DOC_100)) +
+  geom_boxplot(width = 0.3) +
+  geom_jitter(fill = "white", width = 0.1, shape = 21, size = 3, alpha = 0.7) + 
+  labs(x = "", y = expression(italic("Seasonally Accumulated DOC, mol C m"^-2)), colour = expression(italic(""))) + 
+  scale_fill_brewer(palette = "Set1") +
+  custom_theme() 
+  
+  
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 6, fig.align = "center", warning = FALSE}
+export %>%
+  select(Season, doc_don_100) %>% 
+  distinct() %>% 
+  drop_na(doc_don_100) %>% 
+  ggplot(aes(x = factor(Season, levels = levels), y = doc_don_100)) +
+  geom_boxplot(width = 0.3) +
+  geom_jitter(fill = "white", width = 0.1, shape = 21, size = 3, alpha = 0.7) + 
+  labs(x = "", y = expression(italic("Seasonally Accumulated DOC:DON")), colour = expression(italic(""))) + 
+  scale_fill_brewer(palette = "Set1") +
+  custom_theme() 
+  
+  
+```
+
+```{r}
+export %>%
+  select(Season, doc_don_100) %>% 
+  group_by(Season) %>% 
+  summarise(ave_doc_don = round(mean(doc_don_100, na.rm = T)),
+            sd_doc_don = round(sd(doc_don_100, na.rm = T)),
+            med_doc_don = round(median(doc_don_100, na.rm = T)),
+            min_doc_don = round(min(doc_don_100, na.rm = T)),
+            max_doc_don = round(max(doc_don_100, na.rm = T))
+            ) %>% 
+   arrange(factor(Season, levels = levels))
+  
+```
+
+```{r}
+export %>%
+  select(Season, doc_don_100) %>% 
+  group_by(Season) %>% 
+  filter(!doc_don_100 > 90) %>% 
+  summarise(ave_doc_don = round(mean(doc_don_100, na.rm = T)),
+            sd_doc_don = round(sd(doc_don_100, na.rm = T)),
+            med_doc_don = round(median(doc_don_100, na.rm = T)),
+            min_doc_don = round(min(doc_don_100, na.rm = T)),
+            max_doc_don = round(max(doc_don_100, na.rm = T))
+            ) %>% 
+   arrange(factor(Season, levels = levels))
+  
+```
+
 
 # Remineralization of Seasonally Accumulated DOC
 
@@ -3614,68 +3802,35 @@ export_bioav %>%
   guides(color = F, fill = F)
 ```
 
-```{r include = F}
-seas_bioav.table <- export_bioav %>% 
-  filter(Treatment == "Control", Depth == "10") %>% 
-  select(Season:Station, total.bioav_doc:per_persis, st.ddoc, lt.ddoc) %>% 
+```{r}
+bioav.table <- export_bioav %>% 
+  filter(Depth == 10, Treatment == "Control") %>% 
+  select(Season:Subregion, contains("bioav_doc"), contains("per_bioav"), contains("persis"), contains("ddoc")) %>% 
   distinct() %>% 
-  group_by(Season) %>% 
-  summarize(min_st.bioav_doc = min(st.bioav_doc, na.rm = T),
-            mean_st.bioav_doc = mean(st.bioav_doc, na.rm = T),
-            med_st.bioav_doc = median(st.bioav_doc, na.rm = T),
-            max_st.bioav_doc = max(st.bioav_doc, na.rm = T),
+  group_by(Season, Subregion) %>% 
+  summarise(ave_total.per_bioav = round(mean(total.per_bioav, na.rm = T), 2),
+            sd_total.per_bioav = round(sd(total.per_bioav, na.rm = T), 2),
+            ave_st.per_bioav = round(mean(st.per_bioav, na.rm = T), 2),
+            sd_st.per_bioav = round(sd(st.per_bioav, na.rm = T), 2),
+            ave_lt.per_bioav = round(mean(lt.per_bioav, na.rm = T), 2),
+            sd_lt.per_bioav = round(sd(lt.per_bioav, na.rm = T), 2),
             
-            min_lt.bioav_doc = min(lt.bioav_doc, na.rm = T),
-            mean_lt.bioav_doc = mean(lt.bioav_doc, na.rm = T),
-            med_lt.bioav_doc = median(lt.bioav_doc, na.rm = T),
-            max_lt.bioav_doc = max(lt.bioav_doc, na.rm = T),
+            ave_per_persis = round(mean(per_persis, na.rm = T), 2),
+            sd_per_persis = round(sd(per_persis, na.rm = T), 2),
             
-            min_total.bioav_doc = min(total.bioav_doc, na.rm = T),
-            mean_total.bioav_doc = mean(total.bioav_doc, na.rm = T),
-            med_total.bioav_doc = median(total.bioav_doc, na.rm = T),
-            max_total.bioav_doc = max(total.bioav_doc, na.rm = T),
+            ave_st.ddoc = round(mean(st.ddoc, na.rm = T), 2),
+            sd_st.ddoc = round(sd(st.ddoc, na.rm = T), 2),
+            ave_lt.ddoc = round(mean(lt.ddoc, na.rm = T), 2),
+            sd_lt.ddoc = round(sd(lt.ddoc, na.rm = T), 2),
             
-            min_persis_doc = min(persis_doc, na.rm = T),
-            mean_persis_doc = mean(persis_doc, na.rm = T),
-            med_persis_doc = median(persis_doc, na.rm = T),
-            max_persis_doc = max(persis_doc, na.rm = T),
-            
-            min_st.ddoc = min(st.ddoc, na.rm = T),
-            mean_st.ddoc = mean(st.ddoc, na.rm = T),
-            med_st.ddoc = median(st.ddoc, na.rm = T),
-            max_st.ddoc = max(st.ddoc, na.rm = T),
-            
-            min_lt.ddoc = min(lt.ddoc, na.rm = T),
-            mean_lt.ddoc = mean(lt.ddoc, na.rm = T),
-            med_lt.ddoc = median(lt.ddoc, na.rm = T),
-            max_lt.ddoc = max(lt.ddoc, na.rm = T),
-            
-            min_st.per_bioav = min(st.per_bioav, na.rm = T),
-            mean_st.per_bioav = mean(st.per_bioav, na.rm = T),
-            med_st.per_bioav = median(st.per_bioav, na.rm = T),
-            max_st.per_bioav = max(st.per_bioav, na.rm = T),
-            
-            min_lt.per_bioav = min(lt.per_bioav, na.rm = T),
-            mean_lt.per_bioav = mean(lt.per_bioav, na.rm = T),
-            med_lt.per_bioav = median(lt.per_bioav, na.rm = T),
-            max_lt.per_bioav = max(lt.per_bioav, na.rm = T),
-            
-            min_total.per_bioav = min(total.per_bioav, na.rm = T),
-            mean_total.per_bioav = mean(total.per_bioav, na.rm = T),
-            med_total.per_bioav = median(total.per_bioav, na.rm = T),
-            max_total.per_bioav = max(total.per_bioav, na.rm = T),
-  
-            
-            min_persis = min(per_persis, na.rm = T),
-            mean_persis = mean(per_persis, na.rm = T),
-            med_persis = median(per_persis, na.rm = T),
-            max_persis = max(per_persis, na.rm = T)) %>% 
-  mutate_at(vars(min_st.bioav_doc:max_persis_doc), round, 1) %>% 
-  mutate_at(vars(min_st.ddoc:max_persis), round) 
+            ) %>%
+   arrange(factor(Season, levels = levels)) %>% 
+  ungroup()
 ```
 
+
 ```{r echo = FALSE, results = 'asis'}
-kable(seas_bioav.table, caption = "Seasonal Accumulated DOC Bioavailability and Persistance")
+kable(bioav.table, caption = "Seasonal Accumulated DOC Bioavailability and Persistance")
 ```
 
 This seasonal comparison is best exemplifies at 44˚N where we have experiments from all cruises. It shows:
