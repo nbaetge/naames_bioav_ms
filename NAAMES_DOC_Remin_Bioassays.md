@@ -24,6 +24,7 @@ library(growthcurver)
 #stat tests
 library(lmtest)
 library(lmodel2)
+library(rstatix)
 ```
 
 # Bacterial Abundance
@@ -1738,6 +1739,7 @@ tidy_merge <- merge %>%
   ungroup() %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) 
 
+
 tidy_merge_keys <- tidy_merge %>% 
   group_keys() %>%
   mutate(key = paste(Cruise, ", S", Station, ", Z =", Depth, ",", Treatment, ",", Bottle))
@@ -1746,6 +1748,41 @@ tidy_merge_header <- tidy_merge_keys$key
 tidy_merge_list <- tidy_merge %>%
   group_split()
 names(tidy_merge_list) <- tidy_merge_header
+```
+
+``` r
+two_newrow.func <- function(morty){
+   morty[nrow(morty) + 1,] <- NA
+   morty$Days[is.na(morty$Days)] <- 7
+  rick <- morty %>% 
+    fill(., Season:facet_bottle, stationary:s.gf75, .direction = c("updown")) 
+  
+   rick[nrow(rick) + 1,] <- NA
+  rick$Days[is.na(rick$Days)] <- 30
+  summer <- rick %>% 
+    fill(., Season:facet_bottle, stationary:s.gf75, .direction = c("updown")) 
+}
+
+add_tidy_merge <- lapply(tidy_merge_list, two_newrow.func) %>% 
+  plyr::ldply(., as.data.frame) %>% 
+  select(-.id) %>% 
+  arrange(Cruise, Station, Depth, Treatment, Bottle, Days) %>% 
+  group_by(Cruise, Station, Depth, Treatment, Bottle, Days) %>%
+  fill(Hours, gf75.flag, cells:doc_from_t0, i.poc.cf1:ccf.lee, .direction = "downup") %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  mutate(Hours = ifelse(Days == 30, 720, Hours ),
+         Hours = ifelse(Days == 7, 168, Hours )) %>% 
+  group_by(Cruise, Station, Depth, Treatment, Bottle)  
+
+add_tidy_merge_keys <- add_tidy_merge %>% 
+  group_keys() %>%
+  mutate(key = paste(Cruise, ", S", Station, ", Z =", Depth, ",", Treatment, ",", Bottle))
+add_tidy_merge_header <- add_tidy_merge_keys$key
+
+add_tidy_merge_list <- add_tidy_merge %>%
+  group_split()
+names(add_tidy_merge_list) <- add_tidy_merge_header
 ```
 
 ## Interpolate Stationary Timepoint
@@ -1759,7 +1796,7 @@ interp.func <- function(x) {
   as_tibble(z)
 }
 
-interp_st <- lapply(tidy_merge_list, interp.func) %>% 
+interp_st <- lapply(add_tidy_merge_list, interp.func) %>% 
   plyr::ldply(., as.data.frame) %>% 
   select(-.id) %>% 
   mutate_at(vars(Depth, Hours:doc_from_t0, i.poc.cf1:interp_doc), as.numeric) %>% 
@@ -2036,29 +2073,29 @@ bge_summary %>%
     ##  2 Early Aut… Control bge.bc.poc.c1    0.22   0.09    0.13    0.31    0.23     3
     ##  3 Early Aut… Control bge.bc.poc.c2    0.22   0.11    0.11    0.32    0.23     3
     ##  4 Early Aut… Control bge.bc.poc.c3    0.18   0.1     0.08    0.27    0.18     3
-    ##  5 Early Aut… Control bge.p.bc.ccf…    0.22   0.09    0.12    0.28    0.27     3
-    ##  6 Early Aut… Control bge.p.bc.ccf…    0.21   0.11    0.09    0.28    0.27     3
-    ##  7 Early Aut… Control bge.p.bc.ccf…    0.18   0.08    0.09    0.24    0.22     3
-    ##  8 Early Aut… Control bge.p.bc.ccf…    0.21   0.04    0.16    0.24    0.22     3
-    ##  9 Early Aut… Control bge.p.bc.ccf…    0.34   0.05    0.28    0.38    0.36     3
-    ## 10 Early Aut… Control bge.p.bc.ccf…    0.44   0.06    0.38    0.48    0.47     3
+    ##  5 Early Aut… Control bge.p.bc.ccf…    0.22   0.08    0.12    0.28    0.27     6
+    ##  6 Early Aut… Control bge.p.bc.ccf…    0.21   0.1     0.09    0.28    0.27     6
+    ##  7 Early Aut… Control bge.p.bc.ccf…    0.18   0.07    0.09    0.24    0.22     6
+    ##  8 Early Aut… Control bge.p.bc.ccf…    0.21   0.04    0.16    0.24    0.22     6
+    ##  9 Early Aut… Control bge.p.bc.ccf…    0.34   0.05    0.28    0.38    0.36     6
+    ## 10 Early Aut… Control bge.p.bc.ccf…    0.44   0.05    0.38    0.48    0.47     6
     ## # … with 102 more rows
 
 ## ∆POC
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-108-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-109-1.png" style="display: block; margin: auto;" />
 
 ## ∆TOC
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-109-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-110-1.png" style="display: block; margin: auto;" />
 
 ## BGEs
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-110-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-111-1.png" style="display: block; margin: auto;" />
 
 ## Overall BGEs
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-111-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-112-1.png" style="display: block; margin: auto;" />
 
 ``` r
 bge_summary %>%
@@ -2094,123 +2131,66 @@ bge_summary %>%
          appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
          appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
          p = appr) %>% 
-  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
+  separate(., p, into = c("points", "ccf"), sep = ", " ) %>% 
   group_by(Cruise, type, appr) %>% 
-  add_tally() %>% 
   ungroup() %>% 
    #remove outliers
-  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
-         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
+  filter(!Cruise == "AT38" | !Station == "1" | !Depth == 10 | !Treatment == "Control",
+         !Cruise == "AT39" | !Station == "1" | !Depth == 10 | !Treatment == "Control") %>% 
   filter(type == "Control", !Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.bc.poc", "bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3", "bge.p.bc.ccf.white",  "bge.p.bc.dyn.ccf.white_fukuda", "bge.p.bc.dyn.ccf.white_lee" )) %>%
-  filter(!Cruise == "AT34" | !Station == 3 | ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
-  select(Season:Bottle, ccf, bge) %>% 
+  filter(!appr %in% c("p2p, POC c2", "p2p, POC c3", "p2p, CCF c2", "p2p, CCF c3")) %>% 
+  filter(!Cruise == "AT34" | !Station == "3" | !ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
+  mutate(group = "GF75 POC", 
+         group = ifelse(ccf %in% c("CCF c1", "CCF c2", "CCF c3"), "NAAMES CCF", group),
+         group = ifelse(ccf %in% c("Fukuda CCF", "Lee CCF"), ccf, group) ) %>% 
+  select(Season:Bottle, ccf, group, bge) %>% 
   distinct() %>%
-  mutate(appr_group = ccf,
-         appr_group = gsub("POC c1", "NAAMES", appr_group),
-         appr_group = gsub("POC c2", "NAAMES", appr_group),
-         appr_group = gsub("POC c3", "NAAMES", appr_group),
-         appr_group = gsub("CCF c1", "NAAMES", appr_group),
-         appr_group = gsub("CCF c2", "NAAMES", appr_group),
-         appr_group = gsub("CCF c3", "NAAMES", appr_group)
-         ) %>% 
-  group_by(appr_group) %>% 
-  mutate(ave_bge = mean(bge),
-         sd_bge = sd(bge),
-         min_bge = min(bge),
-         max_bge = max(bge),
-         med_bge = median(bge)) %>% 
-  add_tally() %>% 
+  group_by(Cruise, group) %>% 
+  mutate(group_bge = mean(bge, na.rm = T),
+         sd_group_bge = sd(bge, na.rm = T),
+         min_group_bge = min(bge),
+         max_group_bge = max(bge),
+         med_group_bge = median(bge)) %>% 
   ungroup() %>% 
-  select(appr_group, ave_bge:med_bge, n) %>% 
+  group_by(Cruise, ccf) %>% 
+  add_tally() %>% 
+  mutate(n = paste("n = ", n),
+         group2 = ifelse(group %in% c("GF75 POC", "NAAMES CCF"), "NAAMES", group)) %>%
+  ungroup() %>% 
+  group_by(group2) %>% 
+  mutate(group2_global_bge = mean(bge, na.rm = T)) %>% 
+  ungroup() %>% 
+  group_by(Cruise, group2) %>% 
+  mutate(group2_bge = mean(bge, na.rm = T),
+         sd_group2_bge = sd(bge, na.rm = T),
+         min_group2_bge = min(bge),
+         max_group2_bge = max(bge),
+         med_group2_bge = median(bge)) %>% 
+  ungroup() %>% 
+  select(Season, group, group2, group_bge:med_group_bge, n, group2_bge:med_group2_bge, group2_global_bge) %>% 
   distinct() %>% 
-  mutate_at(vars(ave_bge:med_bge), round, 2)
+  mutate_at(vars(group_bge:med_group_bge, group2_bge:med_group2_bge, group2_global_bge), round, 2) %>%
+  arrange(group, factor(Season, levels = levels))
 ```
 
-    ## # A tibble: 3 x 7
-    ##   appr_group    ave_bge sd_bge min_bge max_bge med_bge     n
-    ##   <chr>           <dbl>  <dbl>   <dbl>   <dbl>   <dbl> <int>
-    ## 1 " NAAMES"        0.22   0.08    0.08    0.4     0.21    39
-    ## 2 " Fukuda CCF"    0.36   0.12    0.13    0.52    0.38     7
-    ## 3 " Lee CCF"       0.46   0.13    0.22    0.62    0.48     7
-
-``` r
-bge_summary %>%
-  select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3, gf75.flag, del.doc.flag, del.ph.doc.flag, contains("bge")) %>% 
-  distinct() %>% 
-  gather(key, bge, contains("bge")) %>% 
-  drop_na(bge) %>% 
-   mutate(appr = key,
-         appr = ifelse(appr == "bge.bc.poc", "p2p, POC", appr),
-         appr = ifelse(appr == "bge.bc.poc.c1", "p2p, POC c1", appr),
-         appr = ifelse(appr == "bge.bc.poc.c2", "p2p, POC c2", appr),
-         appr = ifelse(appr == "bge.bc.poc.c3", "p2p, POC c3", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c1", "p2p, CCF c1", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c2", "p2p, CCF c2", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c3", "p2p, CCF c3", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c1", "p2p, Dyn. CCF c1", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c2", "p2p, Dyn. CCF c2", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.c3", "p2p, Dyn. CCF c3", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.white", "p2p, White CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.fukuda", "p2p, Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.lee", "p2p, Lee CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_fukuda", "p2p, Dyn. White_Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_lee", "p2p, Dyn. White_Lee CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c1", "ph2ph, CCF c1", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c2", "ph2ph, CCF c2", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c3", "ph2ph, CCF c3", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c1", "ph2ph, Dyn. CCF c1", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c2", "ph2ph, Dyn. CCF c2", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.c3", "ph2ph, Dyn. CCF c3", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.white", "ph2ph, White CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.fukuda", "ph2ph, Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.lee", "ph2ph, Lee CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
-         p = appr) %>% 
-  separate(., p, into = c("points", "ccf"), sep = "," ) %>% 
-  group_by(Cruise, type, appr) %>% 
-  add_tally() %>% 
-  ungroup() %>% 
-   #remove outliers
-  filter(!Cruise == "AT38" | !Station == 1 | !Depth == 10 | !Treatment == "Control",
-         !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
-  filter(type == "Control", !Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.bc.poc", "bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3", "bge.p.bc.ccf.white",  "bge.p.bc.dyn.ccf.white_fukuda", "bge.p.bc.dyn.ccf.white_lee" )) %>%
-  filter(!Cruise == "AT34" | !Station == 3 | ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
-  select(Season:Bottle, ccf, bge) %>% 
-  distinct() %>%
-  mutate(appr_group = ccf,
-         appr_group = gsub("POC c1", "NAAMES", appr_group),
-         appr_group = gsub("POC c2", "NAAMES", appr_group),
-         appr_group = gsub("POC c3", "NAAMES", appr_group),
-         appr_group = gsub("CCF c1", "NAAMES", appr_group),
-         appr_group = gsub("CCF c2", "NAAMES", appr_group),
-         appr_group = gsub("CCF c3", "NAAMES", appr_group)
-         ) %>% 
-  group_by(Season, appr_group) %>% 
-  mutate(ave_bge = mean(bge),
-         sd_bge = sd(bge),
-         min_bge = min(bge),
-         max_bge = max(bge),
-         med_bge = median(bge)) %>% 
-  add_tally() %>% 
-  ungroup() %>% 
-  select(Season, appr_group, ave_bge:med_bge, n) %>% 
-  distinct() %>% 
-  mutate_at(vars(ave_bge:med_bge), round, 2)
-```
-
-    ## # A tibble: 9 x 8
-    ##   Season       appr_group    ave_bge sd_bge min_bge max_bge med_bge     n
-    ##   <chr>        <chr>           <dbl>  <dbl>   <dbl>   <dbl>   <dbl> <int>
-    ## 1 Late Spring  " NAAMES"        0.23   0.09    0.15    0.4     0.2     15
-    ## 2 Early Autumn " NAAMES"        0.21   0.08    0.08    0.32    0.23    18
-    ## 3 Early Spring " NAAMES"        0.23   0.03    0.18    0.28    0.22     6
-    ## 4 Late Spring  " Fukuda CCF"    0.45   0.06    0.4     0.52    0.42     3
-    ## 5 Early Autumn " Fukuda CCF"    0.34   0.05    0.28    0.38    0.36     3
-    ## 6 Early Spring " Fukuda CCF"    0.13  NA       0.13    0.13    0.13     1
-    ## 7 Late Spring  " Lee CCF"       0.56   0.05    0.52    0.62    0.54     3
-    ## 8 Early Autumn " Lee CCF"       0.44   0.06    0.38    0.48    0.47     3
-    ## 9 Early Spring " Lee CCF"       0.22  NA       0.22    0.22    0.22     1
+    ## # A tibble: 12 x 15
+    ##    Season group group2 group_bge sd_group_bge min_group_bge max_group_bge
+    ##    <chr>  <chr> <chr>      <dbl>        <dbl>         <dbl>         <dbl>
+    ##  1 Early… Fuku… Fukud…      0.13        NA             0.13          0.13
+    ##  2 Late … Fuku… Fukud…      0.51         0.1           0.4           0.62
+    ##  3 Early… Fuku… Fukud…      0.34         0.05          0.28          0.38
+    ##  4 Early… GF75… NAAMES      0.23        NA             0.23          0.23
+    ##  5 Late … GF75… NAAMES      0.27         0.09          0.19          0.4 
+    ##  6 Early… GF75… NAAMES      0.22         0.09          0.13          0.31
+    ##  7 Early… Lee … Lee C…      0.22        NA             0.22          0.22
+    ##  8 Late … Lee … Lee C…      0.62         0.09          0.52          0.72
+    ##  9 Early… Lee … Lee C…      0.44         0.06          0.38          0.48
+    ## 10 Early… NAAM… NAAMES      0.28        NA             0.28          0.28
+    ## 11 Late … NAAM… NAAMES      0.24         0.05          0.2           0.27
+    ## 12 Early… NAAM… NAAMES      0.22         0.09          0.12          0.28
+    ## # … with 8 more variables: med_group_bge <dbl>, n <chr>, group2_bge <dbl>,
+    ## #   sd_group2_bge <dbl>, min_group2_bge <dbl>, max_group2_bge <dbl>,
+    ## #   med_group2_bge <dbl>, group2_global_bge <dbl>
 
 ## Other Parameters
 
@@ -2341,11 +2321,11 @@ interpolated.df <- right_join(bact, interpolations.df) %>%
 
 #calculate bcd
 bcd <- interpolated.df %>% 
-  mutate(cr_bge = ifelse(Cruise == "AT32", 0.21, NA),
-         cr_bge = ifelse(Cruise == "AT34", 0.23, cr_bge),
-         cr_bge = ifelse(Cruise == "AT38", 0.21, cr_bge),
-         cr_bge = ifelse(Cruise == "AT39", 0.23, cr_bge),
-         bge = 0.22,
+  mutate(cr_bge = ifelse(Cruise == "AT32", 0.22, NA),
+         cr_bge = ifelse(Cruise == "AT34", 0.26, cr_bge),
+         cr_bge = ifelse(Cruise == "AT38", 0.22, cr_bge),
+         cr_bge = ifelse(Cruise == "AT39", 0.26, cr_bge),
+         bge = 0.24,
          #bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
          bcd.cr_bge = interp_bp/cr_bge,
          bcd = interp_bp/bge)  %>%
@@ -2353,27 +2333,58 @@ bcd <- interpolated.df %>%
   group_by(Cruise, Station, Depth) %>% 
   mutate(bcd.stat.cr_bge = mean(bcd.cr_bge, na.rm = T),
          bcd.stat = mean(bcd, na.rm = T),
-         ba.stat = mean(interp_ba, na.rm = T),
+         #convert to cells / m3
+         ba.stat = mean(interp_ba, na.rm = T) * 1000,
+         sd_ba.stat = sd(interp_ba, na.rm = T) * 1000,
+         bp.stat = mean(interp_bp, na.rm = T),
+         sd_bp.stat = sd(interp_bp, na.rm = T),
          phytodet.stat = mean(interp_phytodet, na.rm = T),
          phyto.stat = mean(interp_phyto, na.rm = T)) %>% 
   mutate_at(vars(bcd.stat.cr_bge, bcd.stat), round) %>% 
   ungroup() %>% 
-  select(Cruise:degree_bin, ave_Ez:sd_NPP, bge, cr_bge, Depth, contains("stat")) %>% 
-  distinct() %>% 
+  group_by(Cruise, Subregion, Depth) %>% 
+  mutate(ba.cr.sr = mean(interp_ba, na.rm = T) * 1000,
+         sd_ba.cr.sr = sd(interp_ba, na.rm = T) * 1000,
+         bp.cr.sr = mean(interp_bp, na.rm = T),
+         sd_bp.cr.sr = sd(interp_bp, na.rm = T)) %>% 
+  ungroup() %>% 
+  select(Cruise:degree_bin, ave_Ez:sd_NPP, bge, cr_bge, Depth, contains("stat"), contains("sr")) %>% 
+  distinct() 
+
+int_bcd_100 <- bcd %>% 
+  group_by(Cruise, Station) %>% 
+  filter(Depth <= 100) %>% 
+  mutate(int.bcd.cr_bge.100 = integrateTrapezoid(Depth, bcd.stat.cr_bge, type = "A"),
+         int.bcd.100 = integrateTrapezoid(Depth, bcd.stat, type = "A"))  %>% 
+  mutate_at(vars(contains("int.bcd")), round) %>% 
+  # depth normalize 
+  mutate_at(vars(int.bcd.cr_bge.100:int.bcd.100), funs(./100)) %>% 
+  select(Cruise:degree_bin, int.bcd.cr_bge.100, int.bcd.100) %>% 
+  distinct()
+
+
+int_bcd <- bcd %>% 
   group_by(Cruise, Station) %>% 
   filter(Depth <= ave_Ez) %>% 
   mutate(int.bcd.cr_bge.ez = integrateTrapezoid(Depth, bcd.stat.cr_bge, type = "A"),
          int.bcd.ez = integrateTrapezoid(Depth, bcd.stat, type = "A"),
+         int.bp.ez = integrateTrapezoid(Depth, bp.stat, type = "A"),
+         sd_int.bp.ez = integrateTrapezoid(Depth, sd_bp.stat, type = "A"),
          int.ba.ez = integrateTrapezoid(Depth, ba.stat, type = "A"),
+         sd_int.ba.ez = integrateTrapezoid(Depth, sd_ba.stat, type = "A"),
          int.phyodet.ez = integrateTrapezoid(Depth, phytodet.stat, type = "A"),
-         int.phyto.ez = integrateTrapezoid(Depth, phyto.stat, type = "A"),
-         bcd.ez_npp.cr_bge = int.bcd.cr_bge.ez/ave_NPP * 100,
-         bcd.ez_npp = int.bcd.ez/ave_NPP * 100,
-         )  %>% 
+         int.phyto.ez = integrateTrapezoid(Depth, phyto.stat, type = "A"))  %>% 
   mutate_at(vars(contains("int.bcd"), contains("bcd.ez_npp")), round) %>% 
-  select(Cruise:cr_bge, int.bcd.cr_bge.ez:bcd.ez_npp) %>% 
+  # depth normalize 
+  mutate_at(vars(int.bcd.cr_bge.ez:int.phyto.ez), funs(./ave_Ez)) %>% 
+  mutate(int.NPP = ave_NPP/ave_Ez,
+         sd_int.NPP = sd_NPP/ave_Ez, 
+         bcd.ez_npp.cr_bge = int.bcd.cr_bge.ez/int.NPP * 100,
+         bcd.ez_npp = int.bcd.ez/int.NPP * 100) %>% 
+  select(Cruise:cr_bge, int.bcd.cr_bge.ez:bcd.ez_npp, Depth, contains("stat"), contains("cr.sr")) %>% 
   distinct() %>% 
-  ungroup()
+  ungroup() %>% 
+  left_join(., int_bcd_100)
 ```
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-118-1.png" style="display: block; margin: auto;" />
@@ -2382,7 +2393,146 @@ bcd <- interpolated.df %>%
 
 <img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-120-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-121-1.png" style="display: block; margin: auto;" />
+``` r
+bcd_table <- int_bcd %>% 
+  select(Cruise:Station, degree_bin,  int.bcd.cr_bge.ez, int.bcd.ez) %>% 
+  distinct() %>% 
+  mutate_at(vars(int.bcd.cr_bge.ez, int.bcd.ez), funs(./1000)) %>% 
+  pivot_longer(cols = c(int.bcd.cr_bge.ez, int.bcd.ez), names_to = "var", values_to = "bcd") %>% 
+  select(-var) %>% 
+  distinct() %>% 
+  group_by(Cruise, Season, Subregion, degree_bin, Station) %>% 
+  summarise(ave_BCD = round(mean(bcd), 2),
+            sd_BCD = round(sd(bcd), 2)) %>% 
+  ungroup() %>% 
+  left_join(., int_bcd %>% 
+              select(Cruise:Station, degree_bin,  ave_Ez, sd_Ez, int.NPP, sd_int.NPP) %>% 
+              distinct() %>% 
+              mutate_at(vars(contains("NPP")), funs(round(./10^3, 2)))) %>% 
+  left_join(., int_bcd %>% 
+              select(Cruise:Station, degree_bin,   bcd.ez_npp.cr_bge, bcd.ez_npp) %>% 
+              distinct() %>% 
+              pivot_longer(cols = c( bcd.ez_npp.cr_bge, bcd.ez_npp), names_to = "var", values_to = "bcd_npp") %>% 
+              select(-var) %>% 
+              distinct() %>% 
+              group_by(Cruise, Season, Subregion, degree_bin, Station) %>% 
+              summarise(ave_BCD_NPP = mean(bcd_npp),
+                        sd_BCD_NPP = sd(bcd_npp)) %>% 
+              ungroup()
+            
+            ) %>% 
+  left_join(., int_bcd %>% 
+              select(Cruise:Station, degree_bin, int.bcd.cr_bge.100, int.bcd.100) %>% 
+              distinct() %>% 
+              pivot_longer(cols = c( int.bcd.cr_bge.100, int.bcd.100), names_to = "var", values_to = "bcd_100") %>% 
+              select(-var) %>% 
+              distinct() %>% 
+              group_by(Cruise, Season, Subregion, degree_bin, Station) %>% 
+              summarise(ave_BCD_100 = mean(bcd_100),
+                        sd_BCD_100 = sd(bcd_100)) %>% 
+              ungroup()
+            
+            ) %>% 
+  arrange(factor(Season, levels = levels)) %>% 
+  group_by(Cruise) %>% 
+  mutate(Cruise_ave_Ez = mean(ave_Ez),
+         Cruise_sd_Ez = sd(ave_Ez),
+         Cruise_ave_NPP = mean(int.NPP),
+         Cruise_sd_NPP = sd(int.NPP),
+         Cruise_ave_BCD = mean(ave_BCD),
+         Cruise_sd_BCD = sd(ave_BCD),
+         Cruise_ave_BCD_NPP = mean(ave_BCD_NPP),
+         Cruise_sd_BCD_NPP = sd(ave_BCD_NPP)
+         ) %>% 
+  ungroup() %>% 
+  group_by(Cruise, Subregion) %>% 
+  mutate(Cruise_SR_ave_NPP = mean(int.NPP),
+         Cruise_SR_sd_NPP = mean(int.NPP),
+         Cruise_SR_ave_BCD = mean(ave_BCD),
+         Cruise_SR_sd_BCD = sd(ave_BCD),
+         Cruise_SR_ave_BCD_NPP = mean(ave_BCD_NPP),
+         Cruise_SR_sd_BCD_NPP = sd(ave_BCD_NPP)
+         ) %>% 
+  ungroup() %>% 
+  mutate_at(vars(contains("BCD_NPP")), round) %>% 
+  mutate_at(vars(ave_BCD_100:Cruise_sd_BCD, Cruise_SR_ave_NPP:Cruise_SR_sd_BCD ), round, 2) %>% 
+  arrange(factor(Season, levels = levels), factor(Subregion, levels = levels))
+```
+
+    ## Joining, by = c("Cruise", "Season", "Subregion", "degree_bin", "Station")
+    ## Joining, by = c("Cruise", "Season", "Subregion", "degree_bin", "Station")
+    ## Joining, by = c("Cruise", "Season", "Subregion", "degree_bin", "Station")
+
+| Cruise | Season       | Subregion   | degree\_bin | Station | ave\_BCD | sd\_BCD | ave\_Ez | sd\_Ez | int.NPP | sd\_int.NPP | ave\_BCD\_NPP | sd\_BCD\_NPP | ave\_BCD\_100 | sd\_BCD\_100 | Cruise\_ave\_Ez | Cruise\_sd\_Ez | Cruise\_ave\_NPP | Cruise\_sd\_NPP | Cruise\_ave\_BCD | Cruise\_sd\_BCD | Cruise\_ave\_BCD\_NPP | Cruise\_sd\_BCD\_NPP | Cruise\_SR\_ave\_NPP | Cruise\_SR\_sd\_NPP | Cruise\_SR\_ave\_BCD | Cruise\_SR\_sd\_BCD | Cruise\_SR\_ave\_BCD\_NPP | Cruise\_SR\_sd\_BCD\_NPP |
+| :----- | :----------- | :---------- | ----------: | ------: | -------: | ------: | ------: | -----: | ------: | ----------: | ------------: | -----------: | ------------: | -----------: | --------------: | -------------: | ---------------: | --------------: | ---------------: | --------------: | --------------------: | -------------------: | -------------------: | ------------------: | -------------------: | ------------------: | ------------------------: | -----------------------: |
+| AT39   | Early Spring | GS/Sargasso |          39 |       1 |     0.12 |    0.01 |     106 |     NA |    0.60 |          NA |            19 |            1 |        121.31 |         7.12 |          112.50 |          12.79 |             0.72 |            0.40 |             0.14 |            0.11 |                    19 |                    6 |                 0.96 |                0.96 |                 0.22 |                0.13 |                        22 |                        3 |
+| AT39   | Early Spring | GS/Sargasso |          39 |       2 |     0.31 |    0.02 |      98 |     NA |    1.31 |          NA |            24 |            1 |        305.30 |        17.31 |          112.50 |          12.79 |             0.72 |            0.40 |             0.14 |            0.11 |                    19 |                    6 |                 0.96 |                0.96 |                 0.22 |                0.13 |                        22 |                        3 |
+| AT39   | Early Spring | Subtropical |          44 |       3 |     0.09 |    0.01 |     120 |     NA |    0.41 |          NA |            22 |            1 |         95.48 |         5.47 |          112.50 |          12.79 |             0.72 |            0.40 |             0.14 |            0.11 |                    19 |                    6 |                 0.48 |                0.48 |                 0.08 |                0.02 |                        17 |                        8 |
+| AT39   | Early Spring | Subtropical |          44 |       4 |     0.06 |    0.00 |     126 |     NA |    0.56 |          NA |            11 |            1 |         65.63 |         3.80 |          112.50 |          12.79 |             0.72 |            0.40 |             0.14 |            0.11 |                    19 |                    6 |                 0.48 |                0.48 |                 0.08 |                0.02 |                        17 |                        8 |
+| AT34   | Late Spring  | Subtropical |          44 |       5 |     0.52 |    0.03 |      91 |     NA |    0.99 |          NA |            52 |            3 |        475.44 |        26.88 |           79.33 |          23.64 |             1.89 |            1.12 |             0.40 |            0.16 |                    25 |                   14 |                 0.90 |                0.90 |                 0.34 |                0.25 |                        36 |                       22 |
+| AT34   | Late Spring  | Subtropical |          48 |       4 |     0.17 |    0.01 |     116 |     33 |    0.80 |        0.08 |            21 |            1 |        173.00 |         9.69 |           79.33 |          23.64 |             1.89 |            1.12 |             0.40 |            0.16 |                    25 |                   14 |                 0.90 |                0.90 |                 0.34 |                0.25 |                        36 |                       22 |
+| AT34   | Late Spring  | Temperate   |          50 |       3 |     0.47 |    0.03 |      52 |      1 |    3.56 |        0.32 |            13 |            1 |        319.62 |        17.90 |           79.33 |          23.64 |             1.89 |            1.12 |             0.40 |            0.16 |                    25 |                   14 |                 3.56 |                3.56 |                 0.47 |                  NA |                        13 |                       NA |
+| AT34   | Late Spring  | Subpolar    |          54 |       0 |     0.24 |    0.01 |      87 |     NA |    1.47 |          NA |            16 |            1 |        215.05 |        12.18 |           79.33 |          23.64 |             1.89 |            1.12 |             0.40 |            0.16 |                    25 |                   14 |                 1.99 |                1.99 |                 0.41 |                0.18 |                        21 |                        5 |
+| AT34   | Late Spring  | Subpolar    |          54 |       2 |     0.59 |    0.03 |      58 |      5 |    2.98 |        0.45 |            20 |            1 |        398.43 |        22.50 |           79.33 |          23.64 |             1.89 |            1.12 |             0.40 |            0.16 |                    25 |                   14 |                 1.99 |                1.99 |                 0.41 |                0.18 |                        21 |                        5 |
+| AT34   | Late Spring  | Subpolar    |          56 |       1 |     0.40 |    0.02 |      72 |      1 |    1.53 |        0.24 |            26 |            1 |        347.59 |        19.90 |           79.33 |          23.64 |             1.89 |            1.12 |             0.40 |            0.16 |                    25 |                   14 |                 1.99 |                1.99 |                 0.41 |                0.18 |                        21 |                        5 |
+| AT38   | Early Autumn | GS/Sargasso |          42 |       1 |     0.12 |    0.01 |     236 |     11 |    0.14 |        0.03 |            84 |            5 |        249.77 |        15.34 |          179.17 |          47.05 |             0.30 |            0.20 |             0.11 |            0.03 |                    48 |                   24 |                 0.14 |                0.14 |                 0.12 |                  NA |                        84 |                       NA |
+| AT38   | Early Autumn | Subtropical |          44 |       2 |     0.14 |    0.01 |     207 |     NA |    0.23 |          NA |            62 |            4 |        259.20 |        16.12 |          179.17 |          47.05 |             0.30 |            0.20 |             0.11 |            0.03 |                    48 |                   24 |                 0.19 |                0.19 |                 0.10 |                0.04 |                        53 |                       14 |
+| AT38   | Early Autumn | Subtropical |          47 |       3 |     0.07 |    0.00 |     200 |     NA |    0.18 |          NA |            37 |            2 |        114.43 |         7.04 |          179.17 |          47.05 |             0.30 |            0.20 |             0.11 |            0.03 |                    48 |                   24 |                 0.19 |                0.19 |                 0.10 |                0.04 |                        53 |                       14 |
+| AT38   | Early Autumn | Subtropical |          49 |       4 |     0.09 |    0.01 |     174 |     21 |    0.16 |        0.07 |            60 |            4 |        149.90 |         9.12 |          179.17 |          47.05 |             0.30 |            0.20 |             0.11 |            0.03 |                    48 |                   24 |                 0.19 |                0.19 |                 0.10 |                0.04 |                        53 |                       14 |
+| AT38   | Early Autumn | Temperate   |          52 |       5 |     0.11 |    0.01 |     157 |     NA |    0.42 |          NA |            27 |            2 |        167.71 |        10.20 |          179.17 |          47.05 |             0.30 |            0.20 |             0.11 |            0.03 |                    48 |                   24 |                 0.42 |                0.42 |                 0.11 |                  NA |                        27 |                       NA |
+| AT38   | Early Autumn | Subpolar    |          53 |       6 |     0.13 |    0.01 |     101 |      7 |    0.65 |        0.11 |            20 |            1 |        130.80 |         7.81 |          179.17 |          47.05 |             0.30 |            0.20 |             0.11 |            0.03 |                    48 |                   24 |                 0.65 |                0.65 |                 0.13 |                  NA |                        20 |                       NA |
+| AT32   | Late Autumn  | Subtropical |          40 |       7 |     0.15 |    0.01 |     112 |     19 |    0.32 |        0.13 |            48 |            3 |        165.12 |         9.90 |          101.00 |          22.47 |             0.19 |            0.07 |             0.13 |            0.01 |                    76 |                   21 |                 0.21 |                0.21 |                 0.14 |                0.01 |                        70 |                       16 |
+| AT32   | Late Autumn  | Subtropical |          43 |       6 |     0.14 |    0.01 |     104 |      1 |    0.18 |        0.01 |            78 |            5 |        146.21 |         8.86 |          101.00 |          22.47 |             0.19 |            0.07 |             0.13 |            0.01 |                    76 |                   21 |                 0.21 |                0.21 |                 0.14 |                0.01 |                        70 |                       16 |
+| AT32   | Late Autumn  | Subtropical |          44 |       5 |     0.14 |    0.01 |     103 |     NA |    0.17 |          NA |            85 |            5 |        145.56 |         8.65 |          101.00 |          22.47 |             0.19 |            0.07 |             0.13 |            0.01 |                    76 |                   21 |                 0.21 |                0.21 |                 0.14 |                0.01 |                        70 |                       16 |
+| AT32   | Late Autumn  | Subtropical |          46 |       4 |     0.12 |    0.01 |     126 |     NA |    0.17 |          NA |            70 |            4 |        128.39 |         8.08 |          101.00 |          22.47 |             0.19 |            0.07 |             0.13 |            0.01 |                    76 |                   21 |                 0.21 |                0.21 |                 0.14 |                0.01 |                        70 |                       16 |
+| AT32   | Late Autumn  | Temperate   |          51 |       3 |     0.12 |    0.01 |      59 |     NA |    0.11 |          NA |           109 |            7 |         89.09 |         5.44 |          101.00 |          22.47 |             0.19 |            0.07 |             0.13 |            0.01 |                    76 |                   21 |                 0.11 |                0.11 |                 0.12 |                  NA |                       109 |                       NA |
+| AT32   | Late Autumn  | Subpolar    |          54 |       2 |     0.12 |    0.01 |     102 |      4 |    0.19 |        0.02 |            64 |            4 |        123.40 |         7.50 |          101.00 |          22.47 |             0.19 |            0.07 |             0.13 |            0.01 |                    76 |                   21 |                 0.19 |                0.19 |                 0.12 |                  NA |                        64 |                       NA |
+
+BCD & NPP
+
+    ## RMA was not requested: it will not be computed.
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = ave_BCD ~ int.NPP, data = bcd_table, nperm =
+    ## 99)
+    ## 
+    ## n = 22   r = 0.840358   r-square = 0.7062015 
+    ## Parametric P-values:   2-tailed = 9.86602e-07    1-tailed = 4.93301e-07 
+    ## Angle between the two OLS regression lines = 3.259324 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method  Intercept     Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS 0.09133748 0.1407224        8.010203              0.01
+    ## 2     MA 0.09044524 0.1418683        8.074574              0.01
+    ## 3    SMA 0.07052227 0.1674554        9.506284                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS     0.04091681      0.14175815 0.09838589   0.1830590
+    ## 2     MA     0.05698411      0.12351114 0.09940192   0.1848424
+    ## 3    SMA     0.03345490      0.09938446 0.13038773   0.2150608
+    ## 
+    ## Eigenvalues: 0.8677397 0.00687175 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.00175052
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-125-1.png" style="display: block; margin: auto;" />
+
+## BA and BP
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-126-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-127-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-128-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-129-1.png" style="display: block; margin: auto;" />
 
 # Merge Data with Export MS Data
 
@@ -2403,19 +2553,24 @@ DOC pool:
     (**bioav\_doc**), the total remaining DOC after
     drawdown(**persis\_doc**), the percent DOC bioavalability and
     persistence (**per\_bioav** and **per\_persis**, respectively)
-  - Lastly we calculate the rate of DOC drawdown (nmol C d<sup>-1</sup>,
-    **ddoc**)
+  - Lastly we calculate the rate of DOC drawdown (nmol C L<sup>-1</sup>
+    d<sup>-1</sup>,
+**ddoc**)
 
 <!-- end list -->
 
 ``` r
-export <- readRDS("~/naames_export_ms/Output/processed_export_n2_n3_n4.rds") %>% 
+export <- readRDS("~/naames_export_ms/Output/processed_export_for_bioavMS.5.7.20.rds") %>% 
   mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
-  select(Cruise, Season, degree_bin, Station, redis_DOC_vol, NCP_mol_100, doc_ncp_100) %>% 
+  select(Cruise, Season, degree_bin, Station, redis_DOC_vol, NCP_mol_100, doc_ncp_100, int_delta_DOC_100, doc_don_100) %>% 
   distinct() %>% 
   mutate_at(vars(redis_DOC_vol), round, 1) %>% 
-  mutate_at(vars(NCP_mol_100:doc_ncp_100), round, 2) %>%
-  mutate_at(vars(Station), as.character) 
+  mutate_at(vars(NCP_mol_100:doc_ncp_100, int_delta_DOC_100), round, 2) %>%
+  mutate_at(vars(doc_don_100), round) %>% 
+  mutate_at(vars(Station), as.character) %>% 
+  #error associated with the approach in calculating seasonally accumulated DON led to 17%  of total samples (5 of 29) being negative.  As a result these data were removed from further analyses.
+  mutate(doc_don_100 = ifelse(doc_don_100 < 0, NA, doc_don_100))
+
 
 export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>% 
   mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
@@ -2448,8 +2603,157 @@ export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>%
   fill(accm_doc:lt.ddoc, .direction = "downup") %>% 
   ungroup() %>% 
   select(Season:Station, ave_lat:Subregion, Depth:interp_doc, redis_DOC_vol:lt.ddoc, everything() ) %>% 
-  left_join(., bcd %>% mutate_at(vars(Station), as.character))
+  left_join(., bcd %>% mutate_at(vars(Station), as.character)) %>% 
+  mutate(Subregion = ifelse(Station %in% c("S2RF", "S2RD"), "GS/Sargasso", Subregion ))
 ```
+
+# ∆DOC
+
+``` r
+aov.delta_doc <- export %>%
+  select(Season, int_delta_DOC_100) %>% 
+  distinct() %>% 
+  drop_na(int_delta_DOC_100) 
+```
+
+## Welch’s one-Way ANOVA test
+
+Alternative to standard one-way ANOVA in the situation where the
+homogeneity of variance assumption iss
+violated
+
+``` r
+ddoc_anova <- welch_anova_test(int_delta_DOC_100 ~ Season, data = aov.delta_doc) 
+ddoc_anova 
+```
+
+    ## # A tibble: 1 x 7
+    ##   .y.                   n statistic   DFn   DFd        p method     
+    ## * <chr>             <int>     <dbl> <dbl> <dbl>    <dbl> <chr>      
+    ## 1 int_delta_DOC_100    27      13.5     3  12.2 0.000355 Welch ANOVA
+
+## Post-hoc analysis
+
+Games-Howell test used to compare all possible combinations of group
+differences when the assumption of homogeneity of variances is
+violated
+
+``` r
+ddoc_gh <- games_howell_test(int_delta_DOC_100 ~ Season, data = aov.delta_doc)
+ddoc_gh
+```
+
+    ## # A tibble: 6 x 8
+    ##   .y.        group1    group2   estimate conf.low conf.high   p.adj p.adj.signif
+    ## * <chr>      <chr>     <chr>       <dbl>    <dbl>     <dbl>   <dbl> <chr>       
+    ## 1 int_delta… Early Au… Early S…   -0.589  -0.886   -0.292   3.72e-4 ***         
+    ## 2 int_delta… Early Au… Late Au…   -0.253  -0.595    0.0892  1.88e-1 ns          
+    ## 3 int_delta… Early Au… Late Sp…   -0.545  -0.855   -0.235   9.43e-4 ***         
+    ## 4 int_delta… Early Sp… Late Au…    0.336   0.0635   0.609   1.70e-2 *           
+    ## 5 int_delta… Early Sp… Late Sp…    0.044  -0.177    0.265   9.14e-1 ns          
+    ## 6 int_delta… Late Aut… Late Sp…   -0.292  -0.578   -0.00552 4.60e-2 *
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-134-1.png" style="display: block; margin: auto;" />
+
+# DOC:DON
+
+``` r
+aov.cn <- export %>%
+  select(Season, doc_don_100) %>% 
+  distinct() %>% 
+  drop_na(doc_don_100) %>% 
+  filter(!doc_don_100 > 90) 
+```
+
+## Welch’s one-Way ANOVA test
+
+Alternative to standard one-way ANOVA in the situation where the
+homogeneity of variance assumption iss violated
+
+``` r
+library(rstatix)
+cn_anova <- welch_anova_test(doc_don_100 ~ Season, data = aov.cn) 
+cn_anova 
+```
+
+    ## # A tibble: 1 x 7
+    ##   .y.             n statistic   DFn   DFd     p method     
+    ## * <chr>       <int>     <dbl> <dbl> <dbl> <dbl> <chr>      
+    ## 1 doc_don_100    19      2.37     3  7.51 0.151 Welch ANOVA
+
+## Post-hoc analysis
+
+Games-Howell test used to compare all possible combinations of group
+differences when the assumption of homogeneity of variances is violated
+
+``` r
+cn_gh <- games_howell_test(doc_don_100 ~ Season, data = aov.cn)
+cn_gh
+```
+
+    ## # A tibble: 6 x 8
+    ##   .y.       group1     group2     estimate conf.low conf.high p.adj p.adj.signif
+    ## * <chr>     <chr>      <chr>         <dbl>    <dbl>     <dbl> <dbl> <chr>       
+    ## 1 doc_don_… Early Aut… Early Spr…   -12.4    -28.3       3.57 0.126 ns          
+    ## 2 doc_don_… Early Aut… Late Autu…   -11.0    -26.9       4.86 0.183 ns          
+    ## 3 doc_don_… Early Aut… Late Spri…   -12.4    -29.4       4.67 0.177 ns          
+    ## 4 doc_don_… Early Spr… Late Autu…     1.33    -2.39      5.06 0.624 ns          
+    ## 5 doc_don_… Early Spr… Late Spri…     0      -13.7      13.7  1     ns          
+    ## 6 doc_don_… Late Autu… Late Spri…    -1.33   -14.4      11.7  0.969 ns
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-138-1.png" style="display: block; margin: auto;" />
+
+``` r
+export %>%
+  select(Season, int_delta_DOC_100, doc_don_100) %>% 
+  rename(accm_doc = int_delta_DOC_100) %>% 
+  group_by(Season) %>% 
+  summarise(ave_accm_doc = round(mean(accm_doc, na.rm = T), 2),
+            sd_accm_doc = round(sd(accm_doc, na.rm = T), 2),
+            med_accm_doc = round(median(accm_doc, na.rm = T), 2),
+            min_accm_doc = round(min(accm_doc, na.rm = T), 2),
+            max_accm_doc = round(max(accm_doc, na.rm = T), 2),
+            
+            ave_doc_don = round(mean(doc_don_100, na.rm = T)),
+            sd_doc_don = round(sd(doc_don_100, na.rm = T)),
+            med_doc_don = round(median(doc_don_100, na.rm = T)),
+            min_doc_don = round(min(doc_don_100, na.rm = T)),
+            max_doc_don = round(max(doc_don_100, na.rm = T))
+            ) %>% 
+   arrange(factor(Season, levels = levels))
+```
+
+    ## # A tibble: 4 x 11
+    ##   Season ave_accm_doc sd_accm_doc med_accm_doc min_accm_doc max_accm_doc
+    ##   <chr>         <dbl>       <dbl>        <dbl>        <dbl>        <dbl>
+    ## 1 Early…         0.15       0.09          0.15         0.01         0.26
+    ## 2 Late …         0.19       0.11          0.19         0.01         0.31
+    ## 3 Early…         0.77       0.290         0.83         0.34         1.15
+    ## 4 Late …         0.5        0.19          0.56         0.16         0.7 
+    ## # … with 5 more variables: ave_doc_don <dbl>, sd_doc_don <dbl>,
+    ## #   med_doc_don <dbl>, min_doc_don <dbl>, max_doc_don <dbl>
+
+``` r
+export %>%
+  select(Season, doc_don_100) %>% 
+  group_by(Season) %>% 
+  filter(!doc_don_100 > 90) %>% 
+  summarise(ave_doc_don = round(mean(doc_don_100, na.rm = T)),
+            sd_doc_don = round(sd(doc_don_100, na.rm = T)),
+            med_doc_don = round(median(doc_don_100, na.rm = T)),
+            min_doc_don = round(min(doc_don_100, na.rm = T)),
+            max_doc_don = round(max(doc_don_100, na.rm = T))
+            ) %>% 
+   arrange(factor(Season, levels = levels))
+```
+
+    ## # A tibble: 4 x 6
+    ##   Season       ave_doc_don sd_doc_don med_doc_don min_doc_don max_doc_don
+    ##   <chr>              <dbl>      <dbl>       <dbl>       <dbl>       <dbl>
+    ## 1 Early Spring           6          1           6           5           6
+    ## 2 Late Spring            5          5           3           1          14
+    ## 3 Early Autumn          17         11          12           7          38
+    ## 4 Late Autumn            7          2           6           4          10
 
 # Remineralization of Seasonally Accumulated DOC
 
@@ -2457,59 +2761,180 @@ export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>%
 
 #### No Addition
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-123-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-141-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-124-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-142-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-125-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-143-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-126-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-144-1.png" style="display: block; margin: auto;" />
 
 ## NAAMES 3
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-127-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-145-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-128-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-146-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-129-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-147-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-130-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-148-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-131-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-149-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-132-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-150-1.png" style="display: block; margin: auto;" />
 
 ### NAAMES 4
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-133-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-151-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-134-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-152-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-135-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-153-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-136-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-154-1.png" style="display: block; margin: auto;" />
 
 ## Seasonal Comparison
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-137-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-155-1.png" style="display: block; margin: auto;" />
 
-| Season       | min\_st.bioav\_doc | mean\_st.bioav\_doc | med\_st.bioav\_doc | max\_st.bioav\_doc | min\_lt.bioav\_doc | mean\_lt.bioav\_doc | med\_lt.bioav\_doc | max\_lt.bioav\_doc | min\_total.bioav\_doc | mean\_total.bioav\_doc | med\_total.bioav\_doc | max\_total.bioav\_doc | min\_persis\_doc | mean\_persis\_doc | med\_persis\_doc | max\_persis\_doc | min\_st.ddoc | mean\_st.ddoc | med\_st.ddoc | max\_st.ddoc | min\_lt.ddoc | mean\_lt.ddoc | med\_lt.ddoc | max\_lt.ddoc | min\_st.per\_bioav | mean\_st.per\_bioav | med\_st.per\_bioav | max\_st.per\_bioav | min\_lt.per\_bioav | mean\_lt.per\_bioav | med\_lt.per\_bioav | max\_lt.per\_bioav | min\_total.per\_bioav | mean\_total.per\_bioav | med\_total.per\_bioav | max\_total.per\_bioav | min\_persis | mean\_persis | med\_persis | max\_persis |
-| :----------- | -----------------: | ------------------: | -----------------: | -----------------: | -----------------: | ------------------: | -----------------: | -----------------: | --------------------: | ---------------------: | --------------------: | --------------------: | ---------------: | ----------------: | ---------------: | ---------------: | -----------: | ------------: | -----------: | -----------: | -----------: | ------------: | -----------: | -----------: | -----------------: | ------------------: | -----------------: | -----------------: | -----------------: | ------------------: | -----------------: | -----------------: | --------------------: | ---------------------: | --------------------: | --------------------: | ----------: | -----------: | ----------: | ----------: |
-| Early Autumn |                0.9 |                 1.5 |                1.6 |                2.3 |                2.4 |                 3.3 |                3.0 |                4.4 |                   3.8 |                    4.9 |                   4.9 |                   5.9 |              3.9 |               9.1 |              9.3 |             13.0 |          129 |           217 |          229 |          329 |           39 |            58 |           56 |           80 |                  6 |                  12 |                 10 |                 20 |                 19 |                  25 |                 22 |                 36 |                    25 |                     37 |                    34 |                    56 |          44 |           63 |          66 |          75 |
-| Early Spring |                0.0 |                 0.7 |                0.7 |                2.0 |                1.1 |                 2.5 |                2.8 |                3.1 |                   1.8 |                    3.2 |                   3.1 |                   4.7 |            \-0.5 |               0.2 |              0.2 |              0.8 |            0 |           106 |          100 |          286 |           12 |            30 |           31 |           41 |                  0 |                  22 |                 20 |                 48 |                 58 |                  73 |                 64 |                 93 |                    82 |                     94 |                    92 |                   112 |        \-12 |            6 |           8 |          18 |
-| Late Spring  |                0.7 |                 1.6 |                1.6 |                2.5 |                Inf |                 NaN |                 NA |              \-Inf |                   4.0 |                    4.0 |                   4.0 |                   4.0 |              7.0 |               7.0 |              7.0 |              7.0 |          100 |           232 |          236 |          357 |          Inf |           NaN |           NA |        \-Inf |                 14 |                  36 |                 27 |                 76 |                Inf |                 NaN |                 NA |              \-Inf |                    36 |                     36 |                    36 |                    36 |          64 |           64 |          64 |          64 |
+``` r
+bioav.table <- export_bioav %>% 
+  filter(Depth == 10, Treatment == "Control") %>% 
+  select(Season:Subregion, contains("bioav_doc"), contains("per_bioav"), contains("persis"), contains("ddoc")) %>% 
+  distinct() %>% 
+  group_by(Season, Subregion) %>% 
+  summarise(ave_total.per_bioav = round(mean(total.per_bioav, na.rm = T), 2),
+            sd_total.per_bioav = round(sd(total.per_bioav, na.rm = T), 2),
+            ave_st.per_bioav = round(mean(st.per_bioav, na.rm = T), 2),
+            sd_st.per_bioav = round(sd(st.per_bioav, na.rm = T), 2),
+            ave_lt.per_bioav = round(mean(lt.per_bioav, na.rm = T), 2),
+            sd_lt.per_bioav = round(sd(lt.per_bioav, na.rm = T), 2),
+            
+            ave_per_persis = round(mean(per_persis, na.rm = T), 2),
+            sd_per_persis = round(sd(per_persis, na.rm = T), 2),
+            
+            ave_st.ddoc = round(mean(st.ddoc, na.rm = T), 2),
+            sd_st.ddoc = round(sd(st.ddoc, na.rm = T), 2),
+            ave_lt.ddoc = round(mean(lt.ddoc, na.rm = T), 2),
+            sd_lt.ddoc = round(sd(lt.ddoc, na.rm = T), 2),
+            
+            ) %>%
+   arrange(factor(Season, levels = levels)) %>% 
+  ungroup()
+```
+
+| Season       | Subregion   | ave\_total.per\_bioav | sd\_total.per\_bioav | ave\_st.per\_bioav | sd\_st.per\_bioav | ave\_lt.per\_bioav | sd\_lt.per\_bioav | ave\_per\_persis | sd\_per\_persis | ave\_st.ddoc | sd\_st.ddoc | ave\_lt.ddoc | sd\_lt.ddoc |
+| :----------- | :---------- | --------------------: | -------------------: | -----------------: | ----------------: | -----------------: | ----------------: | ---------------: | --------------: | -----------: | ----------: | -----------: | ----------: |
+| Early Spring | GS/Sargasso |                 95.00 |                12.88 |              20.00 |             19.95 |              74.75 |             14.59 |             5.00 |           12.88 |       118.00 |      122.18 |        33.50 |        3.00 |
+| Early Spring | Subtropical |                 70.50 |                 2.12 |              13.50 |             19.09 |              57.00 |             21.21 |            29.50 |            2.12 |        50.00 |       70.71 |        26.50 |       20.51 |
+| Late Spring  | Subpolar    |                   NaN |                   NA |              45.00 |             43.84 |                NaN |                NA |              NaN |              NA |       250.00 |      151.32 |          NaN |          NA |
+| Late Spring  | Subtropical |                 34.00 |                   NA |              24.00 |              1.41 |              11.00 |                NA |            66.00 |              NA |       243.00 |      202.23 |        13.00 |          NA |
+| Late Spring  | Temperate   |                   NaN |                   NA |              29.00 |                NA |                NaN |                NA |              NaN |              NA |       329.00 |          NA |          NaN |          NA |
+| Early Autumn | GS/Sargasso |                 39.00 |                   NA |              19.00 |                NA |              20.00 |                NA |            61.00 |              NA |       329.00 |          NA |        39.00 |          NA |
+| Early Autumn | Subpolar    |                 56.00 |                   NA |              20.00 |                NA |              36.00 |                NA |            44.00 |              NA |       257.00 |          NA |        62.00 |          NA |
+| Early Autumn | Subtropical |                 29.33 |                 3.79 |               8.33 |              2.52 |              20.67 |              2.08 |            70.67 |            3.79 |       195.67 |       57.74 |        56.67 |       11.59 |
+| Early Autumn | Temperate   |                 37.00 |                   NA |               6.00 |                NA |              31.00 |                NA |            63.00 |              NA |       129.00 |          NA |        80.00 |          NA |
 
 Seasonal Accumulated DOC Bioavailability and Persistance
+
+``` r
+bcd_bioav_table <- int_bcd %>% 
+  select(Cruise:Station, degree_bin,  int.bcd.cr_bge.100, int.bcd.100, int.bcd.ez) %>% 
+  distinct() %>% 
+  #convert from µmol C m-3 d-1 to µmol C m-2 d-1
+  mutate_at(vars(int.bcd.cr_bge.100:int.bcd.100), funs(./1000)) %>% 
+  pivot_longer(cols = c(int.bcd.cr_bge.100, int.bcd.100), names_to = "var", values_to = "bcd") %>%
+  select(-var) %>%
+  distinct() %>% 
+  group_by(Cruise, Season, Subregion, degree_bin, Station) %>% 
+  summarise(ave_BCD = mean(bcd),
+            sd_BCD = sd(bcd)) %>% 
+  ungroup() %>% 
+  mutate(Station = as.character(Station)) %>% 
+  left_join(. , export) %>% 
+   arrange(factor(Season, levels = levels))  %>% 
+  filter(!doc_don_100 > 50) 
+```
+
+    ## Joining, by = c("Cruise", "Season", "degree_bin", "Station")
+
+    ## RMA was not requested: it will not be computed.
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = ave_BCD ~ int_delta_DOC_100, data =
+    ## bcd_bioav_table, nperm = 99)
+    ## 
+    ## n = 17   r = -0.3700739   r-square = 0.1369547 
+    ## Parametric P-values:   2-tailed = 0.1437037    1-tailed = 0.07185184 
+    ## Angle between the two OLS regression lines = 33.10593 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept      Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS 0.2487458 -0.1131420       -6.455106              0.04
+    ## 2     MA 0.2530777 -0.1229219       -7.007751              0.04
+    ## 3    SMA 0.3340501 -0.3057281      -16.999863                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS      0.1656479       0.3318438 -0.2694501  0.04316615
+    ## 2     MA      0.1783414       0.3309981 -0.2988378  0.04580553
+    ## 3    SMA      0.2814873       0.4199579 -0.4996765 -0.18706031
+    ## 
+    ## Eigenvalues: 0.09311176 0.007306544 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.02798646
+
+    ## RMA was not requested: it will not be computed.
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = ave_BCD ~ doc_don_100, data = bcd_bioav_table,
+    ## nperm = 99)
+    ## 
+    ## n = 17   r = -0.2541053   r-square = 0.06456949 
+    ## Parametric P-values:   2-tailed = 0.3250268    1-tailed = 0.1625134 
+    ## Angle between the two OLS regression lines = 2.160437 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept        Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS 0.2239073 -0.002604272      -0.1492134              0.17
+    ## 2     MA 0.2239098 -0.002604528      -0.1492281              0.17
+    ## 3    SMA 0.2981041 -0.010248791      -0.5871919                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept   2.5%-Slope  97.5%-Slope
+    ## 1    OLS      0.1525473       0.2952674 -0.008059436  0.002850892
+    ## 2     MA      0.1709574       0.2768638 -0.008060387  0.002851176
+    ## 3    SMA      0.2583706       0.3642649 -0.017065355 -0.006155027
+    ## 
+    ## Eigenvalues: 81.72114 0.008029442 
+    ## 
+    ## H statistic used for computing C.I. of MA: 2.976426e-05
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-163-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-164-1.png" style="display: block; margin: auto;" />
 
 This seasonal comparison is best exemplifies at 44˚N where we have
 experiments from all cruises. It shows:
@@ -2538,4 +2963,4 @@ DOC and bacterioplankton growth, but did not result in drawdown into the
 persistent
 pool.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-140-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-165-1.png" style="display: block; margin: auto;" />
