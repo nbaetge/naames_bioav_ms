@@ -2956,7 +2956,7 @@ calcs %>%
 
 ## BCD and NPP
 
-We'll estimate BCD for each station of all the cruises using bacterial production and the global average BGE of 22%. Parameters are integrated to euphotic zone determined by Fox et al 2020. Not that we'll be averaging casts taken throughout the day/night. 
+We'll estimate BCD for each station of all the cruises using bacterial production and the global average BGE of 24%. Parameters are integrated to euphotic zone determined by Fox et al 2020. Not that we'll be averaging casts taken throughout the day/night. 
 
 ```{r}
 #import and wrangle NPP data
@@ -3321,10 +3321,14 @@ bcd_table %>%
   ggplot(aes(x = int.NPP, y = ave_BCD)) + 
   geom_abline(intercept = bcd_npp.reg$regression.results[3,2],
               slope = bcd_npp.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_errorbar(aes(color = factor(Season, levels = levels), ymin = ave_BCD - sd_BCD, ymax = ave_BCD + sd_BCD), width = 0.1) +
+  geom_errorbarh(aes(color = factor(Season, levels = levels), xmin = int.NPP - sd_int.NPP, xmax = int.NPP + sd_int.NPP), width = 0.1) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 0.7 ) +
   labs(x = expression(italic(paste("NPP, mmol C m"^-3, "d"^-1))), y = expression(italic(paste("BCD, mmol C m"^-3, "d"^-1)))) +
   scale_fill_manual(values = custom.colors) +
+  scale_color_manual(values = custom.colors) +
   custom_theme() +
+  guides(color = F) +
   annotate( geom = "text", label = expression(atop("y = 0.17x + 0.07", paste("r"^2,"= 0.71, ", italic("p "), "<< 0.01"))), x = 3, y = 0.1, size = 7) 
 
 ```
@@ -4274,7 +4278,7 @@ bioav.table <- export_bioav %>%
   filter(Depth == 10, Treatment == "Control") %>% 
   select(Season:Subregion, contains("bioav_doc"), contains("per_bioav"), contains("persis"), contains("ddoc")) %>% 
   distinct() %>% 
-  group_by(Season, degree_bin) %>% 
+  group_by(Season, Subregion) %>% 
   summarise(ave_total.per_bioav = round(mean(total.per_bioav, na.rm = T), 2),
             sd_total.per_bioav = round(sd(total.per_bioav, na.rm = T), 2),
             ave_st.per_bioav = round(mean(st.per_bioav, na.rm = T), 2),
@@ -4325,6 +4329,115 @@ bcd_bioav_table <- int_bcd %>%
   
 ```
 
+```{r}
+bcd_bioav.reg_data <- bcd_bioav_table %>% 
+  group_by(Cruise, Subregion) %>% 
+  mutate(group_bcd = mean(ave_BCD),
+         sd_group_bcd = sd(ave_BCD)) %>% 
+  select(Cruise:Subregion, group_bcd, sd_group_bcd) %>% 
+  distinct() %>% 
+  left_join(., bioav.table)
+
+bcd_total_bioav.reg <-  bcd_bioav.reg_data %>% 
+  drop_na(ave_total.per_bioav)
+
+bcd_st_bioav.reg_data <-  bcd_bioav.reg_data %>% 
+  drop_na(ave_st.per_bioav)
+  
+
+```
+
+```{r}
+lmodel2(group_bcd ~ ave_total.per_bioav, data = bcd_total_bioav.reg , nperm = 99)
+```
+```{r}
+bcd_st_bioav.reg <- lmodel2(group_bcd ~ ave_st.per_bioav, data = bcd_st_bioav.reg_data, nperm = 99)
+
+bcd_st_bioav.reg 
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8, fig.align = "center", warning = FALSE}
+bcd_st_bioav.reg_data %>% 
+  ggplot(aes(x = ave_st.per_bioav, y = group_bcd)) + 
+  geom_abline(intercept = bcd_st_bioav.reg$regression.results[3,2],
+              slope = bcd_st_bioav.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_errorbar(aes(color = factor(Season, levels = levels), ymin = group_bcd - sd_group_bcd, ymax = group_bcd + sd_group_bcd), width = 1) +
+  geom_errorbarh(aes(color = factor(Season, levels = levels), xmin = ave_st.per_bioav - sd_st.per_bioav, xmax = ave_st.per_bioav + sd_st.per_bioav), width = 1) +
+  geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 0.7 ) +
+  labs(x = expression(italic(paste("Seasonally Accumulated DOC % Bioavailability (< 7 d)"))), y = expression(italic(paste("BCD, mmol C m"^-3, "d"^-1)))) +
+  scale_fill_manual(values = custom.colors) +
+  scale_color_manual(values = custom.colors) +
+  custom_theme() +
+  guides(color = F) +
+  annotate( geom = "text", label = expression(atop("y = 0.006x + 0.08", paste("r"^2,"= 0.64, ", italic("p "), "= 0.03"))), x = 70, y = 0.13, size = 7) 
+
+```
+
+
+```{r}
+bioav.table2 <- export_bioav %>% 
+  filter(Depth == 10, Treatment == "Control") %>% 
+  select(Season:Subregion, contains("bioav_doc"), contains("per_bioav"), contains("persis"), contains("ddoc")) %>% 
+  distinct() %>% 
+  group_by(Season, degree_bin, Station) %>% 
+  summarise(ave_total.per_bioav = round(mean(total.per_bioav, na.rm = T), 2),
+            sd_total.per_bioav = round(sd(total.per_bioav, na.rm = T), 2),
+            ave_st.per_bioav = round(mean(st.per_bioav, na.rm = T), 2),
+            sd_st.per_bioav = round(sd(st.per_bioav, na.rm = T), 2),
+            ave_lt.per_bioav = round(mean(lt.per_bioav, na.rm = T), 2),
+            sd_lt.per_bioav = round(sd(lt.per_bioav, na.rm = T), 2),
+            
+            ave_per_persis = round(mean(per_persis, na.rm = T), 2),
+            sd_per_persis = round(sd(per_persis, na.rm = T), 2),
+            
+            ave_st.ddoc = round(mean(st.ddoc, na.rm = T), 2),
+            sd_st.ddoc = round(sd(st.ddoc, na.rm = T), 2),
+            ave_lt.ddoc = round(mean(lt.ddoc, na.rm = T), 2),
+            sd_lt.ddoc = round(sd(lt.ddoc, na.rm = T), 2),
+            ave_total.ddoc = round(mean(total.ddoc, na.rm = T), 2),
+            sd_total.ddoc = round(sd(total.ddoc, na.rm = T), 2),
+            
+            ) %>%
+   arrange(factor(Season, levels = levels)) %>% 
+  ungroup() %>% 
+  left_join(., bcd_bioav_table %>% 
+              group_by(Cruise, degree_bin, Station) %>% 
+              mutate(group_bcd = mean(ave_BCD),
+                     sd_group_bcd = sd(ave_BCD)) %>% 
+              select(Cruise:Subregion,degree_bin, group_bcd, sd_group_bcd) %>%
+              distinct() )
+
+bcd_total_bioav.reg_data <-  bioav.table2 %>% 
+  drop_na(ave_total.per_bioav)
+
+bcd_st_bioav.reg_data <-  bioav.table2 %>% 
+  drop_na(ave_st.per_bioav)
+```
+
+```{r}
+bcd_st_bioav.reg <- lmodel2(group_bcd ~ ave_st.per_bioav, data = bcd_st_bioav.reg_data, nperm = 99)
+
+bcd_st_bioav.reg 
+```
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8, fig.align = "center", warning = FALSE}
+bcd_st_bioav.reg_data %>% 
+  ggplot(aes(x = ave_st.per_bioav, y = group_bcd)) + 
+  geom_abline(intercept = bcd_st_bioav.reg$regression.results[3,2],
+              slope = bcd_st_bioav.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_errorbar(aes(color = factor(Season, levels = levels), ymin = group_bcd - sd_group_bcd, ymax = group_bcd + sd_group_bcd), size = 0.2, width = 0.1) +
+  geom_errorbarh(aes(color = factor(Season, levels = levels), xmin = ave_st.per_bioav - sd_st.per_bioav, xmax = ave_st.per_bioav + sd_st.per_bioav), size = 0.2, width = 0.1) +
+  geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 0.7 ) +
+  labs(x = expression(italic(paste("Accumulated DOC % Bioavailability (< 7 d)"))), y = expression(italic(paste("BCD, mmol C m"^-3, "d"^-1)))) +
+  scale_fill_manual(values = custom.colors) +
+  scale_color_manual(values = custom.colors) +
+  custom_theme() #+
+  #annotate( geom = "text", label = expression(atop("y = 0.006x + 0.08", paste("r"^2,"= 0.64, ", italic("p "), "= 0.03"))), x = 3, y = 0.1, size = 7) 
+
+```
+
+##
+
 
 ```{r echo = FALSE}
 bcd_doc.reg <- lmodel2(ave_BCD ~ int_delta_DOC_100, data = bcd_bioav_table , nperm = 99)
@@ -4343,9 +4456,11 @@ bcd_cn.reg
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8, fig.align = "center", warning = FALSE}
 bcd_bioav_table %>% 
+  select(Season, int_delta_DOC_100, ave_BCD) %>% 
+  distinct() %>% 
   ggplot(aes(x = int_delta_DOC_100, y = ave_BCD)) + 
-  #geom_abline(intercept = bcd_doc.reg$regression.results[3,2],
-  #            slope = bcd_doc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) + 
+  geom_abline(intercept = bcd_doc.reg$regression.results[3,2],
+             slope = bcd_doc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, size = 4, alpha = 0.7 ) +
   labs(x = expression(italic(paste("Seasonally Accumulated DOC, mol C m"^-2))), y = expression(italic(paste("BCD, µmol C m"^-2, "d"^-1)))) +
   scale_fill_manual(values = custom.colors) +
@@ -4356,14 +4471,19 @@ bcd_bioav_table %>%
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8, fig.align = "center", warning = FALSE}
 bcd_bioav_table %>% 
+  select(Season, doc_don_100, ave_BCD, sd_BCD) %>% 
+  distinct() %>%  
   ggplot(aes(x = doc_don_100, y = ave_BCD)) + 
-  #geom_abline(intercept = bcd_doc.reg$regression.results[3,2],
-  #            slope = bcd_doc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) + 
+  geom_abline(intercept = bcd_cn.reg$regression.results[3,2],
+             slope = bcd_cn.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_errorbar( aes(color = factor(Season, levels = levels), ymax = ave_BCD + sd_BCD, ymin = ave_BCD - sd_BCD), width = 0.4) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(italic(paste("DOC:DON"))), y = expression(italic(paste("BCD, µmol C m"^-2, "d"^-1)))) +
+  labs(x = expression(italic(paste("Seasonally Accumulated DOC:DON"))), y = expression(italic(paste("BCD, mmol C m"^-2, "d"^-1)))) +
   scale_fill_manual(values = custom.colors) +
-  custom_theme() #+
-   # annotate( geom = "text", label = expression(atop("y = 0.16x + 0.08", paste("r"^2,"= 0.66, ", italic("p "), "<< 0.01"))), x = 2.5, y = 0.1, size = 7) 
+  scale_color_manual(values = custom.colors) +
+  custom_theme() +
+  guides(color = F) +
+    annotate( geom = "text", label = expression(atop("y = -0.01x + 0.32", paste("r"^2,"= 0.09, ", italic("p "), "<< 0.01"))), x = 30, y = 0.4, size = 7) 
 
 ```
 

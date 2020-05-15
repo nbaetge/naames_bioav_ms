@@ -2202,7 +2202,7 @@ bge_summary %>%
 ## BCD and NPP
 
 We’ll estimate BCD for each station of all the cruises using bacterial
-production and the global average BGE of 22%. Parameters are integrated
+production and the global average BGE of 24%. Parameters are integrated
 to euphotic zone determined by Fox et al 2020. Not that we’ll be
 averaging casts taken throughout the day/night.
 
@@ -2990,7 +2990,7 @@ bioav.table <- export_bioav %>%
   filter(Depth == 10, Treatment == "Control") %>% 
   select(Season:Subregion, contains("bioav_doc"), contains("per_bioav"), contains("persis"), contains("ddoc")) %>% 
   distinct() %>% 
-  group_by(Season, degree_bin) %>% 
+  group_by(Season, Subregion) %>% 
   summarise(ave_total.per_bioav = round(mean(total.per_bioav, na.rm = T), 2),
             sd_total.per_bioav = round(sd(total.per_bioav, na.rm = T), 2),
             ave_st.per_bioav = round(mean(st.per_bioav, na.rm = T), 2),
@@ -3013,21 +3013,17 @@ bioav.table <- export_bioav %>%
   ungroup()
 ```
 
-| Season       | degree\_bin | ave\_total.per\_bioav | sd\_total.per\_bioav | ave\_st.per\_bioav | sd\_st.per\_bioav | ave\_lt.per\_bioav | sd\_lt.per\_bioav | ave\_per\_persis | sd\_per\_persis | ave\_st.ddoc | sd\_st.ddoc | ave\_lt.ddoc | sd\_lt.ddoc | ave\_total.ddoc | sd\_total.ddoc |
-| :----------- | ----------: | --------------------: | -------------------: | -----------------: | ----------------: | -----------------: | ----------------: | ---------------: | --------------: | -----------: | ----------: | -----------: | ----------: | --------------: | -------------: |
-| Early Spring |          39 |                  95.0 |                12.88 |               20.0 |             19.95 |              74.75 |             14.59 |              5.0 |           12.88 |          118 |      122.18 |         33.5 |        3.00 |           40.25 |          11.09 |
-| Early Spring |          44 |                  70.5 |                 2.12 |               13.5 |             19.09 |              57.00 |             21.21 |             29.5 |            2.12 |           50 |       70.71 |         26.5 |       20.51 |           28.00 |          14.14 |
-| Late Spring  |          44 |                  34.0 |                   NA |               23.0 |                NA |              11.00 |                NA |             66.0 |              NA |          386 |          NA |         13.0 |          NA |           38.00 |             NA |
-| Late Spring  |          48 |                   NaN |                   NA |               25.0 |                NA |                NaN |                NA |              NaN |              NA |          100 |          NA |          NaN |          NA |             NaN |             NA |
-| Late Spring  |          50 |                   NaN |                   NA |               29.0 |                NA |                NaN |                NA |              NaN |              NA |          329 |          NA |          NaN |          NA |             NaN |             NA |
-| Late Spring  |          54 |                   NaN |                   NA |               14.0 |                NA |                NaN |                NA |              NaN |              NA |          143 |          NA |          NaN |          NA |             NaN |             NA |
-| Late Spring  |          56 |                   NaN |                   NA |               76.0 |                NA |                NaN |                NA |              NaN |              NA |          357 |          NA |          NaN |          NA |             NaN |             NA |
-| Early Autumn |          42 |                  39.0 |                   NA |               19.0 |                NA |              20.00 |                NA |             61.0 |              NA |          329 |          NA |         39.0 |          NA |           68.00 |             NA |
-| Early Autumn |          44 |                  31.0 |                   NA |                8.0 |                NA |              23.00 |                NA |             69.0 |              NA |          229 |          NA |         70.0 |          NA |           87.00 |             NA |
-| Early Autumn |          47 |                  32.0 |                   NA |               11.0 |                NA |              20.00 |                NA |             68.0 |              NA |          229 |          NA |         49.0 |          NA |           68.00 |             NA |
-| Early Autumn |          49 |                  25.0 |                   NA |                6.0 |                NA |              19.00 |                NA |             75.0 |              NA |          129 |          NA |         51.0 |          NA |           59.00 |             NA |
-| Early Autumn |          52 |                  37.0 |                   NA |                6.0 |                NA |              31.00 |                NA |             63.0 |              NA |          129 |          NA |         80.0 |          NA |           85.00 |             NA |
-| Early Autumn |          53 |                  56.0 |                   NA |               20.0 |                NA |              36.00 |                NA |             44.0 |              NA |          257 |          NA |         62.0 |          NA |           85.00 |             NA |
+| Season       | Subregion   | ave\_total.per\_bioav | sd\_total.per\_bioav | ave\_st.per\_bioav | sd\_st.per\_bioav | ave\_lt.per\_bioav | sd\_lt.per\_bioav | ave\_per\_persis | sd\_per\_persis | ave\_st.ddoc | sd\_st.ddoc | ave\_lt.ddoc | sd\_lt.ddoc | ave\_total.ddoc | sd\_total.ddoc |
+| :----------- | :---------- | --------------------: | -------------------: | -----------------: | ----------------: | -----------------: | ----------------: | ---------------: | --------------: | -----------: | ----------: | -----------: | ----------: | --------------: | -------------: |
+| Early Spring | GS/Sargasso |                 95.00 |                12.88 |              20.00 |             19.95 |              74.75 |             14.59 |             5.00 |           12.88 |       118.00 |      122.18 |        33.50 |        3.00 |           40.25 |          11.09 |
+| Early Spring | Subtropical |                 70.50 |                 2.12 |              13.50 |             19.09 |              57.00 |             21.21 |            29.50 |            2.12 |        50.00 |       70.71 |        26.50 |       20.51 |           28.00 |          14.14 |
+| Late Spring  | Subpolar    |                   NaN |                   NA |              45.00 |             43.84 |                NaN |                NA |              NaN |              NA |       250.00 |      151.32 |          NaN |          NA |             NaN |             NA |
+| Late Spring  | Subtropical |                 34.00 |                   NA |              24.00 |              1.41 |              11.00 |                NA |            66.00 |              NA |       243.00 |      202.23 |        13.00 |          NA |           38.00 |             NA |
+| Late Spring  | Temperate   |                   NaN |                   NA |              29.00 |                NA |                NaN |                NA |              NaN |              NA |       329.00 |          NA |          NaN |          NA |             NaN |             NA |
+| Early Autumn | GS/Sargasso |                 39.00 |                   NA |              19.00 |                NA |              20.00 |                NA |            61.00 |              NA |       329.00 |          NA |        39.00 |          NA |           68.00 |             NA |
+| Early Autumn | Subpolar    |                 56.00 |                   NA |              20.00 |                NA |              36.00 |                NA |            44.00 |              NA |       257.00 |          NA |        62.00 |          NA |           85.00 |             NA |
+| Early Autumn | Subtropical |                 29.33 |                 3.79 |               8.33 |              2.52 |              20.67 |              2.08 |            70.67 |            3.79 |       195.67 |       57.74 |        56.67 |       11.59 |           71.33 |          14.29 |
+| Early Autumn | Temperate   |                 37.00 |                   NA |               6.00 |                NA |              31.00 |                NA |            63.00 |              NA |       129.00 |          NA |        80.00 |          NA |           85.00 |             NA |
 
 Seasonal Accumulated DOC Bioavailability and Persistance
 
@@ -3051,6 +3047,194 @@ bcd_bioav_table <- int_bcd %>%
 ```
 
     ## Joining, by = c("Cruise", "Season", "Subregion", "degree_bin", "Station")
+
+``` r
+bcd_bioav.reg_data <- bcd_bioav_table %>% 
+  group_by(Cruise, Subregion) %>% 
+  mutate(group_bcd = mean(ave_BCD),
+         sd_group_bcd = sd(ave_BCD)) %>% 
+  select(Cruise:Subregion, group_bcd, sd_group_bcd) %>% 
+  distinct() %>% 
+  left_join(., bioav.table)
+```
+
+    ## Joining, by = c("Season", "Subregion")
+
+``` r
+bcd_total_bioav.reg <-  bcd_bioav.reg_data %>% 
+  drop_na(ave_total.per_bioav)
+
+bcd_st_bioav.reg_data <-  bcd_bioav.reg_data %>% 
+  drop_na(ave_st.per_bioav)
+```
+
+``` r
+lmodel2(group_bcd ~ ave_total.per_bioav, data = bcd_total_bioav.reg , nperm = 99)
+```
+
+    ## RMA was not requested: it will not be computed.
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = group_bcd ~ ave_total.per_bioav, data =
+    ## bcd_total_bioav.reg, nperm = 99)
+    ## 
+    ## n = 5   r = 0.5524047   r-square = 0.305151 
+    ## Parametric P-values:   2-tailed = 0.3342755    1-tailed = 0.1671377 
+    ## Angle between the two OLS regression lines = 0.07822425 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept        Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS 0.1403249 0.0005995755      0.03435314              0.17
+    ## 2     MA 0.1403249 0.0005995760      0.03435317              0.17
+    ## 3    SMA 0.1159049 0.0010853917      0.06218834                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept    2.5%-Slope 97.5%-Slope
+    ## 1    OLS     0.04762913       0.2330207 -0.0010628117 0.002261963
+    ## 2     MA     0.05676306       0.2238865 -0.0010628132 0.002261968
+    ## 3    SMA    -0.01289388       0.1542292  0.0003229607 0.003647735
+    ## 
+    ## Eigenvalues: 728.224 0.0005961124 
+    ## 
+    ## H statistic used for computing C.I. of MA: 2.763534e-06
+
+``` r
+bcd_st_bioav.reg <- lmodel2(group_bcd ~ ave_st.per_bioav, data = bcd_st_bioav.reg_data, nperm = 99)
+```
+
+    ## RMA was not requested: it will not be computed.
+
+``` r
+bcd_st_bioav.reg 
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = group_bcd ~ ave_st.per_bioav, data =
+    ## bcd_st_bioav.reg_data, nperm = 99)
+    ## 
+    ## n = 7   r = 0.7721452   r-square = 0.5962083 
+    ## Parametric P-values:   2-tailed = 0.04191974    1-tailed = 0.02095987 
+    ## Angle between the two OLS regression lines = 0.1765492 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method  Intercept       Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS 0.11448830 0.004549881       0.2606872              0.01
+    ## 2     MA 0.11448691 0.004549945       0.2606909              0.01
+    ## 3    SMA 0.08527056 0.005892520       0.3376126                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept   2.5%-Slope 97.5%-Slope
+    ## 1    OLS    0.007215049       0.2217616 0.0002453466 0.008854416
+    ## 2     MA    0.020810071       0.2081601 0.0002453945 0.008854664
+    ## 3    SMA   -0.038972616       0.1483730 0.0029927807 0.011601850
+    ## 
+    ## Eigenvalues: 172.082 0.002412554 
+    ## 
+    ## H statistic used for computing C.I. of MA: 1.852877e-05
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-176-1.png" style="display: block; margin: auto;" />
+
+``` r
+bioav.table2 <- export_bioav %>% 
+  filter(Depth == 10, Treatment == "Control") %>% 
+  select(Season:Subregion, contains("bioav_doc"), contains("per_bioav"), contains("persis"), contains("ddoc")) %>% 
+  distinct() %>% 
+  group_by(Season, degree_bin, Station) %>% 
+  summarise(ave_total.per_bioav = round(mean(total.per_bioav, na.rm = T), 2),
+            sd_total.per_bioav = round(sd(total.per_bioav, na.rm = T), 2),
+            ave_st.per_bioav = round(mean(st.per_bioav, na.rm = T), 2),
+            sd_st.per_bioav = round(sd(st.per_bioav, na.rm = T), 2),
+            ave_lt.per_bioav = round(mean(lt.per_bioav, na.rm = T), 2),
+            sd_lt.per_bioav = round(sd(lt.per_bioav, na.rm = T), 2),
+            
+            ave_per_persis = round(mean(per_persis, na.rm = T), 2),
+            sd_per_persis = round(sd(per_persis, na.rm = T), 2),
+            
+            ave_st.ddoc = round(mean(st.ddoc, na.rm = T), 2),
+            sd_st.ddoc = round(sd(st.ddoc, na.rm = T), 2),
+            ave_lt.ddoc = round(mean(lt.ddoc, na.rm = T), 2),
+            sd_lt.ddoc = round(sd(lt.ddoc, na.rm = T), 2),
+            ave_total.ddoc = round(mean(total.ddoc, na.rm = T), 2),
+            sd_total.ddoc = round(sd(total.ddoc, na.rm = T), 2),
+            
+            ) %>%
+   arrange(factor(Season, levels = levels)) %>% 
+  ungroup() %>% 
+  left_join(., bcd_bioav_table %>% 
+              group_by(Cruise, degree_bin, Station) %>% 
+              mutate(group_bcd = mean(ave_BCD),
+                     sd_group_bcd = sd(ave_BCD)) %>% 
+              select(Cruise:Subregion,degree_bin, group_bcd, sd_group_bcd) %>%
+              distinct() )
+```
+
+    ## Adding missing grouping variables: `Station`
+
+    ## Joining, by = c("Season", "degree_bin", "Station")
+
+``` r
+bcd_total_bioav.reg_data <-  bioav.table2 %>% 
+  drop_na(ave_total.per_bioav)
+
+bcd_st_bioav.reg_data <-  bioav.table2 %>% 
+  drop_na(ave_st.per_bioav)
+```
+
+``` r
+bcd_st_bioav.reg <- lmodel2(group_bcd ~ ave_st.per_bioav, data = bcd_st_bioav.reg_data, nperm = 99)
+```
+
+    ## RMA was not requested: it will not be computed.
+
+``` r
+bcd_st_bioav.reg 
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = group_bcd ~ ave_st.per_bioav, data =
+    ## bcd_st_bioav.reg_data, nperm = 99)
+    ## 
+    ## n = 11   r = 0.2261994   r-square = 0.05116619 
+    ## Parametric P-values:   2-tailed = 0.503613    1-tailed = 0.2518065 
+    ## Angle between the two OLS regression lines = 1.135721 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept       Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS 0.2016257 0.001069076       0.0612535              0.23
+    ## 2     MA 0.2016252 0.001069098       0.0612548              0.23
+    ## 3    SMA 0.1178431 0.004726253       0.2707923                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept   2.5%-Slope 97.5%-Slope
+    ## 1    OLS     0.09447432       0.3087771 -0.002402395 0.004540547
+    ## 2     MA     0.12209450       0.2811553 -0.002402454 0.004540677
+    ## 3    SMA     0.01224605       0.1713025  0.002392706 0.009335648
+    ## 
+    ## Eigenvalues: 470.6914 0.009976067 
+    ## 
+    ## H statistic used for computing C.I. of MA: 1.205159e-05
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-179-1.png" style="display: block; margin: auto;" />
+
+## 
 
     ## RMA was not requested: it will not be computed.
 
@@ -3116,9 +3300,9 @@ bcd_bioav_table <- int_bcd %>%
     ## 
     ## H statistic used for computing C.I. of MA: 8.313821e-07
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-177-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-184-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-178-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-185-1.png" style="display: block; margin: auto;" />
 
 This seasonal comparison is best exemplifies at 44˚N where we have
 experiments from all cruises. It shows:
@@ -3147,4 +3331,4 @@ DOC and bacterioplankton growth, but did not result in drawdown into the
 persistent
 pool.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-179-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-186-1.png" style="display: block; margin: auto;" />
