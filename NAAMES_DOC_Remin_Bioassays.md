@@ -25,6 +25,7 @@ library(growthcurver)
 library(lmtest)
 library(lmodel2)
 library(rstatix)
+library(ggpubr)
 ```
 
 # Bacterial Abundance
@@ -2560,19 +2561,20 @@ DOC pool:
 <!-- end list -->
 
 ``` r
-export <- readRDS("~/naames_export_ms/Output/processed_export_for_bioavMS.5.7.20.rds") %>% 
+export <- readRDS("~/naames_export_ms/Output/processed_export_for_bioavMS.5.14.20.rds") %>% 
   mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
-  select(Cruise, Season, degree_bin, Station, redis_DOC_vol, NCP_mol_100, doc_ncp_100, int_delta_DOC_100, doc_don_100) %>% 
+  select(Cruise, Season, degree_bin, Subregion, Station, Target_Z, Ez, ave_N, sd_N, ave_PO4, sd_PO4, ave_Pro:sd_Nano, redis_DOC_vol, NCP_mol_100, doc_ncp_100, int_delta_DOC_100, doc_don_100, int_delta_N_100, int_N_100_vol, int_N_ez, int_PO4_100_vol, int_PO4_ez) %>% 
   distinct() %>% 
-  mutate_at(vars(redis_DOC_vol), round, 1) %>% 
-  mutate_at(vars(NCP_mol_100:doc_ncp_100, int_delta_DOC_100), round, 2) %>%
+  mutate_at(vars(redis_DOC_vol, int_N_100_vol, int_PO4_100_vol), round, 1) %>% 
+  mutate_at(vars(NCP_mol_100:doc_ncp_100, int_delta_DOC_100, int_delta_N_100, int_N_ez, int_PO4_ez), round, 2) %>%
   mutate_at(vars(doc_don_100), round) %>% 
   mutate_at(vars(Station), as.character) %>% 
   #error associated with the approach in calculating seasonally accumulated DON led to 17%  of total samples (5 of 29) being negative.  As a result these data were removed from further analyses.
-  mutate(doc_don_100 = ifelse(doc_don_100 < 0, NA, doc_don_100))
+  mutate(doc_don_100 = ifelse(doc_don_100 < 0, NA, doc_don_100), 
+         total_phyto = ave_Pro + ave_Syn + ave_Pico + ave_Nano)
 
 
-export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>% 
+export_bioav <- left_join(calcs %>% filter(!Station == "U"), export %>% select(-c( Target_Z, ave_N, sd_N, ave_Pro:sd_Nano)) %>%  distinct()) %>% 
   mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
          degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>%  
   group_by(Cruise, Station, Depth, Treatment, Hours) %>% 
@@ -2597,7 +2599,8 @@ export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>%
          persis_doc = accm_doc - total.bioav_doc,
          per_persis = round((persis_doc/accm_doc * 100)),
          st.ddoc = round((st.bioav_doc/7) * 1000),
-         lt.ddoc = round((lt.bioav_doc/time.lt.bioav_accm_doc) * 1000)) %>%   
+         lt.ddoc = round((lt.bioav_doc/time.lt.bioav_accm_doc) * 1000),
+         total.ddoc = round((total.bioav_doc/time.total.bioav_accm_doc) * 1000)) %>%   
   ungroup() %>% 
   group_by(Cruise, Station, Depth) %>% 
   fill(accm_doc:lt.ddoc, .direction = "downup") %>% 
@@ -2606,6 +2609,182 @@ export_bioav <- left_join(calcs %>% filter(!Station == "U"), export) %>%
   left_join(., bcd %>% mutate_at(vars(Station), as.character)) %>% 
   mutate(Subregion = ifelse(Station %in% c("S2RF", "S2RD"), "GS/Sargasso", Subregion ))
 ```
+
+## Nitrate
+
+### Surface 100 m
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-131-1.png" style="display: block; margin: auto;" />
+
+### Euphotic Zone
+
+#### Welch’s one-Way ANOVA test
+
+Alternative to standard one-way ANOVA in the situation where the
+homogeneity of variance assumption iss violated
+
+``` r
+n_ez <-  export %>%
+  select(Season, Ez, int_N_ez) %>% 
+  mutate(int_N_ez = ((int_N_ez)/Ez)/10) %>% 
+  distinct() %>% 
+  drop_na(int_N_ez) 
+
+n_anova <- welch_anova_test(int_N_ez ~ Season, data = n_ez) 
+n_anova 
+```
+
+    ## # A tibble: 1 x 7
+    ##   .y.          n statistic   DFn   DFd     p method     
+    ## * <chr>    <int>     <dbl> <dbl> <dbl> <dbl> <chr>      
+    ## 1 int_N_ez    29      3.96     3  11.1 0.038 Welch ANOVA
+
+#### Post-hoc analysis
+
+Games-Howell test used to compare all possible combinations of group
+differences when the assumption of homogeneity of variances is violated
+
+``` r
+n_gh <- games_howell_test(int_N_ez ~ Season, data = n_ez)
+n_gh
+```
+
+    ## # A tibble: 6 x 8
+    ##   .y.      group1      group2     estimate conf.low conf.high p.adj p.adj.signif
+    ## * <chr>    <chr>       <chr>         <dbl>    <dbl>     <dbl> <dbl> <chr>       
+    ## 1 int_N_ez Early Autu… Early Spr…   -0.353  -0.721     0.0147 0.06  ns          
+    ## 2 int_N_ez Early Autu… Late Autu…   -0.224  -0.653     0.204  0.416 ns          
+    ## 3 int_N_ez Early Autu… Late Spri…    0.191  -0.428     0.810  0.734 ns          
+    ## 4 int_N_ez Early Spri… Late Autu…    0.129  -0.342     0.600  0.835 ns          
+    ## 5 int_N_ez Early Spri… Late Spri…    0.545  -0.0881    1.18   0.093 ns          
+    ## 6 int_N_ez Late Autumn Late Spri…    0.416  -0.235     1.07   0.261 ns
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-134-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-135-1.png" style="display: block; margin: auto;" />
+
+## Phosphate
+
+### Surface 100 m
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-136-1.png" style="display: block; margin: auto;" />
+
+### Euphotic Zone
+
+#### Welch’s one-Way ANOVA test
+
+Alternative to standard one-way ANOVA in the situation where the
+homogeneity of variance assumption is violated
+
+``` r
+p_ez <-  export %>%
+  select(Season, Ez, int_PO4_ez) %>% 
+  mutate(int_PO4_ez = ((int_PO4_ez)/Ez)/10) %>% 
+  distinct() %>% 
+  drop_na(int_PO4_ez) 
+
+p_anova <- welch_anova_test(int_PO4_ez ~ Season, data = p_ez) 
+p_anova 
+```
+
+    ## # A tibble: 1 x 7
+    ##   .y.            n statistic   DFn   DFd     p method     
+    ## * <chr>      <int>     <dbl> <dbl> <dbl> <dbl> <chr>      
+    ## 1 int_PO4_ez    29      1.77     3  12.0 0.207 Welch ANOVA
+
+#### Post-hoc analysis
+
+Games-Howell test used to compare all possible combinations of group
+differences when the assumption of homogeneity of variances is violated
+
+``` r
+p_gh <- games_howell_test(int_PO4_ez ~ Season, data = p_ez)
+p_gh
+```
+
+    ## # A tibble: 6 x 8
+    ##   .y.       group1     group2     estimate conf.low conf.high p.adj p.adj.signif
+    ## * <chr>     <chr>      <chr>         <dbl>    <dbl>     <dbl> <dbl> <chr>       
+    ## 1 int_PO4_… Early Aut… Early Spr… -0.00901  -0.0265   0.00846 0.455 ns          
+    ## 2 int_PO4_… Early Aut… Late Autu… -0.0116   -0.0357   0.0124  0.517 ns          
+    ## 3 int_PO4_… Early Aut… Late Spri…  0.0140   -0.0300   0.0580  0.729 ns          
+    ## 4 int_PO4_… Early Spr… Late Autu… -0.00262  -0.0240   0.0188  0.977 ns          
+    ## 5 int_PO4_… Early Spr… Late Spri…  0.0230   -0.0215   0.0676  0.343 ns          
+    ## 6 int_PO4_… Late Autu… Late Spri…  0.0256   -0.0188   0.0700  0.313 ns
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-139-1.png" style="display: block; margin: auto;" />
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-140-1.png" style="display: block; margin: auto;" />
+
+## N:P
+
+### Euphotic Zone
+
+#### Welch’s one-Way ANOVA test
+
+Alternative to standard one-way ANOVA in the situation where the
+homogeneity of variance assumption is violated
+
+``` r
+np_ez <-  export %>%
+  select(Season, Ez, int_PO4_ez, int_N_ez) %>% 
+  mutate(int_PO4_ez = ((int_PO4_ez)/Ez)/10,
+         int_N_ez = ((int_N_ez)/Ez)/10,
+         int_NP_ez = int_N_ez/int_PO4_ez) %>% 
+  distinct() %>% 
+  drop_na(int_PO4_ez) 
+
+np_anova <- welch_anova_test(int_NP_ez ~ Season, data = np_ez) 
+np_anova 
+```
+
+    ## # A tibble: 1 x 7
+    ##   .y.           n statistic   DFn   DFd     p method     
+    ## * <chr>     <int>     <dbl> <dbl> <dbl> <dbl> <chr>      
+    ## 1 int_NP_ez    29       5.4     3  11.1 0.016 Welch ANOVA
+
+``` r
+np_ez %>% 
+  filter(Season == "Early Spring") %>% 
+  summary()
+```
+
+    ##     Season                Ez        int_PO4_ez         int_N_ez     
+    ##  Length:5           Min.   : 98   Min.   :0.02720   Min.   :0.1527  
+    ##  Class :character   1st Qu.:106   1st Qu.:0.02760   1st Qu.:0.1675  
+    ##  Mode  :character   Median :120   Median :0.02838   Median :0.1713  
+    ##                     Mean   :114   Mean   :0.03081   Mean   :0.2733  
+    ##                     3rd Qu.:120   3rd Qu.:0.03187   3rd Qu.:0.2288  
+    ##                     Max.   :126   Max.   :0.03902   Max.   :0.6461  
+    ##    int_NP_ez     
+    ##  Min.   : 5.614  
+    ##  1st Qu.: 6.036  
+    ##  Median : 6.070  
+    ##  Mean   : 8.291  
+    ##  3rd Qu.: 7.180  
+    ##  Max.   :16.557
+
+#### Post-hoc analysis
+
+Games-Howell test used to compare all possible combinations of group
+differences when the assumption of homogeneity of variances is violated
+
+``` r
+np_gh <- games_howell_test(int_NP_ez ~ Season, data = np_ez)
+np_gh
+```
+
+    ## # A tibble: 6 x 8
+    ##   .y.      group1      group2     estimate conf.low conf.high p.adj p.adj.signif
+    ## * <chr>    <chr>       <chr>         <dbl>    <dbl>     <dbl> <dbl> <chr>       
+    ## 1 int_NP_… Early Autu… Early Spr…    -8.47  -16.6      -0.371 0.042 *           
+    ## 2 int_NP_… Early Autu… Late Autu…    -4.02   -8.96      0.918 0.122 ns          
+    ## 3 int_NP_… Early Autu… Late Spri…    -1.19   -4.13      1.74  0.652 ns          
+    ## 4 int_NP_… Early Spri… Late Autu…     4.44   -3.74     12.6   0.356 ns          
+    ## 5 int_NP_… Early Spri… Late Spri…     7.27   -0.939    15.5   0.076 ns          
+    ## 6 int_NP_… Late Autumn Late Spri…     2.83   -2.04      7.70  0.318 ns
+
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-144-1.png" style="display: block; margin: auto;" />
 
 # ∆DOC
 
@@ -2653,7 +2832,7 @@ ddoc_gh
     ## 5 int_delta… Early Sp… Late Sp…    0.044  -0.177    0.265   9.14e-1 ns          
     ## 6 int_delta… Late Aut… Late Sp…   -0.292  -0.578   -0.00552 4.60e-2 *
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-134-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-148-1.png" style="display: block; margin: auto;" />
 
 # DOC:DON
 
@@ -2671,7 +2850,6 @@ Alternative to standard one-way ANOVA in the situation where the
 homogeneity of variance assumption iss violated
 
 ``` r
-library(rstatix)
 cn_anova <- welch_anova_test(doc_don_100 ~ Season, data = aov.cn) 
 cn_anova 
 ```
@@ -2701,7 +2879,7 @@ cn_gh
     ## 5 doc_don_… Early Spr… Late Spri…     0      -13.7      13.7  1     ns          
     ## 6 doc_don_… Late Autu… Late Spri…    -1.33   -14.4      11.7  0.969 ns
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-138-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-152-1.png" style="display: block; margin: auto;" />
 
 ``` r
 export %>%
@@ -2726,10 +2904,10 @@ export %>%
     ## # A tibble: 4 x 11
     ##   Season ave_accm_doc sd_accm_doc med_accm_doc min_accm_doc max_accm_doc
     ##   <chr>         <dbl>       <dbl>        <dbl>        <dbl>        <dbl>
-    ## 1 Early…         0.15       0.09          0.15         0.01         0.26
-    ## 2 Late …         0.19       0.11          0.19         0.01         0.31
-    ## 3 Early…         0.77       0.290         0.83         0.34         1.15
-    ## 4 Late …         0.5        0.19          0.56         0.16         0.7 
+    ## 1 Early…         0.15        0.08         0.15         0.01         0.26
+    ## 2 Late …         0.19        0.1          0.21         0.01         0.31
+    ## 3 Early…         0.73        0.28         0.83         0.34         1.15
+    ## 4 Late …         0.51        0.17         0.56         0.16         0.7 
     ## # … with 5 more variables: ave_doc_don <dbl>, sd_doc_don <dbl>,
     ## #   med_doc_don <dbl>, min_doc_don <dbl>, max_doc_don <dbl>
 
@@ -2752,7 +2930,7 @@ export %>%
     ##   <chr>              <dbl>      <dbl>       <dbl>       <dbl>       <dbl>
     ## 1 Early Spring           6          1           6           5           6
     ## 2 Late Spring            5          5           3           1          14
-    ## 3 Early Autumn          17         11          12           7          38
+    ## 3 Early Autumn          18         10          12           7          38
     ## 4 Late Autumn            7          2           6           4          10
 
 # Remineralization of Seasonally Accumulated DOC
@@ -2761,58 +2939,58 @@ export %>%
 
 #### No Addition
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-141-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-155-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-142-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-156-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-143-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-157-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-144-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-158-1.png" style="display: block; margin: auto;" />
 
 ## NAAMES 3
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-145-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-159-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-146-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-160-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-147-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-161-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-148-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-162-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-149-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-163-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-150-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-164-1.png" style="display: block; margin: auto;" />
 
 ### NAAMES 4
 
 #### No Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-151-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-165-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-152-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-166-1.png" style="display: block; margin: auto;" />
 
 #### Additions
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-153-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-167-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-154-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-168-1.png" style="display: block; margin: auto;" />
 
 ## Seasonal Comparison
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-155-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-169-1.png" style="display: block; margin: auto;" />
 
 ``` r
 bioav.table <- export_bioav %>% 
   filter(Depth == 10, Treatment == "Control") %>% 
   select(Season:Subregion, contains("bioav_doc"), contains("per_bioav"), contains("persis"), contains("ddoc")) %>% 
   distinct() %>% 
-  group_by(Season, Subregion) %>% 
+  group_by(Season, degree_bin) %>% 
   summarise(ave_total.per_bioav = round(mean(total.per_bioav, na.rm = T), 2),
             sd_total.per_bioav = round(sd(total.per_bioav, na.rm = T), 2),
             ave_st.per_bioav = round(mean(st.per_bioav, na.rm = T), 2),
@@ -2827,23 +3005,29 @@ bioav.table <- export_bioav %>%
             sd_st.ddoc = round(sd(st.ddoc, na.rm = T), 2),
             ave_lt.ddoc = round(mean(lt.ddoc, na.rm = T), 2),
             sd_lt.ddoc = round(sd(lt.ddoc, na.rm = T), 2),
+            ave_total.ddoc = round(mean(total.ddoc, na.rm = T), 2),
+            sd_total.ddoc = round(sd(total.ddoc, na.rm = T), 2),
             
             ) %>%
    arrange(factor(Season, levels = levels)) %>% 
   ungroup()
 ```
 
-| Season       | Subregion   | ave\_total.per\_bioav | sd\_total.per\_bioav | ave\_st.per\_bioav | sd\_st.per\_bioav | ave\_lt.per\_bioav | sd\_lt.per\_bioav | ave\_per\_persis | sd\_per\_persis | ave\_st.ddoc | sd\_st.ddoc | ave\_lt.ddoc | sd\_lt.ddoc |
-| :----------- | :---------- | --------------------: | -------------------: | -----------------: | ----------------: | -----------------: | ----------------: | ---------------: | --------------: | -----------: | ----------: | -----------: | ----------: |
-| Early Spring | GS/Sargasso |                 95.00 |                12.88 |              20.00 |             19.95 |              74.75 |             14.59 |             5.00 |           12.88 |       118.00 |      122.18 |        33.50 |        3.00 |
-| Early Spring | Subtropical |                 70.50 |                 2.12 |              13.50 |             19.09 |              57.00 |             21.21 |            29.50 |            2.12 |        50.00 |       70.71 |        26.50 |       20.51 |
-| Late Spring  | Subpolar    |                   NaN |                   NA |              45.00 |             43.84 |                NaN |                NA |              NaN |              NA |       250.00 |      151.32 |          NaN |          NA |
-| Late Spring  | Subtropical |                 34.00 |                   NA |              24.00 |              1.41 |              11.00 |                NA |            66.00 |              NA |       243.00 |      202.23 |        13.00 |          NA |
-| Late Spring  | Temperate   |                   NaN |                   NA |              29.00 |                NA |                NaN |                NA |              NaN |              NA |       329.00 |          NA |          NaN |          NA |
-| Early Autumn | GS/Sargasso |                 39.00 |                   NA |              19.00 |                NA |              20.00 |                NA |            61.00 |              NA |       329.00 |          NA |        39.00 |          NA |
-| Early Autumn | Subpolar    |                 56.00 |                   NA |              20.00 |                NA |              36.00 |                NA |            44.00 |              NA |       257.00 |          NA |        62.00 |          NA |
-| Early Autumn | Subtropical |                 29.33 |                 3.79 |               8.33 |              2.52 |              20.67 |              2.08 |            70.67 |            3.79 |       195.67 |       57.74 |        56.67 |       11.59 |
-| Early Autumn | Temperate   |                 37.00 |                   NA |               6.00 |                NA |              31.00 |                NA |            63.00 |              NA |       129.00 |          NA |        80.00 |          NA |
+| Season       | degree\_bin | ave\_total.per\_bioav | sd\_total.per\_bioav | ave\_st.per\_bioav | sd\_st.per\_bioav | ave\_lt.per\_bioav | sd\_lt.per\_bioav | ave\_per\_persis | sd\_per\_persis | ave\_st.ddoc | sd\_st.ddoc | ave\_lt.ddoc | sd\_lt.ddoc | ave\_total.ddoc | sd\_total.ddoc |
+| :----------- | ----------: | --------------------: | -------------------: | -----------------: | ----------------: | -----------------: | ----------------: | ---------------: | --------------: | -----------: | ----------: | -----------: | ----------: | --------------: | -------------: |
+| Early Spring |          39 |                  95.0 |                12.88 |               20.0 |             19.95 |              74.75 |             14.59 |              5.0 |           12.88 |          118 |      122.18 |         33.5 |        3.00 |           40.25 |          11.09 |
+| Early Spring |          44 |                  70.5 |                 2.12 |               13.5 |             19.09 |              57.00 |             21.21 |             29.5 |            2.12 |           50 |       70.71 |         26.5 |       20.51 |           28.00 |          14.14 |
+| Late Spring  |          44 |                  34.0 |                   NA |               23.0 |                NA |              11.00 |                NA |             66.0 |              NA |          386 |          NA |         13.0 |          NA |           38.00 |             NA |
+| Late Spring  |          48 |                   NaN |                   NA |               25.0 |                NA |                NaN |                NA |              NaN |              NA |          100 |          NA |          NaN |          NA |             NaN |             NA |
+| Late Spring  |          50 |                   NaN |                   NA |               29.0 |                NA |                NaN |                NA |              NaN |              NA |          329 |          NA |          NaN |          NA |             NaN |             NA |
+| Late Spring  |          54 |                   NaN |                   NA |               14.0 |                NA |                NaN |                NA |              NaN |              NA |          143 |          NA |          NaN |          NA |             NaN |             NA |
+| Late Spring  |          56 |                   NaN |                   NA |               76.0 |                NA |                NaN |                NA |              NaN |              NA |          357 |          NA |          NaN |          NA |             NaN |             NA |
+| Early Autumn |          42 |                  39.0 |                   NA |               19.0 |                NA |              20.00 |                NA |             61.0 |              NA |          329 |          NA |         39.0 |          NA |           68.00 |             NA |
+| Early Autumn |          44 |                  31.0 |                   NA |                8.0 |                NA |              23.00 |                NA |             69.0 |              NA |          229 |          NA |         70.0 |          NA |           87.00 |             NA |
+| Early Autumn |          47 |                  32.0 |                   NA |               11.0 |                NA |              20.00 |                NA |             68.0 |              NA |          229 |          NA |         49.0 |          NA |           68.00 |             NA |
+| Early Autumn |          49 |                  25.0 |                   NA |                6.0 |                NA |              19.00 |                NA |             75.0 |              NA |          129 |          NA |         51.0 |          NA |           59.00 |             NA |
+| Early Autumn |          52 |                  37.0 |                   NA |                6.0 |                NA |              31.00 |                NA |             63.0 |              NA |          129 |          NA |         80.0 |          NA |           85.00 |             NA |
+| Early Autumn |          53 |                  56.0 |                   NA |               20.0 |                NA |              36.00 |                NA |             44.0 |              NA |          257 |          NA |         62.0 |          NA |           85.00 |             NA |
 
 Seasonal Accumulated DOC Bioavailability and Persistance
 
@@ -2866,7 +3050,7 @@ bcd_bioav_table <- int_bcd %>%
   filter(!doc_don_100 > 50) 
 ```
 
-    ## Joining, by = c("Cruise", "Season", "degree_bin", "Station")
+    ## Joining, by = c("Cruise", "Season", "Subregion", "degree_bin", "Station")
 
     ## RMA was not requested: it will not be computed.
 
@@ -2876,9 +3060,9 @@ bcd_bioav_table <- int_bcd %>%
     ## Call: lmodel2(formula = ave_BCD ~ int_delta_DOC_100, data =
     ## bcd_bioav_table, nperm = 99)
     ## 
-    ## n = 17   r = -0.3700739   r-square = 0.1369547 
-    ## Parametric P-values:   2-tailed = 0.1437037    1-tailed = 0.07185184 
-    ## Angle between the two OLS regression lines = 33.10593 degrees
+    ## n = 383   r = -0.3519874   r-square = 0.1238952 
+    ## Parametric P-values:   2-tailed = 1.299928e-12    1-tailed = 6.499638e-13 
+    ## Angle between the two OLS regression lines = 34.47299 degrees
     ## 
     ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
     ## A permutation test of r is equivalent to a permutation test of the OLS slope
@@ -2886,19 +3070,19 @@ bcd_bioav_table <- int_bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept      Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.2487458 -0.1131420       -6.455106              0.04
-    ## 2     MA 0.2530777 -0.1229219       -7.007751              0.04
-    ## 3    SMA 0.3340501 -0.3057281      -16.999863                NA
+    ## 1    OLS 0.2408041 -0.1058798       -6.043948              0.01
+    ## 2     MA 0.2448003 -0.1148771       -6.553246              0.01
+    ## 3    SMA 0.3273807 -0.3008057      -16.741584                NA
     ## 
     ## Confidence intervals
     ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
-    ## 1    OLS      0.1656479       0.3318438 -0.2694501  0.04316615
-    ## 2     MA      0.1783414       0.3309981 -0.2988378  0.04580553
-    ## 3    SMA      0.2814873       0.4199579 -0.4996765 -0.18706031
+    ## 1    OLS      0.2257440       0.2558642 -0.1342415 -0.07751817
+    ## 2     MA      0.2311742       0.2585218 -0.1457708 -0.08419826
+    ## 3    SMA      0.3153764       0.3405701 -0.3305014 -0.27377810
     ## 
-    ## Eigenvalues: 0.09311176 0.007306544 
+    ## Eigenvalues: 0.08594616 0.006650488 
     ## 
-    ## H statistic used for computing C.I. of MA: 0.02798646
+    ## H statistic used for computing C.I. of MA: 0.0009223926
 
     ## RMA was not requested: it will not be computed.
 
@@ -2908,9 +3092,9 @@ bcd_bioav_table <- int_bcd %>%
     ## Call: lmodel2(formula = ave_BCD ~ doc_don_100, data = bcd_bioav_table,
     ## nperm = 99)
     ## 
-    ## n = 17   r = -0.2541053   r-square = 0.06456949 
-    ## Parametric P-values:   2-tailed = 0.3250268    1-tailed = 0.1625134 
-    ## Angle between the two OLS regression lines = 2.160437 degrees
+    ## n = 383   r = -0.2649284   r-square = 0.07018705 
+    ## Parametric P-values:   2-tailed = 1.42402e-07    1-tailed = 7.120102e-08 
+    ## Angle between the two OLS regression lines = 1.886673 degrees
     ## 
     ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
     ## A permutation test of r is equivalent to a permutation test of the OLS slope
@@ -2918,23 +3102,23 @@ bcd_bioav_table <- int_bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.2239073 -0.002604272      -0.1492134              0.17
-    ## 2     MA 0.2239098 -0.002604528      -0.1492281              0.17
-    ## 3    SMA 0.2981041 -0.010248791      -0.5871919                NA
+    ## 1    OLS 0.2193915 -0.002486742      -0.1424795              0.01
+    ## 2     MA 0.2193936 -0.002486946      -0.1424912              0.01
+    ## 3    SMA 0.2904605 -0.009386469      -0.5377893                NA
     ## 
     ## Confidence intervals
     ##   Method 2.5%-Intercept 97.5%-Intercept   2.5%-Slope  97.5%-Slope
-    ## 1    OLS      0.1525473       0.2952674 -0.008059436  0.002850892
-    ## 2     MA      0.1709574       0.2768638 -0.008060387  0.002851176
-    ## 3    SMA      0.2583706       0.3642649 -0.017065355 -0.006155027
+    ## 1    OLS      0.2067229       0.2320601 -0.003398475 -0.001575010
+    ## 2     MA      0.2100018       0.2287855 -0.003398755 -0.001575140
+    ## 3    SMA      0.2815245       0.3003066 -0.010342377 -0.008518912
     ## 
-    ## Eigenvalues: 81.72114 0.008029442 
+    ## Eigenvalues: 87.20596 0.007143991 
     ## 
-    ## H statistic used for computing C.I. of MA: 2.976426e-05
+    ## H statistic used for computing C.I. of MA: 8.313821e-07
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-163-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-177-1.png" style="display: block; margin: auto;" />
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-164-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-178-1.png" style="display: block; margin: auto;" />
 
 This seasonal comparison is best exemplifies at 44˚N where we have
 experiments from all cruises. It shows:
@@ -2963,4 +3147,4 @@ DOC and bacterioplankton growth, but did not result in drawdown into the
 persistent
 pool.
 
-<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-165-1.png" style="display: block; margin: auto;" />
+<img src="NAAMES_DOC_Remin_Bioassays_files/figure-gfm/unnamed-chunk-179-1.png" style="display: block; margin: auto;" />
