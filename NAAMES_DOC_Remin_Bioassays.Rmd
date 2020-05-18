@@ -2954,7 +2954,28 @@ calcs %>%
   
 ```
 
-## BCD and NPP
+##CCFs per season
+
+```{r}
+calcs %>% 
+  filter(Depth == 10, Treatment == "Control", Hours == 0, !Station == "U") %>% 
+  select(Cruise, Season, Subregion, Station,  i.ccf.c1, s.ccf.c1 ) %>% 
+  distinct() %>% 
+  mutate(global_initial_ccf = mean(i.ccf.c1, na.rm = T),
+         global_stationary_ccf = mean(s.ccf.c1, na.rm = T)) %>% 
+  group_by(Season) %>% 
+  mutate(ave_initial_ccf = mean(i.ccf.c1, na.rm = T),
+            ave_stationary_ccf = mean(s.ccf.c1, na.rm = T)) %>% 
+  ungroup() %>% 
+  select(Season, global_initial_ccf:ave_stationary_ccf) %>% 
+  distinct()
+```
+
+
+
+
+
+## BA, BP, BCD, µ, and NPP
 
 We'll estimate BCD for each station of all the cruises using bacterial production and the global average BGE of 24%. Parameters are integrated to euphotic zone determined by Fox et al 2020. Not that we'll be averaging casts taken throughout the day/night. 
 
@@ -3074,16 +3095,27 @@ interpolated.df <- right_join(bact, interpolations.df) %>%
   ungroup() %>% 
   mutate_at(vars(interp_bp), round, 2)
 
-#calculate bcd
+#calculate bcd and specific growth rates
 bcd <- interpolated.df %>% 
   mutate(cr_bge = ifelse(Cruise == "AT32", 0.22, NA),
          cr_bge = ifelse(Cruise == "AT34", 0.26, cr_bge),
          cr_bge = ifelse(Cruise == "AT38", 0.22, cr_bge),
          cr_bge = ifelse(Cruise == "AT39", 0.26, cr_bge),
+         cr_i.ccf = ifelse(Cruise == "AT32", 50, NA),
+         cr_i.ccf = ifelse(Cruise == "AT34", 13, cr_i.ccf),
+         cr_i.ccf = ifelse(Cruise == "AT38", 50, cr_i.ccf),
+         cr_i.ccf = ifelse(Cruise == "AT39", 20, cr_i.ccf),
+         cr_s.ccf = ifelse(Cruise == "AT32", 31, NA),
+         cr_s.ccf = ifelse(Cruise == "AT34", 15, cr_s.ccf),
+         cr_s.ccf = ifelse(Cruise == "AT38", 31, cr_s.ccf),
+         cr_s.ccf = ifelse(Cruise == "AT39", 22, cr_s.ccf),
          bge = 0.24,
          #bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
          bcd.cr_bge = interp_bp/cr_bge,
-         bcd = interp_bp/bge)  %>%
+         bcd = interp_bp/bge,
+         # bact carbon in µmol C/m3
+         bc.i = interp_ba * (10^3) * cr_i.ccf * (1/10^15) * (1/12) * 10^6,
+         bc.s = interp_ba * (10^3) * cr_s.ccf * (1/10^15) * (1/12) * 10^6)  %>%
   mutate_at(vars(bcd, bcd.cr_bge), round) %>% 
   group_by(Cruise, Station, Depth) %>% 
   mutate(bcd.stat.cr_bge = mean(bcd.cr_bge, na.rm = T),
@@ -3093,9 +3125,14 @@ bcd <- interpolated.df %>%
          sd_ba.stat = sd(interp_ba, na.rm = T) * 1000,
          bp.stat = mean(interp_bp, na.rm = T),
          sd_bp.stat = sd(interp_bp, na.rm = T),
+         bc.i.stat = mean(bc.i, na.rm = T),
+         sd_bc.i.stat = sd(bc.i, na.rm = T),
+         bc.s.stat = mean(bc.s, na.rm = T),
+         sd_bc.s.stat = sd(bc.s, na.rm = T),
          phytodet.stat = mean(interp_phytodet, na.rm = T),
          phyto.stat = mean(interp_phyto, na.rm = T)) %>% 
   mutate_at(vars(bcd.stat.cr_bge, bcd.stat), round) %>% 
+ # mutate_at(vars(sp_gr.i.ccf.stat:sd_sp_gr.s.ccf.stat), round, 4) %>% 
   ungroup() %>% 
   group_by(Cruise, Subregion, Depth) %>% 
   mutate(ba.cr.sr = mean(interp_ba, na.rm = T) * 1000,
@@ -3105,6 +3142,7 @@ bcd <- interpolated.df %>%
   ungroup() %>% 
   select(Cruise:degree_bin, ave_Ez:sd_NPP, bge, cr_bge, Depth, contains("stat"), contains("sr")) %>% 
   distinct() 
+
 
 int_bcd_100 <- bcd %>% 
   group_by(Cruise, Station) %>% 
@@ -3127,6 +3165,8 @@ int_bcd <- bcd %>%
          sd_int.bp.ez = integrateTrapezoid(Depth, sd_bp.stat, type = "A"),
          int.ba.ez = integrateTrapezoid(Depth, ba.stat, type = "A"),
          sd_int.ba.ez = integrateTrapezoid(Depth, sd_ba.stat, type = "A"),
+         int.bc.i.ez = integrateTrapezoid(Depth, bc.i.stat, type = "A"),
+         int.bc.s.ez = integrateTrapezoid(Depth, bc.s.stat, type = "A"),
          int.phyodet.ez = integrateTrapezoid(Depth, phytodet.stat, type = "A"),
          int.phyto.ez = integrateTrapezoid(Depth, phyto.stat, type = "A"))  %>% 
   mutate_at(vars(contains("int.bcd"), contains("bcd.ez_npp")), round) %>% 
@@ -3134,6 +3174,8 @@ int_bcd <- bcd %>%
   mutate_at(vars(int.bcd.cr_bge.ez:int.phyto.ez), funs(./ave_Ez)) %>% 
   mutate(int.NPP = ave_NPP/ave_Ez,
          sd_int.NPP = sd_NPP/ave_Ez, 
+         mew.i = int.bp.ez/int.bc.i.ez,
+         mew.s = int.bp.ez/int.bc.s.ez,
          bcd.ez_npp.cr_bge = int.bcd.cr_bge.ez/int.NPP * 100,
          bcd.ez_npp = int.bcd.ez/int.NPP * 100) %>% 
   select(Cruise:cr_bge, int.bcd.cr_bge.ez:bcd.ez_npp, Depth, contains("stat"), contains("cr.sr")) %>% 
@@ -3235,6 +3277,162 @@ int_bcd %>%
   guides(fill = F)
 ```
 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 12, fig.align = "center", warning = FALSE}
+
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.NPP, sd_int.NPP) %>% 
+  distinct() %>% 
+  mutate_at(vars(contains("NPP")), funs(./10^3)) %>% 
+  mutate_at(vars(degree_bin), as.character) %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, y =  int.NPP, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
+  geom_errorbar(aes(ymin = int.NPP - sd_int.NPP, ymax = int.NPP + sd_int.NPP), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("")), y = expression(italic(paste("NPP, mmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_fill_brewer(palette = "Set1") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") +
+  #theme(strip.background = element_blank(), strip.text = element_blank()) +
+  guides(fill = F)
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 12, fig.align = "center", warning = FALSE}
+
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.bp.ez, sd_int.bp.ez) %>% 
+  distinct() %>% 
+  mutate_at(vars(degree_bin), as.character) %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, y =  int.bp.ez, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
+  geom_errorbar(aes(ymin = int.bp.ez - sd_int.bp.ez, ymax = int.bp.ez + sd_int.bp.ez), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("")), y = expression(italic(paste("BP, µmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_fill_brewer(palette = "Set1") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
+  guides(fill = F)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 12, fig.align = "center", warning = FALSE}
+
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.ba.ez, sd_int.ba.ez) %>% 
+  distinct() %>% 
+  mutate_at(vars(degree_bin), as.character) %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, y =  int.ba.ez, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
+  geom_errorbar(aes(ymin = int.ba.ez - sd_int.ba.ez, ymax = int.ba.ez + sd_int.ba.ez), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("")), y = expression(italic(paste("BA, cells m"^-3))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_fill_brewer(palette = "Set1") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
+  guides(fill = F)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 12, fig.align = "center", warning = FALSE}
+
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, mew.i, mew.s) %>% 
+  distinct() %>% 
+  pivot_longer(cols = c(mew.i, mew.s), names_to = "ccf", values_to = "mew") %>%  
+  mutate(ccf = ifelse(ccf == "mew.i", "Initial CCF", "Stationary CCF"),
+         degree_bin = as.character(degree_bin)) %>% 
+  group_by(Cruise, Station) %>% 
+  mutate(ave = mean(mew),
+         sd = sd(mew)) %>% 
+  ungroup() %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, y =  ave, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
+  geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("µ, d"^-1))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_fill_brewer(palette = "Set1") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
+  guides(fill = F)
+```
+ 
+#### organized by NPP 
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 18, fig.align = "center", warning = FALSE}
+
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.NPP, sd_int.NPP, int.bp.ez, sd_int.bp.ez) %>% 
+  distinct() %>% 
+  mutate_at(vars(contains("NPP")), funs(round(./10^3, 2))) %>% 
+  mutate_at(vars(degree_bin, int.NPP), as.character) %>% 
+  ##PLOT
+  ggplot(aes(x = int.NPP, y =  int.bp.ez, group = interaction(Season, Station, int.NPP)))  + 
+  geom_bar(aes(fill = factor(Season, levels = levels)), position = position_dodge(), stat = "identity", color = "black",  alpha = 1) +
+  geom_errorbar(aes(ymin = int.bp.ez - sd_int.bp.ez, ymax = int.bp.ez + sd_int.bp.ez), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = "", y = expression(italic(paste("BP, µmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_x_discrete(breaks = pretty_breaks()) +
+  #scale_fill_brewer(palette = "Set1") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() 
+  #facet_grid(~factor(Subregion, levels = levels), scales = "free") 
+  #theme(strip.background = element_blank(), strip.text = element_blank()) +
+ # guides(fill = F)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 18, fig.align = "center", warning = FALSE}
+
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.NPP, sd_int.NPP, int.ba.ez, sd_int.ba.ez) %>% 
+  distinct() %>% 
+  mutate_at(vars(contains("NPP")), funs(round(./10^3, 2))) %>% 
+  mutate_at(vars(contains("ba")), funs(round(./10^12, 2))) %>% 
+  mutate_at(vars(degree_bin, int.NPP), as.character) %>% 
+  ##PLOT
+  ggplot(aes(x = int.NPP, y =  int.ba.ez, group = interaction(Season, Station, int.NPP)))  + 
+  geom_bar(aes(fill = factor(Season, levels = levels)), position = position_dodge(), stat = "identity", color = "black",  alpha = 1) +
+  geom_errorbar(aes(ymin = int.ba.ez - sd_int.ba.ez, ymax = int.ba.ez + sd_int.ba.ez), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = "", y = expression(italic(paste("BA, * 10"^12, " cells  m"^-3))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_x_discrete(breaks = pretty_breaks()) +
+  #scale_fill_brewer(palette = "Set1") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Subregion, levels = levels), scales = "free") +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
+  guides(fill = F)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 18, fig.align = "center", warning = FALSE}
+
+int_bcd %>% 
+  select(Cruise:Station, degree_bin, ave_Ez, int.NPP, sd_int.NPP, int.sp_gr.ez, sd_int.sp_gr.ez) %>% 
+  distinct() %>% 
+  mutate_at(vars(contains("NPP")), funs(round(./10^3, 2))) %>% 
+  mutate_at(vars(degree_bin, int.NPP), as.character) %>% 
+  ##PLOT
+  ggplot(aes(x = int.NPP, y =  int.sp_gr.ez, group = interaction(Season, Station, int.NPP)))  + 
+  geom_bar(aes(fill = factor(Season, levels = levels)), position = position_dodge(), stat = "identity", color = "black",  alpha = 1) +
+  geom_errorbar(aes(ymin = int.sp_gr.ez - sd_int.sp_gr.ez, ymax = int.sp_gr.ez + sd_int.sp_gr.ez), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic(paste("NPP, mmol C m"^-3, "d"^-1))), y = expression(italic(paste("µ, fmol C cell"^-1, "m"^-3, "d"^-1))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_x_discrete(breaks = pretty_breaks()) +
+  #scale_fill_brewer(palette = "Set1") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Subregion, levels = levels), scales = "free") +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
+  guides(fill = F)
+```
 
 ```{r}
 bcd_table <- int_bcd %>% 
@@ -3333,52 +3531,7 @@ bcd_table %>%
 
 ```
 
-## BA and BP
-
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 12, fig.align = "center", warning = FALSE}
-int_bcd %>% 
-  select(Cruise:Station, degree_bin, ave_Ez, int.ba.ez, int.bp.ez, sd_int.bp.ez, sd_int.ba.ez) %>%
-  distinct() %>% 
-  pivot_longer(cols = c(int.ba.ez, int.bp.ez), names_to = "var", values_to = "value") %>% 
-  mutate(var = ifelse(var == "int.ba.ez", "Abundance", "Production"),
-         degree_bin = as.character(degree_bin)) %>% 
-  group_by(Cruise, Station, var) %>% 
-  mutate(sd = ifelse(var == "Abundance", sd_int.ba.ez, sd_int.bp.ez)) %>% 
-  filter(var == "Abundance") %>% 
-  ##PLOT
-  ggplot(aes(x = degree_bin, y = value, group = interaction(Season, Station, degree_bin)))  +
-  geom_bar( position = position_dodge(width = 0.9), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
-  geom_errorbar(aes(ymin = value - sd, ymax = value + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("")), y = expression(italic(paste( "Bacterial Abundance, Cells m"^-3))), colour = expression(italic(""))) +
-  #hahahaha this ain't pretty but it works ^
-  scale_y_continuous(breaks = pretty_breaks()) +
-  custom_theme() +
-  facet_grid(~factor(Season, levels = levels), 
-             scales = "free") 
-```
-
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 12, fig.align = "center", warning = FALSE}
-int_bcd %>% 
-  select(Cruise:Station, degree_bin, ave_Ez, int.ba.ez, int.bp.ez, sd_int.bp.ez, sd_int.ba.ez) %>%
-  distinct() %>% 
-  pivot_longer(cols = c(int.ba.ez, int.bp.ez), names_to = "var", values_to = "value") %>% 
-  mutate(var = ifelse(var == "int.ba.ez", "Abundance", "Production"),
-         degree_bin = as.character(degree_bin)) %>% 
-  group_by(Cruise, Station, var) %>% 
-  mutate(sd = ifelse(var == "Abundance", sd_int.ba.ez, sd_int.bp.ez)) %>% 
-  filter(var == "Production") %>% 
-  ##PLOT
-  ggplot(aes(x = degree_bin, y = value, group = interaction(Season, Station, degree_bin)))  +
-  geom_bar(position = position_dodge(width = 0.9), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
-  geom_errorbar(aes(ymin = value - sd, ymax = value + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("Bacterial Production, µmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  custom_theme() +
-  facet_grid(~factor(Season, levels = levels), 
-             scales = "free") +
-   theme(strip.background = element_blank(), strip.text = element_blank())
-```
-
+#### Profiles
 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 20, fig.align = "center", warning = FALSE}
@@ -3485,11 +3638,13 @@ export_bioav <- left_join(calcs %>% filter(!Station == "U"), export %>% select(-
   fill(accm_doc:lt.ddoc, .direction = "downup") %>% 
   ungroup() %>% 
   select(Season:Station, ave_lat:Subregion, Depth:interp_doc, redis_DOC_vol:lt.ddoc, everything() ) %>% 
-  left_join(., bcd %>% mutate_at(vars(Station), as.character)) %>% 
+  left_join(., int_bcd %>% mutate_at(vars(Station), as.character)) %>% 
   mutate(Subregion = ifelse(Station %in% c("S2RF", "S2RD"), "GS/Sargasso", Subregion ))
 
     
 ```
+
+
 
 ## Nitrate
 
@@ -3769,8 +3924,71 @@ np_ez %>%
 
 # ∆DOC
 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 12, fig.align = "center", warning = FALSE}
+
+export_bioav %>% 
+  select(Season:Station, degree_bin, Subregion, ave_Ez, int.NPP, sd_int.NPP, int_delta_DOC_100) %>% 
+  drop_na(int.NPP) %>% 
+  distinct() %>% 
+  mutate_at(vars(contains("NPP")), funs(./10^3)) %>% 
+  mutate_at(vars(degree_bin), as.character) %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, y =  int_delta_DOC_100, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
+  # expression(italic("NPP, mmol C m"^-3, "d"^-1))
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("∆DOC, mol C m"^-2))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_fill_brewer(palette = "Set1") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") +
+  #theme(strip.background = element_blank(), strip.text = element_blank()) +
+  guides(fill = F)
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 14, fig.align = "center", warning = FALSE}
+
+export_bioav %>% 
+  select(Season:Station, degree_bin, Subregion, ave_Ez, int.NPP, sd_int.NPP, int_delta_DOC_100) %>% 
+  drop_na(int.NPP) %>% 
+  distinct() %>% 
+  mutate_at(vars(contains("NPP")), funs(round(./10^3,2))) %>% 
+  mutate_at(vars(degree_bin, int.NPP), as.character) %>% 
+  ##PLOT
+  ggplot(aes(x = int.NPP, y =  int_delta_DOC_100, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(aes(fill = factor(Season, levels = levels)), position = position_dodge(), stat = "identity", color = "black",  alpha = 1) +
+  labs(x = expression(italic("NPP, mmol C m"^-3, "d"^-1)), y = expression(italic(paste("∆DOC, mol C m"^-2))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Subregion, levels = levels), scales = "free") 
+  #theme(strip.background = element_blank(), strip.text = element_blank()) 
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 3.5, fig.width = 14, fig.align = "center", warning = FALSE}
+
+export %>% 
+  select(Season:Station, degree_bin, Subregion,  int_delta_DOC_100) %>% 
+  drop_na(int_delta_DOC_100) %>% 
+  distinct() %>% 
+  mutate_at(vars(contains("NPP")), funs(round(./10^3,2))) %>% 
+  mutate_at(vars(degree_bin), as.character) %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, y =  int_delta_DOC_100, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(fill = "#999999", position = position_dodge(), stat = "identity", color = "black",  alpha = 1) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("∆DOC, mol C m"^-2))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  #scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") 
+  #theme(strip.background = element_blank(), strip.text = element_blank()) 
+```
+
+
+
+
 ```{r}
-aov.delta_doc <- export %>%
+aov.delta_doc <- export_bioav %>%
   select(Season, int_delta_DOC_100) %>% 
   distinct() %>% 
   drop_na(int_delta_DOC_100) 
@@ -3817,6 +4035,7 @@ export %>%
   
   
 ```
+
 
 # DOC:DON
 
@@ -4464,8 +4683,8 @@ bcd_bioav_table %>%
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, size = 4, alpha = 0.7 ) +
   labs(x = expression(italic(paste("Seasonally Accumulated DOC, mol C m"^-2))), y = expression(italic(paste("BCD, µmol C m"^-2, "d"^-1)))) +
   scale_fill_manual(values = custom.colors) +
-  custom_theme() #+
-   # annotate( geom = "text", label = expression(atop("y = 0.16x + 0.08", paste("r"^2,"= 0.66, ", italic("p "), "<< 0.01"))), x = 2.5, y = 0.1, size = 7) 
+  custom_theme() +
+    annotate( geom = "text", label = expression(atop("y = -0.31x + 0.33", paste("r"^2,"= 0.14, ", italic("p "), "= 0.14"))), x = 0.8, y = 0.3, size = 7) 
 
 ```
 
