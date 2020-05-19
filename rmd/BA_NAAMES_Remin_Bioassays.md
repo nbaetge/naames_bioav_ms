@@ -1,15 +1,15 @@
----
-title: "BA_NAAMES_Remin_Bioassays"
-author: "Nicholas Baetge"
-date: "5/19/2020"
-output: github_document
----
+BA\_NAAMES\_Remin\_Bioassays
+================
+Nicholas Baetge
+5/19/2020
 
 # Intro
 
-This document shows how **individual bottle** bacterial abundance data from NAAMES remineralization bioassays were processed, QC'd, and analyzed. 
+This document shows how **individual bottle** bacterial abundance data
+from NAAMES remineralization bioassays were processed, QC’d, and
+analyzed.
 
-```{r message = F, warning = F}
+``` r
 library(tidyverse) 
 library(rmarkdown)
 library(knitr)
@@ -30,56 +30,14 @@ library(rstatix)
 library(ggpubr)
 ```
 
-
-```{r include = FALSE}
-custom_theme <- function() {
-  theme_test(base_size = 16) %+replace%
-    theme(legend.position = "top",
-          legend.title = element_blank(),
-          legend.spacing.x = unit(0.5,"cm"),
-          legend.background = element_rect(fill = "transparent",colour = NA),
-          legend.key = element_rect(fill = "transparent",colour = NA),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA),
-          strip.text.x = element_text(size = 14, color = "white", face = "bold.italic"),
-          strip.text.y = element_text(size = 14, color = "white", face = "bold.italic", angle = 270),
-          strip.background = element_rect(color = "black", fill = "#005a9c", size = 0.5, linetype = "solid")) 
-}
-
-custom_theme_linedraw <- function() {
-  theme_linedraw(base_size = 16) %+replace%
-    theme(legend.position = "top",
-          legend.title = element_blank(),
-          legend.spacing.x = unit(0.5,"cm"),
-          legend.background = element_rect(fill = "transparent",colour = NA),
-          legend.key = element_rect(fill = "transparent",colour = NA),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA),
-          strip.text.x = element_text(size = 14, color = "white", face = "bold.italic"),
-          strip.text.y = element_text(size = 14, color = "white", face = "bold.italic", angle = 270),
-          strip.background = element_rect(color = "black", fill = "#005a9c", size = 0.5, linetype = "solid")) 
-}
-
-custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00", "Filter 1" = "#E41A1C", "Filter 2" = "#377EB8", "10 m" = "#E41A1C", "200 m" = "#377EB8", "BCD" = "#377EB8" , "NPP" = "#4DAF4A" , "Cruise Specific BGE" = "#377EB8", "Global BGE" = "#4DAF4A") 
-
-custom.shapes <- c("Early Spring" = 21, "Late Spring" = 22,"Early Autumn" = 23)
-
-custom.lines <- c("GS/Sargasso" = "blank", "Subtropical" = "solid", "Temperate" = "longdash", "Subpolar" = "dotted" )
-
-
-levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT34", "AT38", "AT32","South", "North", "Early Spring", "Late Spring","Early Autumn",  "Summer", "Late Autumn", "Control", "Parallel", "SynLys", "SynExd", "TWExd", "MixSD", "MixDS", "TW12", "TW13", "TW5", "TW10", "TW20",  "Surface Comm., Deep DOM", "Deep Comm., Surface DOM", "Synechococcus Exudate", "Synechococcus Lysate", "T. Weissflogii Exudate", "T. Weissflogii 12C Exudate", "T. Weissflogii 13C Exudate", "+5 µmol C/L Exudate", "+10 µmol C/L Exudate","+20 µmol C/L Exudate", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "W", "Whole Seawater","1.2", "1.2 µm Filtrate","NV", "1.2 µm Filtrate: TFF Filtrate (3:7)")
-
-
-       
-
-
-```
-
-Here, growth curves are fitted to the logistic equation using the GrowthCurver package. The timing of the onset of the stationary growth phase is determined from the model fit.
+Here, growth curves are fitted to the logistic equation using the
+GrowthCurver package. The timing of the onset of the stationary growth
+phase is determined from the model
+fit.
 
 ## Import and Tidy Data
 
-```{r message = F}
+``` r
 ba.df <- read_csv("~/naames_bioav_ms/Input/N2-4_BactA_Remin_Master.csv") %>% 
   mutate(Season = Cruise,
          Season = gsub("AT34", "Late Spring", Season),
@@ -155,16 +113,27 @@ ba.df$Season <- factor(ba.df$Season, levels = levels)
 
 ## Inspect Growth Curves
 
-To be able to calculate derived variables, such as carbon per cell and BGE, we'll need to inspect the growth curves and define the stationary phase for each experiment.
+To be able to calculate derived variables, such as carbon per cell and
+BGE, we’ll need to inspect the growth curves and define the stationary
+phase for each experiment.
 
-We are using the growthcurver package to fit growth curve data to the standard form of the logistic equation and then return a data table with population-level information. Specifically, the model outputs we are really only interested in are:
+We are using the growthcurver package to fit growth curve data to the
+standard form of the logistic equation and then return a data table with
+population-level information. Specifically, the model outputs we are
+really only interested in are:
 
-- t_mid, the time at which 1/2 carrying capacity is reached. We will double this estimate to attain the time at which carrying capacity is reached (stationary)
-- sigma, a measure of the goodnesss of fit of the parameters of the logistic equation for the data; it is the residual sum of squares from the nonlinear regression model. Smaller sigma values indicate a better fit of the logistic curve to the data than larger values.
-- df, degrees of freedom
+  - t\_mid, the time at which 1/2 carrying capacity is reached. We will
+    double this estimate to attain the time at which carrying capacity
+    is reached (stationary)
+  - sigma, a measure of the goodnesss of fit of the parameters of the
+    logistic equation for the data; it is the residual sum of squares
+    from the nonlinear regression model. Smaller sigma values indicate a
+    better fit of the logistic curve to the data than larger values.
+  - df, degrees of freedom
 
+<!-- end list -->
 
-```{r}
+``` r
 gc_input <- ba.df %>% 
   filter(!Treatment %in% c("Niskin","GF75", "Volume", "Parallel", "TFF-Ret")) %>% 
   group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
@@ -181,29 +150,27 @@ gc_input_header <- gc_input_keys$key
 gc_input_list <- gc_input %>% 
   group_split()
 names(gc_input_list) <- gc_input_header
-
 ```
 
-```{r}
+``` r
 gcplot.func <- function(x){
   gc_fit <- SummarizeGrowth(x$Hours, x$delta_lncells) 
 }
 gcplot.list <- lapply(gc_input_list, gcplot.func)
 ```
 
-For the sake of keeping the length of this document as short as possible, the growth curve model plots are not included here. However, they are included below in the section "Re-evaluate Growth Curves".
-
-```{r include = FALSE}
-for (i in 1:length(gcplot.list)) {
-  plot(gcplot.list[[i]], main = names(gcplot.list[i]), xlab = expression(italic("Hours")) , ylab = expression(italic(paste("ln cells, L"^"-1") ))) 
-}
-```
+For the sake of keeping the length of this document as short as
+possible, the growth curve model plots are not included here. However,
+they are included below in the section “Re-evaluate Growth Curves”.
 
 ## Re-evaluate Growth Curves
 
-To improve the model fits and thus, the timing estimates of the stationary transition for each experiment, we need to evaluate each growth curve, manually filtering out death/secondary growth phases and poorly replicated samples that skew the model results.
+To improve the model fits and thus, the timing estimates of the
+stationary transition for each experiment, we need to evaluate each
+growth curve, manually filtering out death/secondary growth phases and
+poorly replicated samples that skew the model results.
 
-```{r}
+``` r
 eval_gc_input <- gc_input %>% 
   mutate(key = paste(Cruise, Station, Depth, Treatment, Bottle, Timepoint, sep = ".")) %>% 
   select(Season:Treatment, key, everything()) %>% 
@@ -223,21 +190,28 @@ names(eval_gc_input_list) <- eval_gc_input_header
 eval_gcplot.list <- lapply(eval_gc_input_list, gcplot.func)
 ```
 
-We've omitted 88 of the 768 (~11%) of the observations to improve the model fit. 47% of those omitted observations were taken after 300 hours, which for many experiments constituted the death phase. 
+We’ve omitted 88 of the 768 (~11%) of the observations to improve the
+model fit. 47% of those omitted observations were taken after 300 hours,
+which for many experiments constituted the death phase.
 
-```{r}
+``` r
 for (i in 1:length(eval_gcplot.list)) {
   plot(eval_gcplot.list[[i]], main = names(eval_gcplot.list[i]), xlab = expression(italic("Hours")) , ylab = expression(italic(paste("ln cells, L"^"-1") ))) 
 }
 ```
 
+![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-3.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-4.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-5.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-6.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-7.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-8.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-9.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-10.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-11.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-12.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-13.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-14.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-15.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-16.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-17.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-18.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-19.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-20.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-21.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-22.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-23.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-24.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-25.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-26.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-27.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-28.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-29.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-30.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-31.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-32.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-33.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-34.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-35.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-36.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-37.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-38.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-39.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-40.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-41.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-42.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-43.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-44.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-45.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-46.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-47.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-48.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-49.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-50.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-51.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-52.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-53.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-54.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-55.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-56.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-57.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-58.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-59.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-60.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-61.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-62.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-63.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-64.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-65.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-66.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-67.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-68.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-69.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-70.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-71.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-72.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-73.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-74.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-75.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-76.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-77.png)<!-- -->![](BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-8-78.png)<!-- -->
+
 ## Wrangle GrowthCurver Data
 
-We'll add the model output data to the original dataframe, but first we'll tidy the model output and look at the distribution of the model fits. 
+We’ll add the model output data to the original dataframe, but first
+we’ll tidy the model output and look at the distribution of the model
+fits.
 
-We'll determine thresholds for sigma (smaller sigma values indicate a better fit) and df for omission of model fit data. 
+We’ll determine thresholds for sigma (smaller sigma values indicate a
+better fit) and df for omission of model fit data.
 
-```{r}
+``` r
 gcdata.func <- function(y){
   gc.fit <- SummarizeGrowth(y$Hours, y$delta_lncells)
   gcdata.df <- as.data.frame(unlist(gc.fit$vals), stringsAsFactors = FALSE)
@@ -257,37 +231,27 @@ gcdata <- eval_gc_input_list %>%
   ungroup() 
 ```
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 6, fig.align = "center", warning = FALSE}
-gcdata %>% 
-  ggplot(aes(x = sigma)) +
-  geom_histogram(bins = 30, alpha = 0.7, color = "black", fill = "#377EB8") +
-  custom_theme() +
-  scale_x_continuous(breaks = pretty_breaks())
-```
+<img src="BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 6, fig.align = "center", warning = FALSE}
-gcdata %>% 
-  ggplot(aes(x = df)) +
-  geom_histogram(bins = 7, alpha = 0.7, color = "black", fill = "#377EB8") + 
-  custom_theme() +
-  scale_x_continuous(breaks = pretty_breaks())
-```
+<img src="BA_NAAMES_Remin_Bioassays_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
 
-Based on these two histograms, we'll omit model fit data where sigma > 0.21 and df < 4. In these experiments, we cannot reliably distinguish the onset of stationary.
+Based on these two histograms, we’ll omit model fit data where sigma \>
+0.21 and df \< 4. In these experiments, we cannot reliably distinguish
+the onset of stationary.
 
-```{r message = FALSE}
+``` r
 gcmerge.df <- eval_gc_input %>% 
   mutate(key = paste(Cruise, ", S", Station, ", Z =", Depth, ",", Treatment, ",", Bottle)) %>% 
   full_join(., gcdata %>% filter(!sigma > 0.21 | !df < 4)) %>% 
   ungroup() 
-
 ```
 
 ## Add Stationary Timepoint
 
-We'll add a row to each experiment that includes the stationary timepoint. 
+We’ll add a row to each experiment that includes the stationary
+timepoint.
 
-```{r}
+``` r
 gcmerge.list <- gcmerge.df %>% 
   #Split the dataframe into lists
   split(.,  .$key)
@@ -310,9 +274,6 @@ gcstat.df <- plyr::ldply(gcstat.list, data.frame) %>%
 
 ## Save Data
 
-```{r}
+``` r
 #saveRDS(gcstat.df, "Output/processed_bacterial_abundance.rds")
-
 ```
-
-
