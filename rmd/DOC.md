@@ -1,0 +1,221 @@
+DOC\_NAAMES\_Remin\_Bioassays
+================
+Nicholas Baetge
+5/19/2020
+
+# Intro
+
+This document shows how **individual bottle** DOC data from NAAMES
+remineralization bioassays were processed, QC’d, and analyzed.
+
+``` r
+library(tidyverse) 
+library(rmarkdown)
+library(knitr)
+library(readxl)
+library(data.table) 
+library(scales)
+library(zoo)
+library(oce)
+library(patchwork)
+#rmarkdown tables
+library(stargazer)
+library(pander)
+library(growthcurver)
+#stat tests
+library(lmtest)
+library(lmodel2)
+library(rstatix)
+library(ggpubr)
+```
+
+# Import and Tidy Data
+
+We will need to tidy the data in the same way the bacterial abundance
+dataframe was tidied before merging the datasets. We’ll then omit data
+low quality data i.e. poor replication or possible contamination. We
+observed contamination in many of the NAAMES 2 experiments after
+incubations were transferred to
+WHOI.
+
+``` r
+oc.df <- read_csv("~/naames_bioav_ms/Input/N2-4_DOC_Remin_Master.csv") %>%
+  mutate(Season = Cruise,
+         Season = gsub("AT34", "Late Spring", Season),
+         Season = gsub("AT38", "Early Autumn", Season),
+         Season = gsub("AT39", "Early Spring", Season),
+         Treatment = ifelse(Bottle == "Niskin", "Niskin", Treatment),
+         Treatment = ifelse(Bottle == "GF75", "GF75", Treatment),
+         Treatment = gsub("TW15", "TW20", Treatment),
+         Treatment = ifelse(is.na(Treatment), Bottle, Treatment),
+         Treatment = ifelse(Treatment %in% c("Surface", "Deep"), "Parallel", Treatment),
+         Treatment = ifelse(Treatment %in% c("100mls", "250mls", "500mls", "1L"), "Volume", Treatment),
+         Treatment_Btl = ifelse(Bottle == "Niskin", "Niskin", Treatment_Btl),
+         Treatment_Btl = ifelse(Bottle == "GF75" & is.na(Treatment_Btl), "GF75", Treatment_Btl),
+         Treatment_Btl = gsub("TW15", "TW20", Treatment_Btl),
+         Treatment_Btl = gsub("TW12-A", "TW12-C", Treatment_Btl),
+         Treatment_Btl = gsub("TW12-B", "TW12-D", Treatment_Btl),
+         Treatment_Btl = gsub("TW13-A", "TW12-E", Treatment_Btl),
+         Treatment_Btl = gsub("TW13-B", "TW12-F", Treatment_Btl),
+         Treatment_Btl = ifelse(is.na(Treatment_Btl), Bottle, Treatment_Btl),
+         Bottle = gsub("SA", "A", Bottle),
+         Bottle = gsub("SB", "B", Bottle),
+         Bottle = gsub("DA", "C", Bottle),
+         Bottle = gsub("DB", "D", Bottle),
+         Bottle = ifelse(Bottle == "GF75", Treatment_Btl, Bottle),
+         Bottle = gsub("Control-", "", Bottle),
+         Bottle = gsub("TW12-", "", Bottle),
+         Bottle = gsub("TW13-", "", Bottle),
+         Bottle = gsub("MixDS-", "", Bottle),
+         Bottle = gsub("MixSD-", "", Bottle),
+         Bottle = gsub("SynExd-", "", Bottle),
+         Bottle = gsub("TWExd-", "", Bottle),
+         Bottle = gsub("SynLys-", "", Bottle),
+         Bottle = gsub("TW5-", "", Bottle),
+         Bottle = gsub("TW10-", "", Bottle),
+         Bottle = gsub("TW20-", "", Bottle),
+         Bottle = gsub("12", "", Bottle),
+         Bottle = gsub("13", "", Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 10 & Treatment == "TW12" & Bottle == "A", gsub("A", "C", Bottle), Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 10 & Treatment == "TW12" & Bottle == "B", gsub("B", "D", Bottle), Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 10 & Treatment == "TW13" & Bottle == "A", gsub("A", "E", Bottle), Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 10 & Treatment == "TW13" & Bottle == "B", gsub("B", "F", Bottle), Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 200 & Treatment == "Control" & Bottle == "C", gsub("C", "G", Bottle), Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 200 & Treatment == "Control" & Bottle == "D", gsub("D", "H", Bottle), Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 200 & Treatment == "TW12" & Bottle == "C", gsub("C", "I", Bottle),Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 200 & Treatment == "TW12" & Bottle == "D", gsub("D", "J", Bottle), Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 200 & Treatment == "TW13" & Bottle == "C", gsub("C", "K", Bottle), Bottle),
+         Bottle = ifelse(Cruise == "AT34" & Station == 2 & Depth == 200 & Treatment == "TW13" & Bottle == "D", gsub("D", "L", Bottle), Bottle),
+         Depth = gsub(5, 10, Depth),
+         Depth = as.numeric(Depth),
+         key = paste(Cruise, Station, Depth, Treatment, Bottle, Timepoint, sep = "."),
+         PTOC_ave = ifelse(Treatment == "Parallel", TOC_ave, PTOC_ave),
+         PTOC_sd = ifelse(Treatment == "Parallel", TOC_sd, PTOC_sd)) %>% 
+  rename(doc = DOC_ave,
+         sd_doc = DOC_sd,
+         toc = TOC_ave, 
+         sd_toc = TOC_sd, 
+         ptoc = PTOC_ave, 
+         sd_ptoc = PTOC_sd, 
+         pdoc = PDOC_ave, 
+         sd_pdoc = PDOC_sd) %>%
+  filter(!Treatment %in% c("Niskin", "GF75", "TFF-Ret", "Volume")) %>% 
+  select(-Treatment_Btl) %>% 
+  select(Season, everything()) %>% 
+  arrange(Cruise, Station, Depth, Treatment, Bottle, Hours)  %>% 
+  filter(!is.na(Hours))
+```
+
+Because a different suite of organic carbon samples were taken on each
+cruise, we’ll separate the cruise datasets, drop NA values, quality
+filter them, and then recombine the datasets. To quality filter, we’ll
+calculate rolling ∆DOC values i.e. the diffence between the one
+observation and the one before it. We’ll omit the data where ∆DOC
+indicates contamination due to transport etc. after the 21 d shipboard
+occupation (increase greater than our detection limit, 1.5 µmol C
+L<sup>-1</sup>).
+
+``` r
+n2_oc <- oc.df %>% 
+  filter(Cruise == "AT34") %>% 
+  drop_na(doc) %>%
+  group_by(Station, Depth, Treatment, Bottle) %>%
+  mutate(doc_from_last = lag(doc) - doc) %>% 
+  filter(!doc_from_last <= -1.5 | is.na(doc_from_last) | !Hours > 504)  %>% 
+  mutate(doc_from_last = lag(doc) - doc) %>% 
+  filter(!doc_from_last <= -1.5 | is.na(doc_from_last) | !Hours > 504) %>% 
+  mutate(doc_from_last = lag(doc) - doc) %>% 
+  filter(!doc_from_last <= -1.5 | is.na(doc_from_last) | !Hours > 504) %>% 
+  mutate(doc_from_last = lag(doc) - doc,
+         doc_from_t0 = first(doc) - doc) %>% 
+  filter(!Station == 4 | !Hours == 192) %>% 
+  ungroup()
+
+n3_4_oc <- oc.df %>% 
+  filter(!Cruise == "AT34") %>% 
+  drop_na(ptoc) %>% 
+  group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
+  mutate(ptoc_from_last = lag(ptoc) - ptoc) %>% 
+  filter(!ptoc_from_last <= -1.5 | is.na(ptoc_from_last) | !Hours > 504) %>% 
+  mutate(ptoc_from_last = lag(ptoc) - ptoc,
+         ptoc_from_t0 = first(ptoc) - ptoc,
+         doc_from_t0 = first(doc) - doc,
+         toc_from_t0 = first(toc) - toc, 
+         pdoc_from_t0 = first(pdoc) - pdoc) %>%
+  ungroup()
+
+oc_p <- bind_rows(n2_oc, n3_4_oc) %>% 
+  mutate(Days = round(Hours/24, 2),
+         facet_depth = paste(Depth, "m"), 
+         facet_treatment = Treatment, 
+         facet_treatment = gsub("MixSD", "Surface Comm., Deep DOM", facet_treatment),
+         facet_treatment = gsub("MixDS", "Deep Comm., Surface DOM", facet_treatment),
+          facet_treatment = gsub("SynExd", "Synechococcus Exudate", facet_treatment),
+         facet_treatment = gsub("SynLys", "Synechococcus Lysate", facet_treatment),
+          facet_treatment = gsub("TWExd", "T. Weissflogii Exudate", facet_treatment),
+         facet_treatment = gsub("TW5", "+5 µmol C/L Exudate", facet_treatment),
+          facet_treatment = gsub("TW10", "+10 µmol C/L Exudate", facet_treatment),
+          facet_treatment = gsub("TW20", "+20 µmol C/L Exudate", facet_treatment),
+           facet_treatment = gsub("TW12", "T. Weissflogii 12C Exudate", facet_treatment),
+          facet_treatment = gsub("TW13", "T. Weissflogii 13C Exudate", facet_treatment),
+         facet_bottle = Bottle,
+         facet_bottle = gsub("W", "Whole Seawater", facet_bottle),
+          facet_bottle = gsub("1.2", "1.2 µm Filtrate", facet_bottle), 
+          facet_bottle = gsub("NV", "1.2 µm Filtrate: TFF Filtrate (3:7)", facet_bottle)) 
+
+oc_p$Treatment <- factor(oc_p$Treatment, levels = levels)
+oc_p$facet_treatment <- factor(oc_p$facet_treatment, levels = levels)
+oc_p$facet_bottle <- factor(oc_p$facet_bottle, levels = levels)
+```
+
+# Save Data
+
+``` r
+#saveRDS(oc_p, "~/naames_bioav_ms/Output/processed_doc.rds")
+```
+
+# Plot Curves
+
+## NAAMES 2
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+
+There looks to be some poor replication between the experiments
+conducted at station 4 and U:
+
+  - S4 bottle A measurements look suspect. additionally, the increase
+    between day 6 and 7 for both bottles are suspect
+  - SU bottle B measurements at 24 h is suspect relative to the downward
+    trend in both bottles
+
+These points will affect BGE calculations and my need to be omitted. The
+BGE from S4 Bottle A may be unreliable.
+
+BGEs cannot be calculated for the 200 m control experiments given that
+not DOC drawdown was
+observed.
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
+
+## NAAMES 3
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+
+## NAAMES 4
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+
+The replication between experiments at Station 4 is
+poor.
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />

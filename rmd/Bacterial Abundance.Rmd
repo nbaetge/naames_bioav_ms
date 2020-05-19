@@ -77,7 +77,7 @@ levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT
 
 Here, growth curves are fitted to the logistic equation using the GrowthCurver package. The timing of the onset of the stationary growth phase is determined from the model fit.
 
-## Import and Tidy Data
+# Import and Tidy Data
 
 ```{r message = F}
 ba.df <- read_csv("~/naames_bioav_ms/Input/N2-4_BactA_Remin_Master.csv") %>% 
@@ -153,7 +153,7 @@ ba.df <- read_csv("~/naames_bioav_ms/Input/N2-4_BactA_Remin_Master.csv") %>%
 ba.df$Season <- factor(ba.df$Season, levels = levels)
 ```
 
-## Inspect Growth Curves
+# Inspect Growth Curves
 
 To be able to calculate derived variables, such as carbon per cell and BGE, we'll need to inspect the growth curves and define the stationary phase for each experiment.
 
@@ -199,7 +199,7 @@ for (i in 1:length(gcplot.list)) {
 }
 ```
 
-## Re-evaluate Growth Curves
+# Re-evaluate Growth Curves
 
 To improve the model fits and thus, the timing estimates of the stationary transition for each experiment, we need to evaluate each growth curve, manually filtering out death/secondary growth phases and poorly replicated samples that skew the model results.
 
@@ -231,7 +231,7 @@ for (i in 1:length(eval_gcplot.list)) {
 }
 ```
 
-## Wrangle GrowthCurver Data
+# Wrangle GrowthCurver Data
 
 We'll add the model output data to the original dataframe, but first we'll tidy the model output and look at the distribution of the model fits. 
 
@@ -283,7 +283,7 @@ gcmerge.df <- eval_gc_input %>%
 
 ```
 
-## Add Stationary Timepoint
+# Add Stationary Timepoint
 
 We'll add a row to each experiment that includes the stationary timepoint. 
 
@@ -308,7 +308,7 @@ gcstat.df <- plyr::ldply(gcstat.list, data.frame) %>%
   mutate(Hours = ifelse(is.na(Hours), stationary, Hours))
 ```
 
-## Save Data
+# Save Data
 
 ```{r}
 #saveRDS(gcstat.df, "Output/processed_bacterial_abundance.rds")
