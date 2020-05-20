@@ -111,6 +111,12 @@ ba.df <- read_csv("~/naames_bioav_ms/Input/N2-4_BactA_Remin_Master.csv") %>%
 ba.df$Season <- factor(ba.df$Season, levels = levels)
 ```
 
+## Save Tidied Data
+
+``` r
+#saveRDS(ba.df, "~/naames_bioav_ms/Output/tidy_bacterial_abundance.rds")
+```
+
 # Inspect Growth Curves
 
 To be able to calculate derived variables, such as carbon per cell and
@@ -200,7 +206,7 @@ for (i in 1:length(eval_gcplot.list)) {
 }
 ```
 
-![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-3.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-4.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-5.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-6.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-7.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-8.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-9.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-10.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-11.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-12.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-13.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-14.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-15.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-16.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-17.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-18.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-19.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-20.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-21.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-22.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-23.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-24.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-25.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-26.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-27.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-28.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-29.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-30.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-31.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-32.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-33.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-34.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-35.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-36.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-37.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-38.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-39.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-40.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-41.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-42.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-43.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-44.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-45.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-46.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-47.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-48.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-49.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-50.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-51.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-52.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-53.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-54.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-55.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-56.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-57.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-58.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-59.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-60.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-61.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-62.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-63.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-64.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-65.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-66.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-67.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-68.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-69.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-70.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-71.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-72.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-73.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-74.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-75.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-76.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-77.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-8-78.png)<!-- -->
+![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-3.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-4.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-5.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-6.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-7.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-8.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-9.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-10.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-11.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-12.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-13.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-14.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-15.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-16.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-17.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-18.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-19.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-20.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-21.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-22.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-23.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-24.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-25.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-26.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-27.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-28.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-29.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-30.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-31.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-32.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-33.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-34.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-35.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-36.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-37.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-38.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-39.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-40.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-41.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-42.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-43.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-44.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-45.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-46.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-47.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-48.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-49.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-50.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-51.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-52.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-53.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-54.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-55.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-56.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-57.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-58.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-59.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-60.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-61.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-62.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-63.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-64.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-65.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-66.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-67.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-68.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-69.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-70.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-71.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-72.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-73.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-74.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-75.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-76.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-77.png)<!-- -->![](Bacterial-Abundance_files/figure-gfm/unnamed-chunk-9-78.png)<!-- -->
 
 # Wrangle GrowthCurver Data
 
@@ -231,9 +237,9 @@ gcdata <- eval_gc_input_list %>%
   ungroup() 
 ```
 
-<img src="Bacterial-Abundance_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
-
 <img src="Bacterial-Abundance_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
+
+<img src="Bacterial-Abundance_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
 
 Based on these two histograms, we’ll omit model fit data where sigma \>
 0.21 and df \< 4. In these experiments, we cannot reliably distinguish
@@ -277,3 +283,44 @@ gcstat.df <- plyr::ldply(gcstat.list, data.frame) %>%
 ``` r
 #saveRDS(gcstat.df, "Output/processed_bacterial_abundance.rds")
 ```
+
+# Bottle v. Vial Cell Abundance
+
+``` r
+btl_vial_cell.data <- gcstat.df %>% 
+ drop_na(p_cells)
+btl_vial_cell.reg <- lmodel2(p_cells ~ cells, data = btl_vial_cell.data, nperm = 99)
+btl_vial_cell.reg
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = p_cells ~ cells, data = btl_vial_cell.data,
+    ## nperm = 99)
+    ## 
+    ## n = 17   r = 0.979752   r-square = 0.959914 
+    ## Parametric P-values:   2-tailed = 6.869573e-12    1-tailed = 3.434786e-12 
+    ## Angle between the two OLS regression lines = 1.169037 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept    Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS -62025907 1.051394        46.43514              0.01
+    ## 2     MA -89040705 1.074686        47.06169              0.01
+    ## 3    SMA -87227207 1.073123        47.02008                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS     -226182286       102130471  0.9331511    1.169637
+    ## 2     MA     -238461187        43365926  0.9605251    1.203517
+    ## 3    SMA     -231900733        42380931  0.9613744    1.197860
+    ## 
+    ## Eigenvalues: 1.3175e+18 1.340652e+16 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.003145633
+
+<img src="Bacterial-Abundance_files/figure-gfm/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />

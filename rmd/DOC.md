@@ -219,3 +219,158 @@ poor.
 <img src="DOC_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
 <img src="DOC_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+
+# Bottle v. Vial Incubation Comparisons
+
+## PTOC v. PDOC
+
+``` r
+ptoc_pdoc.data <- oc_p %>% 
+  filter(Cruise == "AT39", !Treatment == "Parallel") 
+ptoc_pdoc.reg <- lmodel2(pdoc ~ ptoc, data = ptoc_pdoc.data , nperm = 99)
+ptoc_pdoc.reg 
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = pdoc ~ ptoc, data = ptoc_pdoc.data, nperm = 99)
+    ## 
+    ## n = 71   r = 0.9732196   r-square = 0.9471563 
+    ## Parametric P-values:   2-tailed = 8.622836e-46    1-tailed = 4.311418e-46 
+    ## Angle between the two OLS regression lines = 1.554332 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept     Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS  3.337716 0.9424277        43.30229              0.01
+    ## 2     MA  1.863641 0.9675048        44.05379              0.01
+    ## 3    SMA  1.813323 0.9683609        44.07912                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS      0.1837596        6.491672  0.8889664   0.9958891
+    ## 2     MA     -1.4548804        5.004919  0.9140651   1.0239599
+    ## 3    SMA     -1.4159087        4.869193  0.9163741   1.0232969
+    ## 
+    ## Eigenvalues: 48.72439 0.6605831 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.0008036195
+
+``` r
+delta_ptoc_pdoc.reg <- lmodel2(pdoc_from_t0 ~ ptoc_from_t0, data = ptoc_pdoc.data , nperm = 99)
+delta_ptoc_pdoc.reg
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = pdoc_from_t0 ~ ptoc_from_t0, data =
+    ## ptoc_pdoc.data, nperm = 99)
+    ## 
+    ## n = 71   r = 0.9711193   r-square = 0.9430727 
+    ## Parametric P-values:   2-tailed = 1.126827e-44    1-tailed = 5.634135e-45 
+    ## Angle between the two OLS regression lines = 1.678043 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method   Intercept     Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS  0.09589786 0.9411488        43.26345              0.01
+    ## 2     MA -0.02473289 0.9682354        44.07541              0.01
+    ## 3    SMA -0.02875343 0.9691382        44.10209                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS     -0.3359442       0.5277399  0.8856156    0.996682
+    ## 2     MA     -0.2867641       0.2227450  0.9126664    1.027072
+    ## 3    SMA     -0.2831516       0.2114846  0.9151948    1.026261
+    ## 
+    ## Eigenvalues: 78.77687 1.153065 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.0008695124
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
+
+## Bottle TOC v. Vial TOC
+
+Because the same samples are measured for TOC and PTOC for T0, these
+data are omitted from the regression analysis.
+
+``` r
+toc_ptoc.data <- oc_p %>% 
+  filter(!Cruise == "AT34", !Timepoint == 0, !Treatment == "Parallel") 
+toc_ptoc.reg <- lmodel2(ptoc ~ toc, data = toc_ptoc.data, nperm = 99)
+toc_ptoc.reg
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = ptoc ~ toc, data = toc_ptoc.data, nperm = 99)
+    ## 
+    ## n = 72   r = 0.9607479   r-square = 0.9230365 
+    ## Parametric P-values:   2-tailed = 1.034424e-40    1-tailed = 5.172118e-41 
+    ## Angle between the two OLS regression lines = 2.287741 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept     Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS  4.590834 0.8938486        41.79189              0.01
+    ## 2     MA  2.378699 0.9276331        42.85002              0.01
+    ## 3    SMA  2.199658 0.9303675        42.93411                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS      0.5468351        8.634833  0.8323213   0.9553760
+    ## 2     MA     -1.9423592        6.432959  0.8657150   0.9936259
+    ## 3    SMA     -1.9620843        6.095265  0.8708724   0.9939271
+    ## 
+    ## Eigenvalues: 60.6155 1.206903 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.001177878
+
+``` r
+delta_toc_ptoc.reg <- lmodel2(ptoc_from_t0 ~ toc_from_t0, data = toc_ptoc.data, nperm = 99)
+delta_toc_ptoc.reg
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = ptoc_from_t0 ~ toc_from_t0, data =
+    ## toc_ptoc.data, nperm = 99)
+    ## 
+    ## n = 72   r = 0.9158719   r-square = 0.8388214 
+    ## Parametric P-values:   2-tailed = 1.864721e-29    1-tailed = 9.323607e-30 
+    ## Angle between the two OLS regression lines = 4.975145 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept     Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS  2.529435 0.7907834        38.33636              0.01
+    ## 2     MA  2.490784 0.8519461        40.42921              0.01
+    ## 3    SMA  2.483532 0.8634214        40.80803                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS       2.201944        2.856927  0.7081515   0.8734153
+    ## 2     MA       2.431858        2.544742  0.7665617   0.9451910
+    ## 3    SMA       2.428820        2.533258  0.7847345   0.9499984
+    ## 
+    ## Eigenvalues: 25.98195 1.114466 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.002660834
+
+<img src="DOC_files/figure-gfm/unnamed-chunk-21-1.png" style="display: block; margin: auto;" />

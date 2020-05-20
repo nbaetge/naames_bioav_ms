@@ -2,7 +2,7 @@
 title: "Biovolume"
 author: "Nicholas Baetge"
 date: "5/20/2020"
-output: html_document
+output: github_document
 ---
 
 This document shows how **individual bottle** bacterial biovolume data from NAAMES remineralization bioassays were processed, QC'd, and analyzed. To date, there are limited biovolume data (2-4 timepoints for a single bottle for each station on the early spring and early autumn cruises). The data are somewhat suspect as bacterial abundance estimates from image analysis are non-systematically different from previous manual counts. 

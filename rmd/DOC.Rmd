@@ -574,3 +574,89 @@ oc_p %>%
   plot_layout(nrow = 2, ncol = 1)
  
 ```
+
+# Bottle v. Vial Incubation Comparisons
+
+## PTOC v. PDOC
+
+```{r message = F}
+ptoc_pdoc.data <- oc_p %>% 
+  filter(Cruise == "AT39", !Treatment == "Parallel") 
+ptoc_pdoc.reg <- lmodel2(pdoc ~ ptoc, data = ptoc_pdoc.data , nperm = 99)
+ptoc_pdoc.reg 
+```
+
+```{r message = F}
+delta_ptoc_pdoc.reg <- lmodel2(pdoc_from_t0 ~ ptoc_from_t0, data = ptoc_pdoc.data , nperm = 99)
+delta_ptoc_pdoc.reg
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 8, fig.align = "center", warning = FALSE}
+ptoc_pdoc.data %>% 
+  ggplot(aes(x = ptoc, y = pdoc, group = Bottle)) + 
+  geom_abline(aes(intercept = 0, slope = 1)) +
+  geom_abline(intercept = ptoc_pdoc.reg$regression.results[3,2],
+              slope = ptoc_pdoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(x = expression(italic(paste("TOC, µmol C L"^-1))), y = expression(italic(paste("DOC, µmol C L"^-1)))) +
+  custom_theme() +
+   annotate( geom = "text", label = expression(atop("y = 0.97x + 1.81", paste("r"^2,"= 0.95, ", italic("p "), "<< 0.01"))), x = 75, y = 55, size = 3) +
+  
+  ptoc_pdoc.data %>% 
+  ggplot(aes(x = ptoc_from_t0, y = pdoc_from_t0, group = Bottle)) + 
+  geom_abline(aes(intercept = 0, slope = 1)) +
+  geom_abline(intercept = delta_ptoc_pdoc.reg$regression.results[3,2],
+              slope = delta_ptoc_pdoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(x = expression(italic(paste("∆TOC, µmol C L"^-1))), y = expression(italic(paste("∆DOC, µmol C L"^-1)))) +
+  custom_theme() +
+   annotate( geom = "text", label = expression(atop("y = 0.97x - 0.03", paste("r"^2,"= 0.94, ", italic("p "), "<< 0.01"))), x = 20, y = 0.5, size = 3) 
+
+```
+
+## Bottle TOC v. Vial TOC
+
+Because the same samples are measured for TOC and PTOC for T0, these data are omitted from the regression analysis.
+
+```{r message = F}
+toc_ptoc.data <- oc_p %>% 
+  filter(!Cruise == "AT34", !Timepoint == 0, !Treatment == "Parallel") 
+toc_ptoc.reg <- lmodel2(ptoc ~ toc, data = toc_ptoc.data, nperm = 99)
+toc_ptoc.reg
+```
+
+```{r message = F}
+delta_toc_ptoc.reg <- lmodel2(ptoc_from_t0 ~ toc_from_t0, data = toc_ptoc.data, nperm = 99)
+delta_toc_ptoc.reg
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 8, fig.align = "center", warning = FALSE}
+toc_ptoc.data %>% 
+  ggplot(aes(x = toc, y = ptoc)) + 
+  geom_abline(aes(intercept = 0, slope = 1)) +
+  geom_abline(intercept = toc_ptoc.reg$regression.results[3,2],
+              slope = toc_ptoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(x = expression(paste("Bottle TOC, µmol C L"^-1)), y = expression(paste("Vial TOC, µmol C L"^-1))) +
+  custom_theme() +
+   annotate( geom = "text", label = expression(atop("y = 0.93x + 2.20", paste("r"^2,"= 0.92, ", italic("p "), "<< 0.01"))), x = 73, y = 53, size = 3) +
+  
+  
+  toc_ptoc.data %>% 
+  ggplot(aes(x = toc_from_t0, y = ptoc_from_t0)) + 
+  geom_abline(aes(intercept = 0, slope = 1)) +
+  geom_abline(intercept = delta_toc_ptoc.reg$regression.results[3,2],
+              slope = delta_toc_ptoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(x = expression(paste("Bottle ∆TOC, µmol C L"^-1)), y = expression(paste("Vial ∆TOC, µmol C L"^-1)), caption = "Dotted line represents the 1:1 line.") +
+  custom_theme() +
+   annotate( geom = "text", label = expression(atop("y = 0.86x + 2.48", paste("r"^2,"= 0.84, ", italic("p "), "<< 0.01"))), x = 15, y = 0.2, size = 3) +
+  theme(plot.caption = element_text(face = "italic")) 
+
+```
+
+
+
+
+
