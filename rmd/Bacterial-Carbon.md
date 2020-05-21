@@ -447,12 +447,6 @@ fg_cell.qc <- fg_cell %>%
   select(Season:Bottle, type, i.gf75.ret, s.gf75.ret, i.gf75.flag, s.gf75.flag, gf75.flag, contains("i."), contains("s."), contains("ccf"))
 ```
 
-## Save Data
-
-``` r
-#saveRDS(fg_cell.qc, "~/naames_bioav_ms/Output/processed_bacterial_carbon.rds")
-```
-
 # CCFs
 
     ## # A tibble: 18 x 4
@@ -478,11 +472,11 @@ fg_cell.qc <- fg_cell %>%
     ## 17 AT39   s.ccf.c2        21     8
     ## 18 AT39   s.ccf.c3        23     9
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
+<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
 
-Especially if the outlier in the early spring is removed, the spring
-cell carbon contents are comparable to the mean (12.4) reported by
-Fukuda et al. (1998).
+The points are colored by the QC flag associated with the POC samples.
+”Questionable” measures indicate below average (of all samples, not
+grouped) cell retention on the POC filters. “ND” indicates no data.
 
 # C:N Ratios
 
@@ -502,31 +496,82 @@ Fukuda et al. (1998).
     ## 10 AT38   i.cn.c1      14.2   6.3
     ## # … with 14 more rows
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
+<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
 
 The points on the line intersecting the max of the y-axis represent
 “Inf” values, where PON values are 0.
 
-Overall, the corrected bacterial C:N ratios for the in situ community
-(initial condition) during the spring estimated here (6.2 - 8.8) are are
-comparable to the mean of 6.8 reported for oceanic bacteria by Fukuda et
-al. (1998). The C:N ratios for during the early autumn are higher.
+We would expect the carbon content of oceanic surface bacterioplankton
+to be around 5 (Faggerbakke et al 1996, Fukuda et al, 1998, Gundersen et
+al 2002, Zimmerman et al 2014, White et al 2019). Excluding infinity
+values where PON was undetectable, C:N ratios for the spring are
+comparable to expectations, with slight improvement using corrected
+values.
 
-Deviations from Fukuda et al. may be in part due to differences in
-sampling locations (NA v Pacific and Southern Ocean) and time of
-collection (range of seasons for NAAMES, winter in both Pacific and
-Southern Ocean). They could also be due to differences in growth
-conditions (i.e nutrient limitation) and differences in bacterial
-communities (Vrede et al 2002). The estimates become more in agreement
-with Fukuda et al when N3 data are excluded. The higher values in the
-early autumn may also reflect interference from non-bacterial cell
-matter.
+The C:N ratios of the early autumn samples are clear outliers, outside
+even the maximum reported by Gundersen et al 2002 (9.1). These high
+values might point to issues with the POC data. What might be causing
+the high C:N ratios observed in the early autumn? Below average cell
+retentions don’t appear to be skewing results in at least the initial
+condition or during the spring. It could, in some cases, be skewing
+early autumn
+measurements.
 
-# Property-Property Plots
+# Identify Outliers: Property-Property Plots
+
+<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
 
 <img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-20-1.png" style="display: block; margin: auto;" />
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-21-1.png" style="display: block; margin: auto;" />
+Generally, samples with below average cell retentions have higher cell C
+content, but this seems to be less of an effect at stationary.
+
+For the initial condition, it is clear that there are two outliers in
+the spring data. The initial early spring outlier sample (station 1) has
+a reasonable C:N ratio (2-3), a low POC value, and a relatively high
+carbon per cell estimate (35-53 fg C cell<sup>-1</sup>). This points to
+an issue in the cell count data, where cell abundance is likely
+underestimated. The late spring outlier is characterized by a C:N ratio
+and a cell carbon content that does not deviate from the rest of the
+late spring data, so it may not be a true outlier.
+
+The early autumn sample (station 1) with a cell carbon content of 77 fg
+C cell<sup>-1</sup> and a filter cell retention of 55% has low POC
+infinity C:N ratio. All of these metrics would suggest this sample to be
+a true outlier where filter cell abundance was likely underestimated due
+to ripped filters. The other two early autumn samples with slightly
+below average cell retentions do have high cell carbon contents (56-57
+fg C cell-1), but also have lower C:N ratios (9, 11) than the remaining
+early autumn samples (13, 25, infinity), making them hard to distinguish
+as outliers.
+
+The cell carbon content and C:N ratios of all early autumn samples are
+higher than what is expected for oceanic bacterioplankton. It is
+possible that POC is overestimated or cell abundances are underestimated
+for these samples (or both). Low cell retentions for these samples would
+suggest that cell abundances could have been underestimated. Generally,
+the relationship between cell carbon content and C:N appear to be
+reasonable at stationary, with less separation between the seasons. This
+would suggest that the POC data taken during the early autumn are not
+necessarily all compromised. The divergence of these samples from the
+other seasons could point to other factors, such as the larger influence
+of detrital matieral.
+
+We will remove the CCF for the two outlier samples (intial condition,
+AT39 S1 and AT38 S1) from remaining analyses.
+
+## Save Data
+
+``` r
+fg_cell.qc %>% 
+  mutate(i.ccf.c1 = ifelse(Cruise == "AT39" & Station == 1 & Depth == 10, NA, i.ccf.c1),
+         i.ccf.c2 = ifelse(Cruise == "AT39" & Station == 1 & Depth == 10, NA, i.ccf.c2),
+         i.ccf.c3 = ifelse(Cruise == "AT39" & Station == 1 & Depth == 10, NA, i.ccf.c3),
+         i.ccf.c1 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c1),
+         i.ccf.c2 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c2),
+         i.ccf.c3 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c3)) %>% 
+  saveRDS(., "~/naames_bioav_ms/Output/processed_bacterial_carbon.rds")
+```
 
 # Side Experiment: Sampling Volume Effect on Bacterial Carbon
 

@@ -43,7 +43,7 @@ oc <- readRDS("~/naames_bioav_ms/Output/processed_doc.rds") %>%
   filter(!Treatment == "Parallel")
 
 bc <- readRDS("~/naames_bioav_ms/Output/processed_bacterial_carbon.rds") %>% 
-  select(-c(contains(".ug"), contains("gf75.cells")))
+  select(-c(contains(".ug"), contains("gf75.cells"))) 
 
 
 merge <- full_join(ba, oc) %>% 
@@ -369,12 +369,6 @@ season.ccfs <- calcs %>%
 calcs2 <- left_join(calcs, season.ccfs)
 ```
 
-# Save Data
-
-``` r
-saveRDS(calcs2, "~/naames_bioav_ms/Output/processed_bge.rds")
-```
-
 # Summary Data, Table, and Plots
 
 ``` r
@@ -392,8 +386,27 @@ bge_summary <- calcs2 %>%
    filter(!Station == "U", Depth == 10)
 ```
 
+<img src="BGE_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
+
+Generally, good agreement between BGEs estimated using empirical ∆POC
+and empirical CCFs.
+
+But, there can be wide disagreement. This disagreement is rooted in the
+∆POC.
+
+When ∆BC \> than ∆POC, carbon per cell is overestimated (cell abundance
+on the filter is likely underestimated). This would lead to BGEs
+calculated using CCFs being high and unreliable.
+
+Based on these criteria, there are two experiments in the late spring
+(station 3) where BGEs calculated using empirical CCFs should not be
+included. These will be removed from further analyses.
+
 ``` r
-bge_summary %>% 
+bge_summary.table <- bge_summary %>% 
+  mutate(bge.p.bc.ccf.c1 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c1),
+         bge.p.bc.ccf.c2 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c2),
+         bge.p.bc.ccf.c3 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c3)) %>%  
   select(Season:Bottle, contains("bge")) %>% 
   group_by(Season, type) %>% 
   gather(appr, bge, contains("bge")) %>% 
@@ -410,6 +423,8 @@ bge_summary %>%
   filter(type == "Control") %>% 
   arrange(Season) %>% 
   mutate_at(vars(ave_bge:med_bge), round, 2) 
+
+bge_summary.table 
 ```
 
     ## # A tibble: 52 x 8
@@ -427,76 +442,56 @@ bge_summary %>%
     ## 10 Early Autumn Control bge.p.bc.ccf.lee     0.44   0.05    0.38    0.48    0.47
     ## # … with 42 more rows
 
-<img src="BGE_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
-
 ``` r
-overall_bge.data <- bge_summary %>%
-  select(Season:Bottle, i.cn:i.cn.c3, s.cn:s.cn.c3, gf75.flag, del.doc.flag, del.ph.doc.flag, contains("bge")) %>% 
-  distinct() %>% 
-  gather(key, bge, contains("bge")) %>% 
-  drop_na(bge) %>% 
-   mutate(appr = key,
-         appr = ifelse(appr == "bge.bc.poc", "p2p, POC", appr),
-         appr = ifelse(appr == "bge.bc.poc.c1", "p2p, POC c1", appr),
-         appr = ifelse(appr == "bge.bc.poc.c2", "p2p, POC c2", appr),
-         appr = ifelse(appr == "bge.bc.poc.c3", "p2p, POC c3", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c1", "p2p, CCF c1", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c2", "p2p, CCF c2", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.c3", "p2p, CCF c3", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.white", "p2p, White CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.fukuda", "p2p, Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.ccf.lee", "p2p, Lee CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_fukuda", "p2p, Dyn. White_Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.p.bc.dyn.ccf.white_lee", "p2p, Dyn. White_Lee CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c1", "ph2ph, CCF c1", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c2", "ph2ph, CCF c2", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.c3", "ph2ph, CCF c3", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.white", "ph2ph, White CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.fukuda", "ph2ph, Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.ccf.lee", "ph2ph, Lee CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_fukuda", "ph2ph, Dyn. White_Fukuda CCF", appr),
-         appr = ifelse(appr == "bge.ph.bc.dyn.ccf.white_lee", "ph2ph, Dyn. White_Lee CCF", appr),
-         p = appr) %>% 
-  separate(., p, into = c("points", "ccf"), sep = ", " ) %>% 
-  group_by(Cruise, type, appr) %>% 
+ave_bges <- bge_summary.table %>% 
+  filter(appr %in% c("bge.bc.poc.c1", "bge.p.bc.ccf.c1",  "bge.p.bc.ccf.lee", "bge.p.bc.ccf.fukuda")) %>% 
+  mutate(group = ifelse(appr %in% c("bge.bc.poc.c1", "bge.p.bc.ccf.c1"), "Empirical", "Fukuda et al. CCF"),
+         group = ifelse(appr == "bge.p.bc.ccf.lee", "Lee and Fuhrman CCF", group ),
+         group2 = ifelse(appr == "bge.bc.poc.c1", "Empirical ∆POC", group),
+         group2 = ifelse(appr == "bge.p.bc.ccf.c1", "Empirical CCF", group2)) %>%
+  select(Season, group2, ave_bge, sd_bge, group) %>% 
+  rename(appr = group2) %>% 
+  group_by(Season, group) %>% 
+  mutate(group_bge = round(mean(ave_bge),2),
+         sd_group_bge = round(sd(ave_bge),2)) %>%
   ungroup() %>% 
-   #remove outliers
-  filter(!Cruise == "AT38" | !Station == "1" | !Depth == 10 | !Treatment == "Control",
-         !Cruise == "AT39" | !Station == "1" | !Depth == 10 | !Treatment == "Control") %>% 
-  filter(type == "Control", !Station == "U", Depth == 10, points == "p2p", !key %in% c("bge.bc.poc", "bge.p.bc.dyn.ccf.c1", "bge.p.bc.dyn.ccf.c2", "bge.p.bc.dyn.ccf.c3", "bge.ph.bc.dyn.ccf.c1", "bge.ph.bc.dyn.ccf.c2", "bge.ph.bc.dyn.ccf.c3", "bge.p.bc.ccf.white",  "bge.p.bc.dyn.ccf.white_fukuda", "bge.p.bc.dyn.ccf.white_lee" )) %>%
-  filter(!appr %in% c("p2p, POC c2", "p2p, POC c3", "p2p, CCF c2", "p2p, CCF c3")) %>% 
-  filter(!Cruise == "AT34" | !Station == "3" | !ccf %in% c("CCF c1", "CCF c2", "CCF c3") ) %>% 
-  mutate(group = "Empirical ∆POC", 
-         group = ifelse(ccf %in% c("CCF c1", "CCF c2", "CCF c3"), "Empirical CCF", group),
-         group = ifelse(ccf %in% c("Fukuda CCF", "Lee CCF"), ccf, group) ) %>% 
-  select(Season:Bottle, ccf, group, bge) %>% 
-  distinct() %>%
-  group_by(Cruise, group) %>% 
-  mutate(group_bge = mean(bge, na.rm = T),
-         sd_group_bge = sd(bge, na.rm = T),
-         min_group_bge = min(bge),
-         max_group_bge = max(bge),
-         med_group_bge = median(bge)) %>% 
-  ungroup() %>% 
-  group_by(Cruise, ccf) %>% 
-  add_tally() %>% 
-  mutate(n = paste("n = ", n),
-         group2 = ifelse(group %in% c("Empirical ∆POC", "Empirical CCF"), "Empirical", group)) %>%
-  ungroup() %>% 
-  group_by(group2) %>% 
-  mutate(group2_global_bge = mean(bge, na.rm = T)) %>% 
-  ungroup() %>% 
-  group_by(Cruise, group2) %>% 
-  mutate(group2_bge = mean(bge, na.rm = T),
-         sd_group2_bge = sd(bge, na.rm = T),
-         min_group2_bge = min(bge),
-         max_group2_bge = max(bge),
-         med_group2_bge = median(bge)) %>% 
-  ungroup() %>% 
-  select(Season, group, group2, group_bge:med_group_bge, n, group2_bge:med_group2_bge, group2_global_bge) %>% 
-  distinct() %>% 
-  mutate_at(vars(group_bge:med_group_bge, group2_bge:med_group2_bge, group2_global_bge), round, 2) %>%
-  arrange(group, factor(Season, levels = levels))
+  group_by(group) %>% 
+  mutate(global_bge = round(mean(ave_bge), 2),
+         sd_global_bge = round(sd(ave_bge),2)) %>% 
+  ungroup()
+
+ave_bges
 ```
 
-<img src="BGE_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+    ## # A tibble: 12 x 9
+    ##    Season appr  ave_bge sd_bge group group_bge sd_group_bge global_bge
+    ##    <chr>  <chr>   <dbl>  <dbl> <chr>     <dbl>        <dbl>      <dbl>
+    ##  1 Early… Empi…    0.22   0.09 Empi…      0.22         0          0.24
+    ##  2 Early… Empi…    0.22   0.08 Empi…      0.22         0          0.24
+    ##  3 Early… Fuku…    0.34   0.05 Fuku…      0.34        NA          0.33
+    ##  4 Early… Lee …    0.44   0.05 Lee …      0.44        NA          0.43
+    ##  5 Early… Empi…    0.23  NA    Empi…      0.26         0.04       0.24
+    ##  6 Early… Empi…    0.28   0    Empi…      0.26         0.04       0.24
+    ##  7 Early… Fuku…    0.13   0    Fuku…      0.13        NA          0.33
+    ##  8 Early… Lee …    0.22   0    Lee …      0.22        NA          0.43
+    ##  9 Late … Empi…    0.26   0.08 Empi…      0.25         0.01       0.24
+    ## 10 Late … Empi…    0.24   0.04 Empi…      0.25         0.01       0.24
+    ## 11 Late … Fuku…    0.51   0.09 Fuku…      0.51        NA          0.33
+    ## 12 Late … Lee …    0.62   0.09 Lee …      0.62        NA          0.43
+    ## # … with 1 more variable: sd_global_bge <dbl>
+
+<img src="BGE_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+
+# Save Data
+
+``` r
+calcs2 %>% 
+  mutate(bge.p.bc.ccf.c1 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c1),
+         bge.p.bc.ccf.c2 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c2),
+         bge.p.bc.ccf.c3 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c3),
+         bge.ph.bc.ccf.c1 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c1),
+         bge.ph.bc.ccf.c2 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c2),
+         bge.ph.bc.ccf.c3 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c3)) %>%  
+  left_join(., ave_bges %>% filter(group == "Empirical") %>% select(Season, group_bge, global_bge) %>% distinct() %>% rename(season_bge = group_bge)) %>% 
+  saveRDS(., "~/naames_bioav_ms/Output/processed_bge.rds")
+```
