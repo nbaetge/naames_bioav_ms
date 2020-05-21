@@ -392,24 +392,6 @@ calcs <- interpolated %>%
               select(Cruise:Subregion) %>% 
               distinct()
   )
-
-##CCFs per season
-
-season.ccfs <- calcs %>% 
-  filter(Depth == 10, Treatment == "Control", Hours == 0, !Station == "U") %>% 
-  select(Cruise, Season, Subregion, Station,  i.ccf.c1, s.ccf.c1 ) %>% 
-  distinct() %>% 
-  mutate(global_initial_ccf = mean(i.ccf.c1, na.rm = T),
-         global_stationary_ccf = mean(s.ccf.c1, na.rm = T)) %>% 
-  group_by(Season) %>% 
-  mutate(ave_initial_ccf = mean(i.ccf.c1, na.rm = T),
-         ave_stationary_ccf = mean(s.ccf.c1, na.rm = T)) %>% 
-  ungroup() %>% 
-  select(Season, global_initial_ccf:ave_stationary_ccf) %>% 
-  distinct()
-
-calcs2 <- left_join(calcs, season.ccfs)
-
 ```
 
 
@@ -417,7 +399,7 @@ calcs2 <- left_join(calcs, season.ccfs)
 # Summary Data, Table, and Plots
 
 ```{r}
-bge_summary <- calcs2 %>% 
+bge_summary <- calcs %>% 
   select(Season:Station, ave_lat:Subregion, Depth:facet_bottle, stationary:s.gf75, gf75.flag, del.doc, del.doc.flag, del.ph.doc, del.ph.doc.flag, del.bc.poc:del.bc.ph.dyn.ccf.white_lee, bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee, i.cn:i.cn.c3, s.cn:s.cn.c3) %>% 
   distinct() %>% 
   mutate(type = ifelse(Treatment == "Control", "Control", "Non-Control"),
@@ -608,7 +590,7 @@ ave_bges <- bge_summary.table %>%
          group = ifelse(appr == "bge.p.bc.ccf.lee", "Lee and Fuhrman CCF", group ),
          group2 = ifelse(appr == "bge.bc.poc.c1", "Empirical ∆POC", group),
          group2 = ifelse(appr == "bge.p.bc.ccf.c1", "Empirical CCF", group2)) %>%
-  select(Season, group2, ave_bge, sd_bge, group) %>% 
+  select(Season, group2, ave_bge, sd_bge,  group) %>% 
   rename(appr = group2) %>% 
   group_by(Season, group) %>% 
   mutate(group_bge = round(mean(ave_bge),2),
@@ -640,14 +622,36 @@ ave_bges %>%
 
 # Save Data
 
+Before saving, we'll want to remove the problematic CCFs and their associated BGEs from further analysis
+
 ```{r message = F}
-calcs2 %>% 
+calcs %>% 
   mutate(bge.p.bc.ccf.c1 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c1),
          bge.p.bc.ccf.c2 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c2),
          bge.p.bc.ccf.c3 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c3),
          bge.ph.bc.ccf.c1 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c1),
          bge.ph.bc.ccf.c2 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c2),
-         bge.ph.bc.ccf.c3 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c3)) %>%  
+         bge.ph.bc.ccf.c3 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c3)) %>% 
+  left_join(., calcs %>% 
+              filter(Depth == 10, Treatment == "Control", Hours == 0, !Station == "U") %>% 
+              mutate(bge.p.bc.ccf.c1 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c1),
+                     bge.p.bc.ccf.c2 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c2),
+                     bge.p.bc.ccf.c3 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c3),
+                     bge.ph.bc.ccf.c1 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c1),
+                     bge.ph.bc.ccf.c2 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c2),
+                     bge.ph.bc.ccf.c3 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.ph.bc.ccf.c3)) %>%  
+              select(Cruise, Season, Subregion, Station,  i.ccf.c1, s.ccf.c1 ) %>%
+              distinct() %>% 
+              mutate(global_initial_ccf = mean(i.ccf.c1, na.rm = T),
+                     global_stationary_ccf = mean(s.ccf.c1, na.rm = T)) %>%
+              group_by(Season) %>% 
+              mutate(ave_initial_ccf = mean(i.ccf.c1, na.rm = T),
+                     ave_stationary_ccf = mean(s.ccf.c1, na.rm = T)) %>%
+              ungroup() %>%
+              select(Season, global_initial_ccf:ave_stationary_ccf) %>% 
+              distinct() ) %>% 
   left_join(., ave_bges %>% filter(group == "Empirical") %>% select(Season, group_bge, global_bge) %>% distinct() %>% rename(season_bge = group_bge)) %>% 
   saveRDS(., "~/naames_bioav_ms/Output/processed_bge.rds")
+
+
 ```
