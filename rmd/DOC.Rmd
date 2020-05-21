@@ -599,7 +599,7 @@ ptoc_pdoc.data %>%
   geom_abline(intercept = ptoc_pdoc.reg$regression.results[3,2],
               slope = ptoc_pdoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(italic(paste("TOC, µmol C L"^-1))), y = expression(italic(paste("DOC, µmol C L"^-1)))) +
+  labs(x = expression(italic(paste("TOC, µmol C L"^-1))), y = expression(italic(paste("DOC, µmol C L"^-1))),  caption = "Solid line represents the 1:1 line.") +
   custom_theme() +
    annotate( geom = "text", label = expression(atop("y = 0.97x + 1.81", paste("r"^2,"= 0.95, ", italic("p "), "<< 0.01"))), x = 75, y = 55, size = 3) +
   
@@ -611,7 +611,8 @@ ptoc_pdoc.data %>%
   geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
   labs(x = expression(italic(paste("∆TOC, µmol C L"^-1))), y = expression(italic(paste("∆DOC, µmol C L"^-1)))) +
   custom_theme() +
-   annotate( geom = "text", label = expression(atop("y = 0.97x - 0.03", paste("r"^2,"= 0.94, ", italic("p "), "<< 0.01"))), x = 20, y = 0.5, size = 3) 
+   annotate( geom = "text", label = expression(atop("y = 0.97x - 0.03", paste("r"^2,"= 0.94, ", italic("p "), "<< 0.01"))), x = 20, y = 0.5, size = 3) +
+  theme(plot.caption = element_text(face = "italic")) 
 
 ```
 
@@ -649,7 +650,7 @@ toc_ptoc.data %>%
   geom_abline(intercept = delta_toc_ptoc.reg$regression.results[3,2],
               slope = delta_toc_ptoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(paste("Bottle ∆TOC, µmol C L"^-1)), y = expression(paste("Vial ∆TOC, µmol C L"^-1)), caption = "Dotted line represents the 1:1 line.") +
+  labs(x = expression(paste("Bottle ∆TOC, µmol C L"^-1)), y = expression(paste("Vial ∆TOC, µmol C L"^-1)), caption = "Solid line represents the 1:1 line.") +
   custom_theme() +
    annotate( geom = "text", label = expression(atop("y = 0.86x + 2.48", paste("r"^2,"= 0.84, ", italic("p "), "<< 0.01"))), x = 15, y = 0.2, size = 3) +
   theme(plot.caption = element_text(face = "italic")) 

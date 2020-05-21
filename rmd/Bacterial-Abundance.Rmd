@@ -341,7 +341,7 @@ btl_vial_cell.data %>%
   geom_abline(intercept = btl_vial_cell.reg$regression.results[3,2],
               slope = btl_vial_cell.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(paste("Bottle Cells L"^-1)), y = expression(paste("Vial Cells L"^-1)), caption = "Dotted line represents the 1:1 line.") +
+  labs(x = expression(paste("Bottle Cells L"^-1)), y = expression(paste("Vial Cells L"^-1)), caption = "Solid line represents the 1:1 line.") +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_x_continuous(breaks = pretty_breaks()) +
   custom_theme() +
