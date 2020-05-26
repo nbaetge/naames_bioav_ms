@@ -204,6 +204,8 @@ bcd <- interpolated.df %>%
   #########Integrate to Ez##############
 
 int_bcd <- bcd %>% 
+  select(-c(CampCN, max_depth, interp_bp:interp_ba, bcd.season_bge, bcd.global_bge, bc.global_i:bc.season_s)) %>% 
+  distinct() %>% 
   group_by(Cruise, Station) %>% 
   filter(Depth <= ave_Ez) %>% 
   mutate(int.bcd.season_bge = integrateTrapezoid(Depth, ave_bcd.season_bge, type = "A"),
@@ -229,7 +231,6 @@ int_bcd <- bcd %>%
   ######### Estimate BCD:NPP #########
          bcd.npp.global_bge = int.bcd.global_bge/int.NPP * 100,
          bcd.npp.season_bge = int.bcd.season_bge/int.NPP * 100) %>% 
-  select(-c(CampCN, interp_bp, interp_ba, bcd.season_bge:bc.season_s)) %>% 
   distinct() %>% 
   ungroup()
 
@@ -251,10 +252,10 @@ Here, we put our experimental DOC data in the context of the results from the ex
 
 export <- readRDS("~/naames_bioav_ms/Input/processed_export_for_bioavMS.5.14.20.rds") %>% 
   mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
-  select(Cruise, Season, degree_bin, Subregion, Station, Target_Z, Ez, ave_N, sd_N, ave_PO4, sd_PO4, ave_Pro:sd_Nano, redis_DOC_vol, NCP_mol_100, doc_ncp_100, int_delta_DOC_100, doc_don_100, int_delta_N_100, int_N_100_vol, int_N_ez, int_PO4_100_vol, int_PO4_ez) %>% 
+  select(Cruise, Season, degree_bin, Subregion, Station, Target_Z, Ez, ave_N, sd_N, ave_PO4, sd_PO4, ave_Pro:sd_Nano, redis_DOC_vol, NCP_mol_100, doc_ncp_100, int_delta_DOC_100, int_delta_DOC_ez,  doc_don_100, int_delta_N_100, int_N_100_vol, int_N_ez, int_PO4_100_vol, int_PO4_ez) %>% 
   distinct() %>% 
   mutate_at(vars(redis_DOC_vol, int_N_100_vol, int_PO4_100_vol), round, 1) %>% 
-  mutate_at(vars(NCP_mol_100:doc_ncp_100, int_delta_DOC_100, int_delta_N_100, int_N_ez, int_PO4_ez), round, 2) %>%
+  mutate_at(vars(NCP_mol_100:doc_ncp_100, int_delta_DOC_100, int_delta_DOC_ez, int_delta_N_100, int_N_ez, int_PO4_ez), round, 2) %>%
   mutate_at(vars(doc_don_100), round) %>% 
   mutate_at(vars(Station), as.character) %>% 
   #error associated with the approach in calculating seasonally accumulated DON led to 17%  of total samples (5 of 29) being negative.  As a result these data were removed from further analyses.
@@ -268,7 +269,7 @@ export_bioav <- left_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") 
                             distinct() %>% 
                             drop_na(interp_doc), 
                           export %>% 
-                            select(Cruise:Station, redis_DOC_vol) %>%  
+                            select(Cruise:Station, redis_DOC_vol, Ez, int_delta_DOC_ez) %>%  
                             distinct()) %>% 
   mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
          degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
@@ -297,7 +298,8 @@ export_bioav <- left_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") 
          lt.ddoc = round((lt.bioav_doc/time.lt.bioav_accm_doc) * 1000),
          total.ddoc = round((total.bioav_doc/time.total.bioav_accm_doc) * 1000)) %>%
   fill(accm_doc:lt.ddoc, .direction = "downup") %>% 
-  ungroup() 
+  ungroup() %>% 
+  mutate(Subregion = ifelse(is.na(Subregion), "GS/Sargasso", Subregion))
 
 ```
 
