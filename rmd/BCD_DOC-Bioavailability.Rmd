@@ -412,6 +412,47 @@ ddoc.bar / bioav_doc.bar
 
 ```
 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 6, fig.align = "center", warning = FALSE}
+# δDOC
+ddoc44.bar <- doc %>% 
+  filter(!Cruise == "AT32", degree_bin == 44) %>% 
+  select(Season:Subregion, degree_bin, total.bioav_accm_doc, st.bioav_accm_doc) %>% 
+  distinct() %>% 
+  pivot_longer(cols = c(total.bioav_accm_doc, st.bioav_accm_doc), names_to = "names", values_to = "values") %>%  
+  mutate(names = ifelse(names == "total.bioav_accm_doc", "Long-term", "Short-term" )) %>% 
+  ##PLOT
+  ggplot(aes(x = factor(Season, levels = levels), y = values, fill = names, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, width = 0.5) +
+  labs(x = expression(italic("")), y = expression(italic(paste("Bioavailable DOC, µmol C L"^-1))), colour = expression(italic(""))) +
+  scale_fill_manual(values = custom.colors) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  custom_theme() 
+  #facet_grid(~factor(Season, levels = levels), scales = "free") 
+  #theme(strip.background = element_blank(), strip.text = element_blank()) +
+  #guides(fill = F)
+
+#percent bioav
+bioav_doc44.bar <- doc %>% 
+  filter(!Cruise == "AT32", degree_bin == 44) %>% 
+  select(Season:Subregion, degree_bin, total.per_bioav, st.per_bioav) %>% 
+  distinct() %>% 
+  pivot_longer(cols = c(total.per_bioav, st.per_bioav), names_to = "names", values_to = "values") %>%  
+  mutate(names = ifelse(names == "total.per_bioav", "Long-term", "Short-term" )) %>% 
+  ##PLOT
+  ggplot(aes(x = factor(Season, levels = levels), y =  values, fill = names, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, width = 0.5) +
+  labs(x = expression(italic("")), y = expression(italic(paste("Bioavailable DOC, %"))), colour = expression(italic(""))) +
+  scale_fill_manual(values = custom.colors) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  custom_theme() +
+  #facet_grid(~factor(Season, levels = levels), scales = "free") +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
+  guides(fill = F)
+
+
+ddoc44.bar / bioav_doc44.bar + plot_annotation(title = "44˚N")
+
+```
 
 # Bar plots: BCD and BCD:NPP
 
@@ -495,47 +536,6 @@ ratio.bar <- bcd %>%
   theme(strip.background = element_blank(), strip.text = element_blank())
   
 bcd.bar / bcd.npp.bar / ratio.bar
-```
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 6, fig.align = "center", warning = FALSE}
-# δDOC
-ddoc44.bar <- doc %>% 
-  filter(!Cruise == "AT32", degree_bin == 44) %>% 
-  select(Season:Subregion, degree_bin, total.bioav_accm_doc, st.bioav_accm_doc) %>% 
-  distinct() %>% 
-  pivot_longer(cols = c(total.bioav_accm_doc, st.bioav_accm_doc), names_to = "names", values_to = "values") %>%  
-  mutate(names = ifelse(names == "total.bioav_accm_doc", "Long-term", "Short-term" )) %>% 
-  ##PLOT
-  ggplot(aes(x = factor(Season, levels = levels), y = values, fill = names, group = interaction(Season, Station, degree_bin)))  + 
-  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, width = 0.5) +
-  labs(x = expression(italic("")), y = expression(italic(paste("Bioavailable DOC, µmol C L"^-1))), colour = expression(italic(""))) +
-  scale_fill_manual(values = custom.colors) +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  custom_theme() 
-  #facet_grid(~factor(Season, levels = levels), scales = "free") 
-  #theme(strip.background = element_blank(), strip.text = element_blank()) +
-  #guides(fill = F)
-
-#percent bioav
-bioav_doc44.bar <- doc %>% 
-  filter(!Cruise == "AT32", degree_bin == 44) %>% 
-  select(Season:Subregion, degree_bin, total.per_bioav, st.per_bioav) %>% 
-  distinct() %>% 
-  pivot_longer(cols = c(total.per_bioav, st.per_bioav), names_to = "names", values_to = "values") %>%  
-  mutate(names = ifelse(names == "total.per_bioav", "Long-term", "Short-term" )) %>% 
-  ##PLOT
-  ggplot(aes(x = factor(Season, levels = levels), y =  values, fill = names, group = interaction(Season, Station, degree_bin)))  + 
-  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, width = 0.5) +
-  labs(x = expression(italic("")), y = expression(italic(paste("Bioavailable DOC, %"))), colour = expression(italic(""))) +
-  scale_fill_manual(values = custom.colors) +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  custom_theme() +
-  #facet_grid(~factor(Season, levels = levels), scales = "free") +
-  theme(strip.background = element_blank(), strip.text = element_blank()) +
-  guides(fill = F)
-
-
-ddoc44.bar / bioav_doc44.bar + plot_annotation(title = "44˚N")
-
 ```
 
 
