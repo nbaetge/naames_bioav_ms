@@ -159,7 +159,7 @@ BCD and specific growth rates will be integrated through the euphotic zone.
 ```{r message = F}
 #calculate bcd and specific growth rates
 bcd <- interpolated.df %>% 
-  left_join(.,   readRDS("~/naames_bioav_ms/Output/processed_bge.rds") %>%
+  full_join(.,   readRDS("~/naames_bioav_ms/Output/processed_bge.rds") %>%
               select(Season, season_bge, global_bge, global_initial_ccf:ave_stationary_ccf) %>%
               distinct()) %>% 
   select(-c(bp:sd_ba)) %>% 
@@ -263,7 +263,7 @@ export <- readRDS("~/naames_bioav_ms/Input/processed_export_for_bioavMS.5.14.20.
          total_phyto = ave_Pro + ave_Syn + ave_Pico + ave_Nano)
 
 
-export_bioav <- left_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") %>% 
+export_bioav <- full_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") %>% 
                             filter(!Station == "U", Depth == 10, Treatment == "Control") %>% 
                             select(Cruise, Season, Station, Subregion, Bottle, Hours, Days, doc, interp_doc) %>% 
                             distinct() %>% 
@@ -279,25 +279,21 @@ export_bioav <- left_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") 
   ungroup() %>% 
   group_by(Cruise, Station) %>% 
   mutate(norm_doc = ave_doc - redis_DOC_vol,
-         norm_doc_from_t0 = ifelse(!is.na(norm_doc), first(norm_doc) - norm_doc, NA),
          accm_doc = first(ave_doc) - redis_DOC_vol,
-         total.bioav_accm_doc = ifelse(last(Days) > 30, last(ave_doc) - redis_DOC_vol, NA),
-         st.bioav_accm_doc = ifelse(Days == 7, ave_doc - redis_DOC_vol, NA),
+         total.bioav_accm_doc = ifelse(last(Days) > 30, accm_doc - last(norm_doc), NA),
+         st.bioav_accm_doc = ifelse(Days == 7, accm_doc - norm_doc, NA),
          lt.bioav_accm_doc = total.bioav_accm_doc - st.bioav_accm_doc,
          time.total.bioav_accm_doc = ifelse(last(Days) > 30, last(Days), NA),
          time.lt.bioav_accm_doc = time.total.bioav_accm_doc - 7,
-         total.bioav_doc = ifelse(last(Days) > 30, first(norm_doc) - last(norm_doc), NA),
-         st.bioav_doc = ifelse(Days == 7, first(norm_doc) - norm_doc, NA),
-         lt.bioav_doc = total.bioav_doc - st.bioav_doc,
-         total.per_bioav = round((total.bioav_doc/accm_doc * 100)),
-         st.per_bioav = round((st.bioav_doc/accm_doc * 100)),
-         lt.per_bioav = round((lt.bioav_doc/accm_doc * 100)),
-         persis_doc = accm_doc - total.bioav_doc,
+         total.per_bioav = round((total.bioav_accm_doc/accm_doc * 100)),
+         st.per_bioav = round((st.bioav_accm_doc/accm_doc * 100)),
+         lt.per_bioav = round((lt.bioav_accm_doc/accm_doc * 100)),
+         persis_doc = accm_doc - total.bioav_accm_doc,
          per_persis = round((persis_doc/accm_doc * 100)),
-         st.ddoc = round((st.bioav_doc/7) * 1000),
-         lt.ddoc = round((lt.bioav_doc/time.lt.bioav_accm_doc) * 1000),
-         total.ddoc = round((total.bioav_doc/time.total.bioav_accm_doc) * 1000)) %>%
-  fill(accm_doc:lt.ddoc, .direction = "downup") %>% 
+         st.ddoc = round((st.bioav_accm_doc/7) * 1000),
+         lt.ddoc = round((lt.bioav_accm_doc/time.lt.bioav_accm_doc) * 1000),
+         total.ddoc = round((total.bioav_accm_doc/time.total.bioav_accm_doc) * 1000)) %>%
+  fill(accm_doc:total.ddoc, .direction = "downup") %>% 
   ungroup() %>% 
   mutate(Subregion = ifelse(is.na(Subregion), "GS/Sargasso", Subregion))
 
