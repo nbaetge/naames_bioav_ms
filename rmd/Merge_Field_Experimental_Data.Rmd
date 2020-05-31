@@ -11,6 +11,7 @@ This document shows how processed **individual bottle** data from NAAMES reminer
 
 ```{r message = F, warning = F}
 library(tidyverse) 
+library(lubridate)
 library(rmarkdown)
 library(knitr)
 library(readxl)
@@ -33,36 +34,41 @@ library(ggpubr)
 
 # Merge Field NPP, Bacterial Productivity and Abundance Data
 
+We'll convert NPP from mg C m^-2^ d to µmol C m^-2^ d^-1^
+
 ```{r message = F}
 
 #NPP data
 #we'll convert NPP from mg C/ m2 / d to umol C/ m2 / d 
-npp <- read_xlsx("~/naames_bioav_ms/Input/NPP for Nick.xlsx", sheet = 2) %>% 
-  filter(!station %in% c("NA","N4S2RF")) %>% 
-  separate(station, into = c("Cruise", "Station"), sep = "S") %>% 
-  select(-Cruise) %>% 
-  mutate(Cruise = ifelse(Bloom_phase == "Accumulation phase", "AT39", NA),
+npp <- read_rds("~/naames_export_ms/Output/processed_bf.2.2020.rds") %>% 
+  #omitting CampCN 98 because only measurements at 5 m and below 1500 m were taken. the interpolated values for this cast were as a result, not reliable
+  filter(Cruise %in% c("AT32", "AT34", "AT38", "AT39-6"),
+         !CampCN == 98) %>% 
+  #the multiday N2S4 drifted from the 48˚Lat bin to the 47˚Lat bin, but was a lagrangian study (followed float), so we'll denote all casts within station 4 as being in the 48˚N bin
+  mutate(degree_bin = ifelse(Cruise == "AT34" & Station == "4", 48, degree_bin),
+         Max_MLD = ifelse(Cruise == "AT34" & Station == "4", 508, Max_MLD),) %>% 
+  select(Cruise, Latitude, Longitude, Date, degree_bin, Station, Season, Subregion, CampCN) %>% 
+  left_join(., read_xlsx("~/naames_bioav_ms/Input/NPP for Nick.xlsx", sheet = 2) %>% 
+              filter(!station %in% c("NA","N4S2RF")) %>% 
+              separate(station, into = c("Cruise", "Station"), sep = "S") %>% 
+              select(-Cruise) %>% 
+              mutate(Cruise = ifelse(Bloom_phase == "Accumulation phase", "AT39-6", NA),
          Cruise = ifelse(Bloom_phase == "Climax transition", "AT34", Cruise),
          Cruise = ifelse(Bloom_phase == "Equilibrium phase", "AT38", Cruise),
-         Cruise = ifelse(Bloom_phase == "Winter transition", "AT32", Cruise)) %>% 
-  select(Cruise, Station, Ez, Ez_NPP) %>% 
-  mutate(Station = ifelse(Station %in% c("4a", "4b", "4c", "4d"), 4, Station),
-         Station = ifelse(Station %in% c("6a", "6b", "6c", "6d", "6e"), 6, Station),
-         Station = as.numeric(Station)) %>% 
-  group_by(Cruise, Station) %>% 
-  mutate(ave_Ez = mean(Ez),
-         sd_Ez = sd(Ez),
-         Ez_NPP = Ez_NPP * (10^3/12),
-         ave_NPP = mean(Ez_NPP),
-         sd_NPP = sd(Ez_NPP)) %>%
-  ungroup() %>% 
-  select(-c(Ez, Ez_NPP)) %>% 
-  distinct() %>% 
-  mutate_at(vars(ave_Ez:sd_NPP), round)
+         Cruise = ifelse(Bloom_phase == "Winter transition", "AT32", Cruise)) %>%
+           mutate(date = ymd(date),
+                  Ez_NPP = (Ez_NPP * 10^3)/12) %>% 
+           select(Cruise, date, Station, Ez, Ez_NPP) %>% 
+           mutate(Station = ifelse(Station %in% c("4a", "4b", "4c", "4d"), 4, Station),
+                  Station = ifelse(Station %in% c("6a", "6b", "6c", "6d", "6e"), 6, Station),
+                  Station = as.numeric(Station)) %>% 
+           rename(Date = date)) %>% 
+  mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
+  distinct() 
 
 
 #Bacterial Production and Abundance Data, join with NPP
-bact_npp <- read_rds("~/naames_bioav_ms/Input/processed_bf.2.2020.rds") %>% 
+bact_npp <- read_rds("~/naames_bioav_ms/Input/processed_bf.2.2020.rds") %>%
   filter(Target_Z %in% c(0, 5, 10, 25, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000, 1250, 1500 )) %>% 
   select(Cruise:Station, degree_bin, CampCN, Target_Z, BactProd_C, BactProd_C_sd, BactAbund, BactAbund_sd) %>%  
   group_by(Cruise, Station, CampCN, Target_Z) %>% 
@@ -83,13 +89,16 @@ bact_npp <- read_rds("~/naames_bioav_ms/Input/processed_bf.2.2020.rds") %>%
   ungroup() %>% 
   select(Cruise:CampCN, max_depth, Depth,  everything()) %>% 
   left_join(., npp) %>% 
-  select(Cruise:max_depth, ave_Ez:sd_NPP, everything()) 
+  select(Cruise:CampCN, Date, Latitude, Longitude,Ez:Ez_NPP, Depth:sd_ba) %>% 
+  arrange(CampCN) %>% 
+  mutate(ba = ifelse(ba == "NaN", NA, ba),
+         sd_ba = ifelse(sd_ba == "NaN", NA, sd_ba))
 
 ```
 
 # Interpolate Data for Euphotic Zone Depth
 
-Euphotic zone depths were determined from model output in Fox er al 2020. 
+Euphotic zone depths were determined from model output in Fox et al 2020. 
 
 ```{r warning = F, message = F}
 
@@ -99,9 +108,9 @@ add_ez.list <- split(bact_npp, bact_npp$CampCN)
 #create a function to add an empty row to each cast, then add the Ez to the Target Z column 
 add.func <- function(morty){
   morty[nrow(morty) + 1,] <- NA
-  morty$Depth[is.na(morty$Depth)] <- morty$ave_Ez
+  morty$Depth[is.na(morty$Depth)] <- morty$Ez
   rick <- morty %>% 
-    fill(., Cruise:sd_NPP, .direction = c("updown")) %>% 
+    fill(., Cruise:Ez_NPP, .direction = c("updown")) %>% 
     arrange(CampCN, Depth)
  }
 
@@ -142,9 +151,8 @@ interpolations.df <- plyr::ldply(interpolations.list, data.frame) %>%
 #combine the interpolated and non-interpolated data frames
 interpolations.df$CampCN <- as.numeric(interpolations.df$CampCN)
 interpolated.df <- right_join(bact_npp, interpolations.df) %>% 
-  fill(Cruise:max_depth, .direction = "downup") %>% 
-  group_by(Cruise, Station, CampCN) %>% 
-  fill(ave_Ez:sd_NPP, .direction = "updown") %>% 
+  group_by(CampCN) %>% 
+  fill(Cruise:degree_bin, Date:Ez_NPP, .direction = "downup") %>% 
   ungroup() %>% 
   mutate_at(vars(interp_bp), round, 2)
 
@@ -152,7 +160,7 @@ interpolated.df <- right_join(bact_npp, interpolations.df) %>%
 
 # Estimate BCD and Specific Growth Rates
 
-We'll estimate BCD for each station of all the cruises using bacterial production and the seasonal and global averages of BGE. We'll also estimate specific growth rates (mew) by first converting bacterial abundance to bacterial carbon using seasonal and global averages of CCFs and then dividing bacterial production by bacterial carbon. 
+We'll estimate BCD for each cast of each station of all the cruises using bacterial production and the seasonal averages of BGE. We'll also estimate specific growth rates (mew) by first converting bacterial abundance to bacterial carbon using seasonal  averages of CCFs and then dividing bacterial production by bacterial carbon. 
 
 BCD and specific growth rates will be integrated through the euphotic zone.
 
@@ -160,77 +168,45 @@ BCD and specific growth rates will be integrated through the euphotic zone.
 #calculate bcd and specific growth rates
 bcd <- interpolated.df %>% 
   full_join(.,   readRDS("~/naames_bioav_ms/Output/processed_bge.rds") %>%
-              select(Season, season_bge, global_bge, global_initial_ccf:ave_stationary_ccf) %>%
+              select(Season, season_bge,  global_initial_ccf:ave_stationary_ccf) %>%
               distinct()) %>% 
   select(-c(bp:sd_ba)) %>% 
   fill(contains("global"), .direction = "downup") %>% 
-  mutate_at(vars(global_initial_ccf:ave_stationary_ccf), round) %>% 
+  mutate_at(vars(ave_initial_ccf:ave_stationary_ccf), round) %>% 
   mutate(season_bge = ifelse(is.na(season_bge), 0.22, season_bge ),
+         #fill late autumn data with early autumn data
          ave_initial_ccf = ifelse(is.na(ave_initial_ccf), 55, ave_initial_ccf),
          ave_stationary_ccf = ifelse(is.na(ave_stationary_ccf), 31, ave_stationary_ccf),
          
          ###########BCD##################
          #units are  µmol C / m3 / d 
          #bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
-         bcd.season_bge = interp_bp/season_bge,
-         bcd.global_bge = interp_bp/global_bge,
+         bcd = round(interp_bp/season_bge),
          
          ##########Bacterial Carbon###########
          # bact carbon in µmol C/m3
-         bc.global_i = interp_ba * (10^3) * global_initial_ccf * (1/10^15) * (1/12) * 10^6,
-         bc.global_s = interp_ba * (10^3) * global_stationary_ccf * (1/10^15) * (1/12) * 10^6,
-         bc.season_i = interp_ba * (10^3) * ave_initial_ccf * (1/10^15) * (1/12) * 10^6,
-         bc.season_s = interp_ba * (10^3) * ave_stationary_ccf * (1/10^15) * (1/12) * 10^6)  %>%
-  mutate_at(vars(bcd.season_bge, bcd.global_bge), round) %>% 
-  ##########Average BA, BP, BC, BCD for each depth of each cruise and station#######
-  group_by(Cruise, Station, Depth) %>% 
-  mutate(ave_bcd.season_bge = mean(bcd.season_bge, na.rm = T),
-         ave_bcd.global_bge = mean(bcd.global_bge, na.rm = T),
-         #convert to BA cells / m3
-         ave_ba = mean(interp_ba, na.rm = T) * 1000,
-         sd_ba = sd(interp_ba, na.rm = T) * 1000,
-         ave_bp = mean(interp_bp, na.rm = T),
-         sd_bp = sd(interp_bp, na.rm = T),
-         ave_bc.global_i = mean(bc.global_i, na.rm = T),
-         sd_bc.global_i = sd(bc.global_i, na.rm = T),
-         ave_bc.global_s = mean(bc.global_s, na.rm = T),
-         sd_bc.global_i = sd(bc.global_i, na.rm = T),
-         ave_bc.season_i = mean(bc.season_i, na.rm = T),
-         sd_bc.season_i = sd(bc.season_i, na.rm = T),
-         ave_bc.season_s = mean(bc.season_s, na.rm = T),
-         sd_bc.season_i = sd(bc.season_i, na.rm = T) ) %>% 
-  mutate_at(vars(ave_bcd.season_bge, ave_bcd.global_bge), round) %>% 
-  ungroup() 
+         bc_i = interp_ba * (10^3) * ave_initial_ccf * (1/10^15) * (1/12) * 10^6,
+         bc_s = interp_ba * (10^3) * ave_stationary_ccf * (1/10^15) * (1/12) * 10^6)  
+
   #########Integrate to Ez##############
 
 int_bcd <- bcd %>% 
-  select(-c(CampCN, max_depth, interp_bp:interp_ba, bcd.season_bge, bcd.global_bge, bc.global_i:bc.season_s)) %>% 
-  distinct() %>% 
-  group_by(Cruise, Station) %>% 
-  filter(Depth <= ave_Ez) %>% 
-  mutate(int.bcd.season_bge = integrateTrapezoid(Depth, ave_bcd.season_bge, type = "A"),
-         int.bcd.global_bge = integrateTrapezoid(Depth, ave_bcd.global_bge, type = "A"),
-         int.bp = integrateTrapezoid(Depth, ave_bp, type = "A"),
-         sd_int.bp = integrateTrapezoid(Depth, sd_bp, type = "A"),
-         int.ba = integrateTrapezoid(Depth, ave_ba, type = "A"),
-         sd_int.ba = integrateTrapezoid(Depth, sd_ba, type = "A"),
-         int.bc.global_i = integrateTrapezoid(Depth, ave_bc.global_i, type = "A"),
-         int.bc.global_s = integrateTrapezoid(Depth, ave_bc.global_s, type = "A"),
-         int.bc.season_i = integrateTrapezoid(Depth, ave_bc.season_i, type = "A"),
-         int.bc.season_s = integrateTrapezoid(Depth, ave_bc.season_s, type = "A")) %>% 
+  group_by(CampCN) %>% 
+  filter(Depth <= Ez) %>% 
+  mutate(int.bcd = integrateTrapezoid(Depth, bcd, type = "A"),
+         int.bp = integrateTrapezoid(Depth, interp_bp, type = "A"),
+         int.ba = integrateTrapezoid(Depth, interp_ba, type = "A"),
+         int.bc_i = integrateTrapezoid(Depth, bc_i, type = "A"),
+         int.bc_s = integrateTrapezoid(Depth, bc_s, type = "A")) %>% 
   mutate_at(vars(contains("int.bcd")), round) %>% 
   # depth normalize 
-  mutate_at(vars(contains("int.")), funs(./ave_Ez)) %>% 
-  mutate(int.NPP = ave_NPP/ave_Ez,
-         sd_int.NPP = sd_NPP/ave_Ez, 
+  mutate_at(vars(contains("int.")), funs(./Ez)) %>% 
+  mutate(int.NPP = Ez_NPP/Ez,
   ######## Estimate Specific Growth Rates #####       
-         mew.global_i = int.bp/int.bc.global_i,
-         mew.global_s = int.bp/int.bc.global_s,
-         mew.season_i = int.bp/int.bc.season_i,
-         mew.season_s = int.bp/int.bc.season_s,
+         mew.season_i = int.bp/int.bc_i,
+         mew.season_s = int.bp/int.bc_s,
   ######### Estimate BCD:NPP #########
-         bcd.npp.global_bge = int.bcd.global_bge/int.NPP * 100,
-         bcd.npp.season_bge = int.bcd.season_bge/int.NPP * 100) %>% 
+         bcd.npp = int.bcd/int.NPP * 100) %>% 
   distinct() %>% 
   ungroup()
 
@@ -250,17 +226,13 @@ Here, we put our experimental DOC data in the context of the results from the ex
 
 ```{r message = F, warning = F}
 
-export <- readRDS("~/naames_bioav_ms/Input/processed_export_for_bioavMS.5.14.20.rds") %>% 
+export <- readRDS("~/naames_bioav_ms/Input/processed_export_for_bioavMS.5.29.20.rds") %>% 
   mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
-  select(Cruise, Season, degree_bin, Subregion, Station, Target_Z, Ez, ave_N, sd_N, ave_PO4, sd_PO4, ave_Pro:sd_Nano, redis_DOC_vol, NCP_mol_100, doc_ncp_100, int_delta_DOC_100, int_delta_DOC_ez,  doc_don_100, int_delta_N_100, int_N_100_vol, int_N_ez, int_PO4_100_vol, int_PO4_ez) %>% 
+  select(Cruise, Season, degree_bin, CampCN, Subregion, Station, Ez, Target_Z, interp_doc, interp_don, redis_DOC_vol, int_delta_DOC_ez) %>% 
   distinct() %>% 
-  mutate_at(vars(redis_DOC_vol, int_N_100_vol, int_PO4_100_vol), round, 1) %>% 
-  mutate_at(vars(NCP_mol_100:doc_ncp_100, int_delta_DOC_100, int_delta_DOC_ez, int_delta_N_100, int_N_ez, int_PO4_ez), round, 2) %>%
-  mutate_at(vars(doc_don_100), round) %>% 
-  mutate_at(vars(Station), as.character) %>% 
-  #error associated with the approach in calculating seasonally accumulated DON led to 17%  of total samples (5 of 29) being negative.  As a result these data were removed from further analyses.
-  mutate(doc_don_100 = ifelse(doc_don_100 < 0, NA, doc_don_100), 
-         total_phyto = ave_Pro + ave_Syn + ave_Pico + ave_Nano)
+  mutate_at(vars(redis_DOC_vol), round, 1) %>% 
+  mutate_at(vars(int_delta_DOC_ez), round, 2) %>%
+  mutate_at(vars(Station), as.character)
 
 
 export_bioav <- full_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") %>% 
@@ -269,7 +241,15 @@ export_bioav <- full_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") 
                             distinct() %>% 
                             drop_na(interp_doc), 
                           export %>% 
-                            select(Cruise:Station, redis_DOC_vol, Ez, int_delta_DOC_ez) %>%  
+                            select(Cruise, degree_bin, Subregion, Station, Ez, redis_DOC_vol, int_delta_DOC_ez) %>%  
+                            group_by(Cruise, Station) %>% 
+                            mutate(ave_Ez = mean(Ez),
+                                   sd_Ez = sd(Ez),
+                                   ave_int_delta_DOC_ez = mean(int_delta_DOC_ez),
+                                   sd_int_delta_DOC_ez = sd(int_delta_DOC_ez)) %>% 
+                            mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
+                             mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez), round, 2) %>% 
+                            select(-c(Ez, int_delta_DOC_ez)) %>% 
                             distinct()) %>% 
   mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
          degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
@@ -295,7 +275,11 @@ export_bioav <- full_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") 
          total.ddoc = round((total.bioav_accm_doc/time.total.bioav_accm_doc) * 1000)) %>%
   fill(accm_doc:total.ddoc, .direction = "downup") %>% 
   ungroup() %>% 
-  mutate(Subregion = ifelse(is.na(Subregion), "GS/Sargasso", Subregion))
+  mutate(Subregion = ifelse(is.na(Subregion), "GS/Sargasso", Subregion),
+         Season = ifelse(Cruise == "AT32", "Late Autumn", Season),
+         Season = ifelse(Cruise == "AT34", "Late Spring", Season),
+         Season = ifelse(Cruise == "AT38", "Early Autumn", Season),
+         Season = ifelse(Cruise == "AT39", "Early Spring", Season)) 
 
 ```
 

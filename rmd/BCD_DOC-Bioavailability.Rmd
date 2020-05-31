@@ -82,10 +82,31 @@ doc <- read_rds("~/naames_bioav_ms/Output/processed_bioavailability.rds") %>%
          bge = ifelse(Cruise == "AT38" & Station %in% c(3, 6), T, bge),
          degree_bin = as.character(degree_bin))  %>% 
   distinct()  %>% 
-  #for 3 stations, 
-  filter(int_delta_DOC_ez > 0)
+  filter(ave_int_delta_DOC_ez > 0)
 
-bcd <- read_rds("~/naames_bioav_ms/Output/processed_integrated_BCD.rds")
+bcd <- read_rds("~/naames_bioav_ms/Output/processed_integrated_BCD.rds") %>% 
+  group_by(Cruise, Station) %>% 
+  mutate(ave_int.BCD = mean(int.bcd, na.rm = T),
+         sd_int.BCD = sd(int.bcd, na.rm = T),
+         ave_int.bp = mean(int.bp, na.rm = T),
+         sd_int.bp = sd(int.bp, na.rm = T),
+         ave_int.ba = mean(int.ba, na.rm = T),
+         sd_int.ba = sd(int.ba, na.rm = T),
+         ave_int.bc_i = mean(int.bc_i, na.rm = T),
+         sd_int.bc_i = sd(int.bc_i, na.rm = T),
+         ave_int.bc_s = mean(int.bc_s, na.rm = T),
+         sd_int.bc_s = sd(int.bc_s, na.rm = T),
+         ave_int.NPP = mean(int.NPP, na.rm = T),
+         sd_int.NPP = sd(int.NPP, na.rm = T),
+         ave_int.mew_i = mean(mew.season_i, na.rm = T),
+         sd_int.mew_i = sd(mew.season_i, na.rm = T),
+         ave_int.mew_s = mean(mew.season_s, na.rm = T),
+         sd_int.mew_s = sd(mew.season_s, na.rm = T),
+         ave_bcd.npp = mean(bcd.npp, na.rm = T),
+         sd_bcd.npp = sd(bcd.npp, na.rm = T)) %>% 
+  ungroup() %>% 
+  mutate_at(vars(ave_int.bp, sd_int.bp, ave_int.bc_i:sd_int.mew_s), round, 2) %>% 
+  mutate_at(vars(ave_bcd.npp, sd_bcd.npp), round)
 ```
 
 
@@ -105,13 +126,13 @@ Units for imported data frames are currently:
 
 #NPP
 npp.bar <- bcd %>% 
-  select(Cruise:Station, degree_bin, int.NPP, sd_int.NPP) %>%  distinct() %>% 
+  select(Cruise:Station, degree_bin, ave_int.NPP, sd_int.NPP) %>%  distinct() %>% 
   mutate_at(vars(contains("NPP")), funs(./10^3)) %>% 
   mutate_at(vars(degree_bin), as.character) %>% 
   ##PLOT
-  ggplot(aes(x = degree_bin, y =  int.NPP, group = interaction(Season, Station, degree_bin)))  + 
+  ggplot(aes(x = degree_bin, y =  ave_int.NPP, group = interaction(Season, Station, degree_bin)))  + 
   geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
-  geom_errorbar(aes(ymin = int.NPP - sd_int.NPP, ymax = int.NPP + sd_int.NPP), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  geom_errorbar(aes(ymin = ave_int.NPP - sd_int.NPP, ymax = ave_int.NPP + sd_int.NPP), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
   labs(x = expression(italic("")), y = expression(italic(paste("NPP, mmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
   custom_theme() +
@@ -120,12 +141,12 @@ npp.bar <- bcd %>%
   
 #BP
 bp.bar <- bcd %>% 
-  select(Cruise:Station, degree_bin, int.bp, sd_int.bp) %>% distinct() %>% 
+  select(Cruise:Station, degree_bin, ave_int.bp, sd_int.bp) %>% distinct() %>% 
   mutate_at(vars(degree_bin), as.character) %>% 
   ##PLOT
-  ggplot(aes(x = degree_bin, y =  int.bp, group = interaction(Season, Station, degree_bin)))  + 
+  ggplot(aes(x = degree_bin, y =  ave_int.bp, group = interaction(Season, Station, degree_bin)))  + 
   geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
-  geom_errorbar(aes(ymin = int.bp - sd_int.bp, ymax = int.bp + sd_int.bp), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  geom_errorbar(aes(ymin = ave_int.bp - sd_int.bp, ymax = ave_int.bp + sd_int.bp), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
   labs(x = expression(italic("")), y = expression(italic(paste("BP, µmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
   custom_theme() +
@@ -135,12 +156,12 @@ bp.bar <- bcd %>%
 
 #BA 
 ba.bar <- bcd %>% 
-  select(Cruise:Station, degree_bin, int.ba, sd_int.ba) %>% distinct() %>% 
+  select(Cruise:Station, degree_bin, ave_int.ba, sd_int.ba) %>% distinct() %>% 
   mutate_at(vars(degree_bin), as.character) %>% 
   ##PLOT
-  ggplot(aes(x = degree_bin, y =  int.ba, group = interaction(Season, Station, degree_bin)))  + 
+  ggplot(aes(x = degree_bin, y =  ave_int.ba, group = interaction(Season, Station, degree_bin)))  + 
   geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
-  geom_errorbar(aes(ymin = int.ba - sd_int.ba, ymax = int.ba + sd_int.ba), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  geom_errorbar(aes(ymin = ave_int.ba - sd_int.ba, ymax = ave_int.ba + sd_int.ba), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
   labs(x = expression(italic("")), y = expression(italic(paste("BA, cells m"^-3))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_fill_manual(values = custom.colors) +
@@ -154,11 +175,9 @@ ba.bar <- bcd %>%
 mew.bar <- bcd %>% 
   select(Cruise:Station, degree_bin, contains("mew")) %>% 
   distinct() %>% 
-  pivot_longer(cols = c(mew.global_i, mew.global_s, mew.season_i, mew.season_s), names_to = "ccf", values_to = "mew") %>%  
-  mutate(ccf = ifelse(ccf == "mew.global_i", "Initial Global CCF", NA),
-         ccf = ifelse(ccf == "mew.global_s", "Stationary Global CCF", ccf),
-         ccf = ifelse(ccf == "mew.season_i", "Initial Season-specific CCF", ccf),
-         ccf = ifelse(ccf == "mew.season_s", "Stationary Season-specific CCF", ccf),
+  pivot_longer(cols = c(ave_int.mew_i, ave_int.mew_s), names_to = "ccf", values_to = "mew") %>%  
+  mutate(ccf = ifelse(ccf == "ave_int.mew_i", "Initial CCF", NA),
+         ccf = ifelse(ccf == "ave_int.mew_i", "Stationary CCF", ccf),
          degree_bin = as.character(degree_bin)) %>% 
   group_by(Cruise, Station) %>% 
   mutate(ave = mean(mew),
@@ -178,13 +197,15 @@ mew.bar <- bcd %>%
 
 # ∆DOC
 deldoc.bar <- doc %>% 
-  select(Season:Subregion, degree_bin, Ez, int_delta_DOC_ez) %>% 
-  drop_na(int_delta_DOC_ez) %>% 
+  select(Season:Subregion, degree_bin, ave_Ez, ave_int_delta_DOC_ez, sd_int_delta_DOC_ez) %>% 
+  mutate_at(vars(contains("int_delta_DOC")), funs(./ave_Ez * 10^3)) %>% 
+  drop_na(ave_int_delta_DOC_ez) %>% 
   distinct() %>% 
   ##PLOT
-  ggplot(aes(x = degree_bin, y =  int_delta_DOC_ez, group = interaction(Season, Station, degree_bin)))  + 
+  ggplot(aes(x = degree_bin, y =  ave_int_delta_DOC_ez, group = interaction(Season, Station, degree_bin)))  + 
   geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
-  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("∆DOC, mol C m"^-3))), colour = expression(italic(""))) +
+  geom_errorbar(aes(ymin = ave_int_delta_DOC_ez - sd_int_delta_DOC_ez, ymax = ave_int_delta_DOC_ez + sd_int_delta_DOC_ez), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("∆DOC, mmol C m"^-3))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
   custom_theme() +
   facet_grid(~factor(Season, levels = levels), scales = "free") +
@@ -201,31 +222,36 @@ Error bars for µ represent standard deviation from mean of values calculated us
 
 ```{r message = F}
 bcd_table <- bcd %>% 
-  select(Cruise:degree_bin, int.bcd.global_bge, int.bcd.season_bge) %>% 
+  # select(Cruise:degree_bin, int.bcd.global_bge, int.bcd.season_bge) %>% 
+  # distinct() %>% 
+  # mutate_at(vars(int.bcd.global_bge, int.bcd.season_bge), funs(./1000)) %>% 
+  # pivot_longer(cols = c(int.bcd.global_bge, int.bcd.season_bge), names_to = "var", values_to = "bcd") %>% 
+  # select(-var) %>% 
+  # group_by(Cruise, Season, Subregion, degree_bin, Station) %>% 
+  # summarise(ave_BCD = round(mean(bcd), 2),
+  #           sd_BCD = round(sd(bcd), 2)) %>% 
+  # ungroup() %>% 
+  select(Cruise:degree_bin, int.bcd.season_bge) %>% 
   distinct() %>% 
-  mutate_at(vars(int.bcd.global_bge, int.bcd.season_bge), funs(./1000)) %>% 
-  pivot_longer(cols = c(int.bcd.global_bge, int.bcd.season_bge), names_to = "var", values_to = "bcd") %>% 
-  select(-var) %>% 
+  mutate_at(vars(int.bcd.season_bge), funs(./1000)) %>% 
   distinct() %>% 
-  group_by(Cruise, Season, Subregion, degree_bin, Station) %>% 
-  summarise(ave_BCD = round(mean(bcd), 2),
-            sd_BCD = round(sd(bcd), 2)) %>% 
-  ungroup() %>% 
   left_join(., bcd %>% 
               select(Cruise:Station, degree_bin,ave_Ez, sd_Ez, int.NPP, sd_int.NPP) %>% 
               distinct() %>% 
               mutate_at(vars(contains("NPP")), funs(round(./10^3, 2)))
             ) %>% 
   left_join(., bcd %>% 
-              select(Cruise:Station, degree_bin, bcd.npp.global_bge, bcd.npp.season_bge) %>% 
-              distinct() %>% 
-              pivot_longer(cols = c( bcd.npp.global_bge, bcd.npp.season_bge), names_to = "var", values_to = "bcd_npp") %>% 
-              select(-var) %>% 
-              distinct() %>% 
-              group_by(Cruise, Season, Subregion, degree_bin, Station) %>% 
-              summarise(ave_BCD_NPP = mean(bcd_npp),
-                        sd_BCD_NPP = sd(bcd_npp)) %>% 
-              ungroup()
+              # select(Cruise:Station, degree_bin, bcd.npp.global_bge, bcd.npp.season_bge) %>% 
+              # distinct() %>% 
+              # pivot_longer(cols = c( bcd.npp.global_bge, bcd.npp.season_bge), names_to = "var", values_to = "bcd_npp") %>% 
+              # select(-var) %>% 
+              # distinct() %>% 
+              # group_by(Cruise, Season, Subregion, degree_bin, Station) %>% 
+              # summarise(ave_BCD_NPP = mean(bcd_npp),
+              #           sd_BCD_NPP = sd(bcd_npp)) %>% 
+              # ungroup()
+              select(Cruise:Station, degree_bin, bcd.npp.season_bge) %>% 
+              distinct()
             ) %>% 
   arrange(factor(Season, levels = levels)) %>% 
   group_by(Cruise) %>% 
@@ -233,23 +259,23 @@ bcd_table <- bcd %>%
          Cruise_sd_Ez = sd(ave_Ez),
          Cruise_ave_NPP = mean(int.NPP),
          Cruise_sd_NPP = sd(int.NPP),
-         Cruise_ave_BCD = mean(ave_BCD),
-         Cruise_sd_BCD = sd(ave_BCD),
-         Cruise_ave_BCD_NPP = mean(ave_BCD_NPP),
-         Cruise_sd_BCD_NPP = sd(ave_BCD_NPP)
+         Cruise_ave_BCD = mean(int.bcd.season_bge),
+         Cruise_sd_BCD = sd(int.bcd.season_bge),
+         Cruise_ave_BCD_NPP = mean(bcd.npp.season_bge),
+         Cruise_sd_BCD_NPP = sd(bcd.npp.season_bge)
          ) %>% 
   ungroup() %>% 
-  group_by(Cruise, Subregion) %>% 
-  mutate(Cruise_SR_ave_NPP = mean(int.NPP),
-         Cruise_SR_sd_NPP = mean(int.NPP),
-         Cruise_SR_ave_BCD = mean(ave_BCD),
-         Cruise_SR_sd_BCD = sd(ave_BCD),
-         Cruise_SR_ave_BCD_NPP = mean(ave_BCD_NPP),
-         Cruise_SR_sd_BCD_NPP = sd(ave_BCD_NPP)
+  group_by(Cruise, Subregion, degree_bin) %>% 
+  mutate(Bin_ave_NPP = mean(int.NPP),
+         Bin_sd_NPP = mean(int.NPP),
+         Bin_ave_BCD = mean(int.bcd.season_bge),
+         Bin_sd_BCD = sd(int.bcd.season_bge),
+         Bin_ave_BCD_NPP = mean(bcd.npp.season_bge),
+         Bin_sd_BCD_NPP = sd(bcd.npp.season_bge)
          ) %>% 
   ungroup() %>% 
   mutate_at(vars(contains("BCD_NPP")), round) %>% 
-  mutate_at(vars(Cruise_ave_NPP:Cruise_sd_BCD, Cruise_SR_ave_NPP:Cruise_SR_sd_BCD ), round, 2) %>% 
+  mutate_at(vars(Cruise_ave_NPP:Cruise_sd_BCD, Bin_ave_NPP:Bin_sd_BCD ), round, 2) %>% 
   arrange(factor(Season, levels = levels), factor(Subregion, levels = levels))
 ```
 
@@ -331,11 +357,14 @@ Black vertical dashed and dotted lines indicate the 7 and 30-day marks, respecti
 
 # Table: ∆DOC, Bioavailability, Persistence
 
+Seasonally accumulated DOC is expressed as mmol C m^-3^
+
 ```{r}
 bioav.table <- doc %>% 
-  select(Season:Subregion, degree_bin, int_delta_DOC_ez, contains("bioav_accm_doc"), contains("bioav_doc"), contains("per_bioav"), contains("persis"), contains("ddoc")) %>% 
+  select(Season:Subregion, degree_bin, Ez, int_delta_DOC_ez, contains("bioav_accm_doc"), contains("bioav_doc"), contains("per_bioav"), contains("persis"), contains("ddoc")) %>% 
   distinct() %>% 
   group_by(Season, Subregion, degree_bin) %>% 
+  mutate(int_delta_DOC_ez = int_delta_DOC_ez/Ez * 10^3) %>% 
   summarise(ave_accm = round(mean(int_delta_DOC_ez, na.rm = T), 2),
             sd_accm = round(sd(int_delta_DOC_ez, na.rm = T), 2),
             
@@ -551,12 +580,13 @@ Here we merge the integrated and depth-normalized data. We'll also convert:
 ```{r message = F}
 
 bcd_bioav <- bcd %>% 
-  select(Cruise:degree_bin, int.bcd.season_bge, int.bcd.global_bge) %>% distinct() %>% 
-  pivot_longer(cols = c(int.bcd.season_bge, int.bcd.global_bge), names_to = "var", values_to = "bcd") %>% 
-  select(-var) %>% distinct() %>% 
-  group_by(Cruise,Subregion, degree_bin, Station) %>% 
-  summarise(ave_BCD = mean(bcd),
-            sd_BCD = sd(bcd)) %>% ungroup() %>% 
+  # select(Cruise:degree_bin, int.bcd.season_bge, int.bcd.global_bge) %>% distinct() %>% 
+  # pivot_longer(cols = c(int.bcd.season_bge, int.bcd.global_bge), names_to = "var", values_to = "bcd") %>% 
+  # select(-var) %>% distinct() %>% 
+  # group_by(Cruise,Subregion, degree_bin, Station) %>% 
+  # summarise(ave_BCD = mean(bcd),
+  #           sd_BCD = sd(bcd)) %>% ungroup() %>% 
+  select(Cruise:degree_bin, int.bcd.season_bge) %>% distinct() %>% 
   left_join(., bcd %>% 
               select(Cruise:degree_bin, int.bc.global_i:int.bc.season_s) %>% distinct() %>% 
               pivot_longer(cols = c(int.bc.global_i:int.bc.season_s), names_to = "var", values_to = "bc") %>% 
@@ -575,14 +605,15 @@ bcd_bioav <- bcd %>%
               ungroup()
   ) %>% 
   left_join(., bcd %>% 
-              select(Cruise:degree_bin, bcd.npp.global_bge, bcd.npp.season_bge) %>%
-              distinct() %>%
-              pivot_longer(cols = c(bcd.npp.global_bge, bcd.npp.season_bge), names_to = "var", values_to = "bcd.npp") %>% 
-              select(-var) %>% distinct() %>% 
-              group_by(Cruise,Subregion, degree_bin, Station) %>%
-              summarise(ave_bcd.npp = mean(bcd.npp),
-                        sd_bcd.npp = sd(bcd.npp)) %>% 
-              ungroup()
+              # select(Cruise:degree_bin, bcd.npp.global_bge, bcd.npp.season_bge) %>%
+              # distinct() %>%
+              # pivot_longer(cols = c(bcd.npp.global_bge, bcd.npp.season_bge), names_to = "var", values_to = "bcd.npp") %>% 
+              # select(-var) %>% distinct() %>% 
+              # group_by(Cruise,Subregion, degree_bin, Station) %>%
+              # summarise(ave_bcd.npp = mean(bcd.npp),
+              #           sd_bcd.npp = sd(bcd.npp)) %>% 
+              # ungroup()
+              select(Cruise:degree_bin, bcd.npp.season_bge) %>% distinct()
   ) %>% 
   left_join(bcd %>% 
               select(Cruise:sd_Ez, int.bp:sd_int.ba, int.NPP:sd_int.NPP) %>%
@@ -595,7 +626,8 @@ bcd_bioav <- bcd %>%
               mutate(degree_bin = as.numeric(degree_bin))
             ) %>% 
   select(Cruise:ave_Ez, everything()) %>% 
-  mutate_at(vars(int.NPP, int.NPP:sd_BC), funs(./1000))
+  mutate_at(vars(int.NPP, int.NPP:sd_BC), funs(./1000)) %>% 
+  mutate(int_delta_DOC_ez_mM = round(int_delta_DOC_ez/ave_Ez * 10^3, 2))
 ```
 
 
@@ -614,7 +646,7 @@ reg1
 ## BCD v Seasonally Accumulated DOC
 
 ```{r echo = FALSE}
-reg2 <- lmodel2(ave_BCD ~ int_delta_DOC_ez, data = bcd_bioav, nperm = 99)
+reg2 <- lmodel2(ave_BCD ~ int_delta_DOC_ez_mM, data = bcd_bioav, nperm = 99)
 ```
 
 ```{r echo = FALSE}
@@ -762,18 +794,18 @@ reg1.plot <- bcd_bioav %>%
   guides(color = F) +
   annotate( geom = "text", label = expression(atop("y = 0.17x + 0.07", paste("r"^2," = 0.71, ", italic("p "), "<< 0.01"))), x = 3.8, y = 0.08, size = 4) 
   
-reg7.plot  <- bcd_bioav %>% 
-  ggplot(aes(x = int_delta_DOC_ez, y = ave_bcd.npp)) + 
-  geom_abline(intercept = reg7$regression.results[3,2],
-              slope = reg7$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
-  geom_errorbar(aes(color = factor(Season, levels = levels), ymin = ave_bcd.npp - sd_bcd.npp, ymax = ave_bcd.npp + sd_bcd.npp), width = 0.02) +
+reg2.plot  <- bcd_bioav %>% 
+  ggplot(aes(x = int_delta_DOC_ez_mM, y = ave_BCD)) + 
+  geom_abline(intercept = reg2$regression.results[3,2],
+              slope = reg2$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_errorbar(aes(color = factor(Season, levels = levels), ymin = ave_BCD - sd_BCD, ymax = ave_BCD + sd_BCD), width = 0.02) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 1) +
-  labs(x = expression(italic(paste("Seasonally Accumulated DOC, mol C m"^-2))), y = expression(italic(paste("BCD : NPP")))) +
+  labs(x = expression(italic(paste("Seasonally Accumulated DOC, mmol C m"^-3))), y = expression(italic(paste("BCD, mmol C m"^-3, "d"^-1)))) +
   scale_fill_manual(values = custom.colors) +
   scale_color_manual(values = custom.colors) +
   custom_theme() +
   guides(color = F, fill = F) +
-  annotate( geom = "text", label = expression(atop("y = 104.39x + 4.21", paste("r"^2," = 0.24, ", italic("p "), "= 0.02"))), x = 0.90, y = 15, size = 4) 
+  annotate( geom = "text", label = expression(atop("y = 0.46x + 0.08", paste("r"^2," = 0.01, ", italic("p "), "= 0.61"))), x = 7, y = 0.7, size = 4) 
 
 reg8.plot  <- bcd_bioav %>% 
   ggplot(aes(x = total.per_bioav, y = ave_bcd.npp)) + 
