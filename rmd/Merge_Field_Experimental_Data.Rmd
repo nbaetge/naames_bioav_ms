@@ -232,7 +232,8 @@ export <- readRDS("~/naames_bioav_ms/Input/processed_export_for_bioavMS.5.29.20.
   distinct() %>% 
   mutate_at(vars(redis_DOC_vol), round, 1) %>% 
   mutate_at(vars(int_delta_DOC_ez), round, 2) %>%
-  mutate_at(vars(Station), as.character)
+  mutate_at(vars(Station), as.character) %>% 
+  drop_na(int_delta_DOC_ez)
 
 
 export_bioav <- full_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") %>% 
@@ -245,8 +246,8 @@ export_bioav <- full_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") 
                             group_by(Cruise, Station) %>% 
                             mutate(ave_Ez = mean(Ez),
                                    sd_Ez = sd(Ez),
-                                   ave_int_delta_DOC_ez = mean(int_delta_DOC_ez),
-                                   sd_int_delta_DOC_ez = sd(int_delta_DOC_ez)) %>% 
+                                   ave_int_delta_DOC_ez = mean(int_delta_DOC_ez, na.rm = T),
+                                   sd_int_delta_DOC_ez = sd(int_delta_DOC_ez, na.rm = T)) %>% 
                             mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
                              mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez), round, 2) %>% 
                             select(-c(Ez, int_delta_DOC_ez)) %>% 
