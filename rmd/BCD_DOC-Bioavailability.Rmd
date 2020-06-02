@@ -302,16 +302,51 @@ Seasonally accumulated DOC is expressed as mmol C m^-3^ or µmol C L^-1^
 
 ```{r}
 bioav.table <- doc %>% 
-  select(Season:Subregion, degree_bin, ave_Ez, sd_Ez, ave_int_delta_DOC_ez, sd_int_delta_DOC_ez, total.bioav_accm_doc:lt.bioav_accm_doc, total.per_bioav:bge) %>% 
+  select(Season, Station, degree_bin, ave_Ez, sd_Ez, ave_int_delta_DOC_ez, sd_int_delta_DOC_ez, accm_doc, sd_accm_doc, total.bioav_accm_doc:lt.bioav_accm_doc, total.per_bioav:bge) %>% 
   distinct() %>% 
   mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez), funs(round((./ave_Ez) * 10^3, 2))) %>% 
-  arrange(factor(Season, levels = levels), degree_bin) %>% 
+  arrange(degree_bin, factor(Season, levels = levels)) %>% 
   ungroup()
 ```
 
 
 ```{r echo = FALSE, results = 'asis'}
 kable(bioav.table, caption = "Seasonal Accumulated DOC Bioavailability and Persistance")
+```
+
+```{r}
+bioav.table2 <- bioav.table %>% 
+  select(-c(ave_Ez:sd_int_delta_DOC_ez)) %>% 
+  drop_na(accm_doc) %>% 
+  group_by(Season) %>% 
+  summarize(accm = mean(accm_doc, na.rm = T),
+            sd_accm = sd(accm_doc, na.rm = T),
+            total.bv = mean(total.bioav_accm_doc, na.rm = T),
+            sd_total.bv = sd(total.bioav_accm_doc, na.rm = T),
+            st.bv = mean(st.bioav_accm_doc, na.rm = T),
+            sd_st.bv = sd(st.bioav_accm_doc, na.rm = T),
+            total.per_bv = mean(total.per_bioav, na.rm = T),
+            sd_total.per_bv = sd(total.per_bioav, na.rm = T),
+            st.per_bv = mean(st.per_bioav, na.rm = T),
+            sd_st.per_bv = sd(st.per_bioav, na.rm = T),
+            pers = mean(persis_doc, na.rm = T),
+            sd_pers = sd(persis_doc, na.rm = T),
+            per_pers = mean(per_persis, na.rm = T),
+            sd_per_pers = sd(per_persis, na.rm = T),
+            st.ddoc_rate = mean(st.ddoc, na.rm = T),
+            sd_st.ddoc_rate = sd(st.ddoc, na.rm = T),
+            total.ddoc_rate = mean(total.ddoc, na.rm = T),
+            sd_total.ddoc_rate = sd(total.ddoc, na.rm = T),
+            stations = n()
+            
+            ) %>% 
+  mutate_at(vars(accm:sd_st.bv, pers, sd_pers), round, 1) %>% 
+  mutate_at(vars(contains(c("per_", "rate"))), round) %>% 
+  arrange(factor(Season, levels = levels))
+```
+
+```{r echo = FALSE, results = 'asis'}
+kable(bioav.table2, caption = "Seasonal Accumulated DOC Bioavailability and Persistance")
 ```
 
 # Bar plots: Experiment ∆DOC and %Bioavailability
@@ -432,12 +467,27 @@ bcd_table <- bcd %>%
             ) %>% 
   select(Cruise:degree_bin, ave_Ez:sd_int.NPP, everything()) %>% 
   mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
-  mutate_at(vars(ave_int.NPP:sd_int.BCD), round, 2)
+  mutate_at(vars(ave_int.NPP:sd_int.BCD), round, 2) %>% 
+  arrange(factor(Season, levels = levels), degree_bin)
 ```
 
 ```{r echo = FALSE, results = 'asis'}
 kable(bcd_table, caption = "BCD & NPP")
 ```
+
+```{r}
+bcd_table2 <- bcd_table %>% 
+  group_by(Cruise) %>% 
+  summarize(Ez = mean(ave_Ez),
+            sd_Ez = sd(ave_Ez),
+            NPP = mean(ave_int.NPP), 
+            sd_NPP = sd(ave_int.NPP),
+            BCD = mean(ave_int.BCD),
+            sd_BCD = sd(ave_int.BCD),
+            BCD_NPP = mean(ave_bcd.npp),
+            sd_BCD_NPP = sd(ave_bcd.npp))
+```
+
 
 # Bar plots: BCD and BCD:NPP
 

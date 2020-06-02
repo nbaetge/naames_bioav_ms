@@ -261,6 +261,7 @@ export_bioav <- full_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") 
   group_by(Cruise, Station) %>% 
   mutate(norm_doc = ave_doc - redis_DOC_vol,
          accm_doc = first(ave_doc) - redis_DOC_vol,
+         sd_accm_doc = first(sd_doc),
          total.bioav_accm_doc = ifelse(last(Days) > 30, accm_doc - last(norm_doc), NA),
          st.bioav_accm_doc = ifelse(Days == 7, accm_doc - norm_doc, NA),
          lt.bioav_accm_doc = total.bioav_accm_doc - st.bioav_accm_doc,
