@@ -214,7 +214,9 @@ deldoc.bar <- doc %>%
   theme(strip.background = element_blank(), strip.text = element_blank()) +
   guides(fill = F)
 
-npp.bar / bp.bar / ba.bar / mew.bar / deldoc.bar
+npp.bar / bp.bar / ba.bar / mew.bar / deldoc.bar +
+  plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(size = 14))
 ```
 
 Error bars for µ represent standard deviation from mean of values calculated using different CCFs to convert BA to BC (Global Initial CCF, Global Stationary CCF, Season-Specific Initial CCF, Season-Specific Stationary CCF). All other error bars represent standard deviation from mean of station values. 
@@ -355,7 +357,9 @@ bioav_doc.bar <- doc %>%
   guides(fill = F)
 
 
-ddoc.bar / bioav_doc.bar + plot_annotation(caption = "Experiemnts without long-term DOC bioavailability estimates have been omitted from this plot")
+ddoc.bar / bioav_doc.bar + 
+  plot_annotation(caption = "Experiemnts without long-term DOC bioavailability estimates have been omitted from this plot", tag_levels = "a") &
+  theme(plot.tag = element_text(size = 14))
 
 ```
 
@@ -397,7 +401,9 @@ bioav_doc44.bar <- doc %>%
   guides(fill = F)
 
 
-ddoc44.bar / bioav_doc44.bar + plot_annotation(title = "44˚N")
+ddoc44.bar / bioav_doc44.bar + 
+  plot_annotation(title = "44˚N", tag_levels = "a") &
+  theme(plot.tag = element_text(size = 14))
 
 ```
 
@@ -513,7 +519,9 @@ ratio.bar <- bcd %>%
   facet_grid(~factor(Season, levels = levels), scales = "free") +
   theme(strip.background = element_blank(), strip.text = element_blank())
   
-bcd.bar / bcd.npp.bar / ratio.bar
+bcd.bar / bcd.npp.bar / ratio.bar +
+  plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(size = 14))
 ```
 
 
@@ -708,7 +716,7 @@ reg7.plot <- bcd_bioav %>%
   annotate( geom = "text", label = expression(atop("y = 0.04x + 0.01", paste("r"^2," = 0.42, ", italic("p "), "<< 0.01"))), x = 3.1, y = 0.015, size = 4) 
 
 
-(reg1.plot + reg2.plot) / (reg7.plot + reg4.plot)
+(reg1.plot + reg2.plot) / (reg7.plot + reg4.plot) + plot_annotation(tag_levels = "a")
 
 ```
 

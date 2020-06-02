@@ -340,8 +340,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept         Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.1748337 -0.0002905547     -0.01664756              0.43
-    ## 2     MA 0.1748340 -0.0002905611     -0.01664793              0.43
+    ## 1    OLS 0.1748337 -0.0002905547     -0.01664756              0.52
+    ## 2     MA 0.1748340 -0.0002905611     -0.01664793              0.52
     ## 3    SMA 0.4151749 -0.0047263823     -0.27079974                NA
     ## 
     ## Confidence intervals
@@ -372,8 +372,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method  Intercept       Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.17239292 0.002567309       0.1470957              0.18
-    ## 2     MA 0.17238830 0.002567525       0.1471080              0.18
+    ## 1    OLS 0.17239292 0.002567309       0.1470957              0.19
+    ## 2     MA 0.17238830 0.002567525       0.1471080              0.19
     ## 3    SMA 0.02357684 0.009521332       0.5455156                NA
     ## 
     ## Confidence intervals
@@ -406,8 +406,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.2459200 -0.001494710     -0.08564053              0.22
-    ## 2     MA 0.2459227 -0.001494756     -0.08564317              0.22
+    ## 1    OLS 0.2459200 -0.001494710     -0.08564053              0.27
+    ## 2     MA 0.2459227 -0.001494756     -0.08564317              0.27
     ## 3    SMA 0.4930899 -0.005749591     -0.32942366                NA
     ## 
     ## Confidence intervals
@@ -438,8 +438,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS  0.11892114 0.0005338749      0.03058877              0.11
-    ## 2     MA  0.11892092 0.0005338760      0.03058884              0.11
+    ## 1    OLS  0.11892114 0.0005338749      0.03058877              0.14
+    ## 2     MA  0.11892092 0.0005338760      0.03058884              0.14
     ## 3    SMA -0.08323077 0.0015293702      0.08762639                NA
     ## 
     ## Confidence intervals
@@ -472,8 +472,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept      Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.018586145 0.02358895        1.351297              0.02
-    ## 2     MA 0.018572591 0.02360694        1.352327              0.02
+    ## 1    OLS 0.018586145 0.02358895        1.351297              0.01
+    ## 2     MA 0.018572591 0.02360694        1.352327              0.01
     ## 3    SMA 0.008995819 0.03631435        2.079745                NA
     ## 
     ## Confidence intervals
@@ -506,8 +506,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method  Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.04360225 -0.002287465      -0.1310618              0.14
-    ## 2     MA 0.04360339 -0.002287804      -0.1310813              0.14
+    ## 1    OLS 0.04360225 -0.002287465      -0.1310618              0.19
+    ## 2     MA 0.04360339 -0.002287804      -0.1310813              0.19
     ## 3    SMA 0.07756292 -0.012385245      -0.7095860                NA
     ## 
     ## Confidence intervals
@@ -540,8 +540,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS  0.01413558 0.0003263568      0.01869887               0.2
-    ## 2     MA  0.01413555 0.0003263572      0.01869889               0.2
+    ## 1    OLS  0.01413558 0.0003263568      0.01869887              0.17
+    ## 2     MA  0.01413555 0.0003263572      0.01869889              0.17
     ## 3    SMA -0.03138731 0.0011665443      0.06683804                NA
     ## 
     ## Confidence intervals
@@ -572,8 +572,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.032816659 0.0004914334      0.02815706              0.21
-    ## 2     MA 0.032816626 0.0004914349      0.02815714              0.21
+    ## 1    OLS 0.032816659 0.0004914334      0.02815706               0.2
+    ## 2     MA 0.032816626 0.0004914349      0.02815714               0.2
     ## 3    SMA 0.003926211 0.0018414543      0.10550744                NA
     ## 
     ## Confidence intervals
