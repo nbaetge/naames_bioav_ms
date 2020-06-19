@@ -354,7 +354,7 @@ calcs <- interpolated %>%
 
 ``` r
 bge_summary <- calcs %>% 
-  select(Season:Station, ave_lat:Subregion, Depth:facet_bottle, stationary:s.gf75, gf75.flag, del.doc, del.doc.flag, del.ph.doc, del.ph.doc.flag, del.bc.poc:del.bc.ph.dyn.ccf.white_lee, bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee, i.cn:i.cn.c3, s.cn:s.cn.c3) %>% 
+  select(Season:Station, ave_lat:Subregion, Depth:facet_bottle, stationary:s.gf75, gf75.flag, del.doc, del.doc.flag, del.ph.doc, del.ph.doc.flag, del.bc.poc:del.bc.ph.dyn.ccf.white_lee, bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee, i.cn:i.cn.c3, s.cn:s.cn.c3, i.ccf.c1, s.ccf.c1) %>% 
   distinct() %>% 
   mutate(type = ifelse(Treatment == "Control", "Control", "Non-Control"),
          degree_bin = ifelse(Station %in% c("S2RD", "S2RF"), 39, degree_bin),
@@ -367,7 +367,36 @@ bge_summary <- calcs %>%
    filter(!Station == "U", Depth == 10)
 ```
 
-<img src="BGE_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
+``` r
+ccfs <- bge_summary %>% 
+  filter(Treatment == "Control") %>% 
+  select(Season:Depth, Bottle, bge.p.bc.ccf.c1, i.ccf.c1, s.ccf.c1) %>% 
+  distinct() %>% 
+  group_by(Cruise, Station, Bottle) %>% 
+  fill(i.ccf.c1, s.ccf.c1) %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  drop_na(bge.p.bc.ccf.c1) %>% 
+  mutate(i.ccf.c1 = ifelse(Bottle == "B", NA, i.ccf.c1)) %>% 
+  select(Season, contains("ccf")) %>% 
+  group_by(Season) %>% 
+  summarise(ave_ccf.i = mean(i.ccf.c1, na.rm = T),
+            sd_ccf.i = sd(i.ccf.c1, na.rm = T),
+            ave_ccf.s = mean(s.ccf.c1, na.rm = T),
+            sd_ccf.s = sd(s.ccf.c1, na.rm = T)) %>% 
+  mutate_at(vars(-Season), round, 1) 
+
+ccfs
+```
+
+    ## # A tibble: 3 x 5
+    ##   Season       ave_ccf.i sd_ccf.i ave_ccf.s sd_ccf.s
+    ##   <chr>            <dbl>    <dbl>     <dbl>    <dbl>
+    ## 1 Early Autumn      51.5     12        18.3        4
+    ## 2 Early Spring       5       NA        22         NA
+    ## 3 Late Spring       14.5      4.9      17.8       13
+
+<img src="BGE_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
 
 Generally, good agreement between BGEs estimated using empirical ∆POC
 and empirical CCFs.
@@ -461,7 +490,7 @@ ave_bges
     ## 12 Late … Lee …    0.62   0.09 Lee …      0.62        NA          0.43
     ## # … with 1 more variable: sd_global_bge <dbl>
 
-<img src="BGE_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+<img src="BGE_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
 
 # Save Data
 
@@ -470,7 +499,6 @@ associated BGEs from further analysis
 
 ``` r
 calcs %>% 
-  filter(Depth == 10, Treatment == "Control", Hours == 0, !Station == "U") %>% 
   mutate(bge.p.bc.ccf.c1 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c1),
          bge.p.bc.ccf.c2 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c2),
          bge.p.bc.ccf.c3 = ifelse(Cruise == "AT34" & Station == 3 & Depth == 10, NA, bge.p.bc.ccf.c3),

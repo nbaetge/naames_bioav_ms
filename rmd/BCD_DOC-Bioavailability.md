@@ -111,48 +111,136 @@ C L<sup>-1</sup>
 
 ``` r
 bioav.table <- doc %>% 
-  select(Season:Subregion, degree_bin, ave_Ez, sd_Ez, ave_int_delta_DOC_ez, sd_int_delta_DOC_ez, total.bioav_accm_doc:lt.bioav_accm_doc, total.per_bioav:bge) %>% 
+  select(Season, Station, degree_bin, ave_Ez, sd_Ez, ave_int_delta_DOC_ez, sd_int_delta_DOC_ez, accm_doc, sd_accm_doc, total.bioav_accm_doc:lt.bioav_accm_doc, total.per_bioav:bge) %>% 
   distinct() %>% 
   mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez), funs(round((./ave_Ez) * 10^3, 2))) %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
   ungroup()
 ```
 
-| Season       | Station | Subregion   | degree\_bin | ave\_Ez | sd\_Ez | ave\_int\_delta\_DOC\_ez | sd\_int\_delta\_DOC\_ez | total.bioav\_accm\_doc | st.bioav\_accm\_doc | lt.bioav\_accm\_doc | total.per\_bioav | st.per\_bioav | lt.per\_bioav | persis\_doc | per\_persis | st.ddoc | lt.ddoc | total.ddoc | bge   |
-| :----------- | :------ | :---------- | :---------- | ------: | -----: | -----------------------: | ----------------------: | ---------------------: | ------------------: | ------------------: | ---------------: | ------------: | ------------: | ----------: | ----------: | ------: | ------: | ---------: | :---- |
-| Early Spring | 1       | GS/Sargasso | 39          |     106 |      0 |                     1.79 |                    0.28 |                    4.7 |                 2.0 |                 2.7 |              112 |            48 |            64 |       \-0.5 |        \-12 |     286 |      35 |         56 | FALSE |
-| Early Spring | 2       | GS/Sargasso | 39          |      98 |      0 |                     1.43 |                    0.20 |                    3.1 |                 0.3 |                 2.8 |               89 |             9 |            80 |         0.4 |          11 |      43 |      37 |         37 | FALSE |
-| Early Spring | S2RD    | GS/Sargasso | 39          |      NA |     NA |                       NA |                      NA |                    3.7 |                 0.9 |                 2.8 |               82 |            20 |            62 |         0.8 |          18 |     129 |      31 |         38 | FALSE |
-| Early Spring | S2RF    | GS/Sargasso | 39          |      NA |     NA |                       NA |                      NA |                    2.9 |                 0.1 |                 2.8 |               97 |             3 |            93 |         0.1 |           3 |      14 |      31 |         30 | FALSE |
-| Early Spring | 3       | Subtropical | 44          |     120 |      0 |                     2.67 |                    0.00 |                    3.1 |                 0.0 |                 3.1 |               72 |             0 |            72 |         1.2 |          28 |       0 |      41 |         38 | FALSE |
-| Early Spring | 4       | Subtropical | 44          |     126 |      0 |                     0.08 |                    0.00 |                    1.8 |                 0.7 |                 1.1 |               69 |            27 |            42 |         0.8 |          31 |     100 |      12 |         18 | TRUE  |
-| Late Spring  | 5       | Subtropical | 44          |      91 |      0 |                     3.52 |                    1.10 |                    4.0 |                 2.7 |                 1.3 |               34 |            23 |            11 |         7.7 |          66 |     386 |      13 |         38 | FALSE |
-| Late Spring  | 4       | Subtropical | 48          |     125 |     31 |                     2.00 |                    0.56 |                     NA |                 0.7 |                  NA |               NA |            25 |            NA |          NA |          NA |     100 |      NA |         NA | FALSE |
-| Late Spring  | 3       | Temperate   | 50          |      52 |      0 |                     3.85 |                    0.77 |                     NA |                 2.3 |                  NA |               NA |            29 |            NA |          NA |          NA |     329 |      NA |         NA | TRUE  |
-| Late Spring  | 0       | Subpolar    | 54          |      87 |      0 |                     2.07 |                    0.00 |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Spring  | 2       | Subpolar    | 54          |      54 |      0 |                     3.33 |                    0.56 |                     NA |                 1.0 |                  NA |               NA |            14 |            NA |          NA |          NA |     143 |      NA |         NA | TRUE  |
-| Late Spring  | 1       | Subpolar    | 56          |      72 |      0 |                     0.42 |                    0.14 |                     NA |                 2.5 |                  NA |               NA |            76 |            NA |          NA |          NA |     357 |      NA |         NA | TRUE  |
-| Early Autumn | 1       | GS/Sargasso | 42          |     244 |      0 |                     1.72 |                    0.00 |                    4.7 |                 2.3 |                 2.4 |               39 |            19 |            20 |         7.5 |          61 |     329 |      39 |         68 | FALSE |
-| Early Autumn | 2       | Subtropical | 44          |     207 |      0 |                     4.30 |                    0.19 |                    5.9 |                 1.6 |                 4.3 |               31 |             8 |            23 |        13.0 |          69 |     229 |      70 |         87 | FALSE |
-| Early Autumn | 3       | Subtropical | 47          |     200 |      0 |                     1.10 |                    0.05 |                    4.5 |                 1.6 |                 2.9 |               32 |            11 |            21 |         9.6 |          68 |     229 |      49 |         68 | TRUE  |
-| Early Autumn | 4       | Subtropical | 49          |     188 |      0 |                     5.11 |                    0.00 |                    3.8 |                 0.9 |                 2.9 |               25 |             6 |            19 |        11.3 |          75 |     129 |      51 |         59 | FALSE |
-| Early Autumn | 5       | Temperate   | 52          |     157 |      0 |                     4.84 |                    0.00 |                    5.3 |                 0.9 |                 4.4 |               37 |             6 |            31 |         8.9 |          63 |     129 |      80 |         85 | FALSE |
-| Early Autumn | 6       | Subpolar    | 53          |     102 |      6 |                     3.63 |                    0.59 |                    5.0 |                 1.8 |                 3.2 |               56 |            20 |            36 |         3.9 |          44 |     257 |      62 |         85 | TRUE  |
-| Late Autumn  | 7       | Subtropical | 40          |     112 |     14 |                     6.25 |                    0.00 |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 6       | Subtropical | 43          |     103 |      0 |                     7.57 |                    0.00 |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 5       | Subtropical | 44          |     103 |      0 |                     5.53 |                    0.00 |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 4       | Subtropical | 46          |     126 |      0 |                     3.10 |                    0.00 |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 3       | Temperate   | 51          |      59 |      0 |                     7.12 |                    0.00 |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 2       | Subpolar    | 54          |     104 |      0 |                     1.54 |                    0.00 |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Season       | Station | degree\_bin | ave\_Ez | sd\_Ez | ave\_int\_delta\_DOC\_ez | sd\_int\_delta\_DOC\_ez | accm\_doc | sd\_accm\_doc | total.bioav\_accm\_doc | st.bioav\_accm\_doc | lt.bioav\_accm\_doc | total.per\_bioav | st.per\_bioav | lt.per\_bioav | persis\_doc | per\_persis | st.ddoc | lt.ddoc | total.ddoc | bge   |
+| :----------- | :------ | :---------- | ------: | -----: | -----------------------: | ----------------------: | --------: | ------------: | ---------------------: | ------------------: | ------------------: | ---------------: | ------------: | ------------: | ----------: | ----------: | ------: | ------: | ---------: | :---- |
+| Early Spring | 1       | 39          |     106 |      0 |                     1.79 |                    0.28 |       4.2 |           0.6 |                    4.7 |                 2.0 |                 2.7 |              112 |            48 |            64 |       \-0.5 |        \-12 |     286 |      35 |         56 | FALSE |
+| Early Spring | 2       | 39          |      98 |      0 |                     1.43 |                    0.20 |       3.5 |           0.1 |                    3.1 |                 0.3 |                 2.8 |               89 |             9 |            80 |         0.4 |          11 |      43 |      37 |         37 | FALSE |
+| Early Spring | S2RD    | 39          |      NA |     NA |                       NA |                      NA |       4.5 |           0.1 |                    3.7 |                 0.9 |                 2.8 |               82 |            20 |            62 |         0.8 |          18 |     129 |      31 |         38 | FALSE |
+| Early Spring | S2RF    | 39          |      NA |     NA |                       NA |                      NA |       3.0 |           0.7 |                    2.9 |                 0.1 |                 2.8 |               97 |             3 |            93 |         0.1 |           3 |      14 |      31 |         30 | FALSE |
+| Early Spring | 3       | 44          |     120 |      0 |                     2.67 |                    0.00 |       4.3 |           0.3 |                    3.1 |                 0.0 |                 3.1 |               72 |             0 |            72 |         1.2 |          28 |       0 |      41 |         38 | FALSE |
+| Early Spring | 4       | 44          |     126 |      0 |                     0.08 |                    0.00 |       2.6 |           0.3 |                    1.8 |                 0.7 |                 1.1 |               69 |            27 |            42 |         0.8 |          31 |     100 |      12 |         18 | TRUE  |
+| Late Spring  | 5       | 44          |      91 |      0 |                     3.52 |                    1.10 |      11.7 |           0.5 |                    4.0 |                 2.7 |                 1.3 |               34 |            23 |            11 |         7.7 |          66 |     386 |      13 |         38 | FALSE |
+| Late Spring  | 4       | 48          |     125 |     31 |                     2.00 |                    0.56 |       2.8 |           0.8 |                     NA |                 0.7 |                  NA |               NA |            25 |            NA |          NA |          NA |     100 |      NA |         NA | FALSE |
+| Late Spring  | 3       | 50          |      52 |      0 |                     3.85 |                    0.77 |       7.9 |           0.0 |                     NA |                 2.3 |                  NA |               NA |            29 |            NA |          NA |          NA |     329 |      NA |         NA | TRUE  |
+| Late Spring  | 0       | 54          |      87 |      0 |                     2.07 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Spring  | 2       | 54          |      54 |      0 |                     3.33 |                    0.56 |       6.9 |           0.4 |                     NA |                 1.0 |                  NA |               NA |            14 |            NA |          NA |          NA |     143 |      NA |         NA | TRUE  |
+| Late Spring  | 1       | 56          |      72 |      0 |                     0.42 |                    0.14 |       3.3 |           1.0 |                     NA |                 2.5 |                  NA |               NA |            76 |            NA |          NA |          NA |     357 |      NA |         NA | TRUE  |
+| Early Autumn | 1       | 42          |     244 |      0 |                     1.72 |                    0.00 |      12.2 |           0.2 |                    4.7 |                 2.3 |                 2.4 |               39 |            19 |            20 |         7.5 |          61 |     329 |      39 |         68 | FALSE |
+| Early Autumn | 2       | 44          |     207 |      0 |                     4.30 |                    0.19 |      18.9 |           0.8 |                    5.9 |                 1.6 |                 4.3 |               31 |             8 |            23 |        13.0 |          69 |     229 |      70 |         87 | FALSE |
+| Early Autumn | 3       | 47          |     200 |      0 |                     1.10 |                    0.05 |      14.1 |           1.6 |                    4.5 |                 1.6 |                 2.9 |               32 |            11 |            21 |         9.6 |          68 |     229 |      49 |         68 | TRUE  |
+| Early Autumn | 4       | 49          |     188 |      0 |                     5.11 |                    0.00 |      15.1 |           0.4 |                    3.8 |                 0.9 |                 2.9 |               25 |             6 |            19 |        11.3 |          75 |     129 |      51 |         59 | FALSE |
+| Early Autumn | 5       | 52          |     157 |      0 |                     4.84 |                    0.00 |      14.2 |           0.6 |                    5.3 |                 0.9 |                 4.4 |               37 |             6 |            31 |         8.9 |          63 |     129 |      80 |         85 | FALSE |
+| Early Autumn | 6       | 53          |     102 |      6 |                     3.63 |                    0.59 |       8.9 |           0.3 |                    5.0 |                 1.8 |                 3.2 |               56 |            20 |            36 |         3.9 |          44 |     257 |      62 |         85 | TRUE  |
+| Late Autumn  | 7       | 40          |     112 |     14 |                     6.25 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 6       | 43          |     103 |      0 |                     7.57 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 5       | 44          |     103 |      0 |                     5.53 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 4       | 46          |     126 |      0 |                     3.10 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 3       | 51          |      59 |      0 |                     7.12 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 2       | 54          |     104 |      0 |                     1.54 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+
+Seasonal Accumulated DOC Bioavailability and Persistance
+
+``` r
+bioav.table2 <- bioav.table %>% 
+  select(-c(ave_Ez:sd_int_delta_DOC_ez)) %>% 
+  drop_na(accm_doc) %>% 
+  group_by(Season) %>% 
+  summarize(accm = mean(accm_doc, na.rm = T),
+            sd_accm = sd(accm_doc, na.rm = T),
+            total.bv = mean(total.bioav_accm_doc, na.rm = T),
+            sd_total.bv = sd(total.bioav_accm_doc, na.rm = T),
+            st.bv = mean(st.bioav_accm_doc, na.rm = T),
+            sd_st.bv = sd(st.bioav_accm_doc, na.rm = T),
+            total.per_bv = mean(total.per_bioav, na.rm = T),
+            sd_total.per_bv = sd(total.per_bioav, na.rm = T),
+            st.per_bv = mean(st.per_bioav, na.rm = T),
+            sd_st.per_bv = sd(st.per_bioav, na.rm = T),
+            pers = mean(persis_doc, na.rm = T),
+            sd_pers = sd(persis_doc, na.rm = T),
+            per_pers = mean(per_persis, na.rm = T),
+            sd_per_pers = sd(per_persis, na.rm = T),
+            st.ddoc_rate = mean(st.ddoc, na.rm = T),
+            sd_st.ddoc_rate = sd(st.ddoc, na.rm = T),
+            total.ddoc_rate = mean(total.ddoc, na.rm = T),
+            sd_total.ddoc_rate = sd(total.ddoc, na.rm = T),
+            stations = n()
+            
+            ) %>% 
+  mutate_at(vars(accm:sd_st.bv, pers, sd_pers), round, 1) %>% 
+  mutate_at(vars(contains(c("per_", "rate"))), round) %>% 
+  arrange(factor(Season, levels = levels))
+```
+
+| Season       | accm | sd\_accm | total.bv | sd\_total.bv | st.bv | sd\_st.bv | total.per\_bv | sd\_total.per\_bv | st.per\_bv | sd\_st.per\_bv | pers | sd\_pers | per\_pers | sd\_per\_pers | st.ddoc\_rate | sd\_st.ddoc\_rate | total.ddoc\_rate | sd\_total.ddoc\_rate | stations |
+| :----------- | ---: | -------: | -------: | -----------: | ----: | --------: | ------------: | ----------------: | ---------: | -------------: | ---: | -------: | --------: | ------------: | ------------: | ----------------: | ---------------: | -------------------: | -------: |
+| Early Spring |  3.7 |      0.8 |      3.2 |          1.0 |   0.7 |       0.7 |            87 |                16 |         18 |             18 |  0.5 |      0.6 |        13 |            16 |            95 |               106 |               36 |                   12 |        6 |
+| Late Spring  |  6.5 |      3.6 |      4.0 |           NA |   1.8 |       0.9 |            34 |                NA |         33 |             24 |  7.7 |       NA |        66 |            NA |           263 |               132 |               38 |                   NA |        5 |
+| Early Autumn | 13.9 |      3.3 |      4.9 |          0.7 |   1.5 |       0.5 |            37 |                11 |         12 |              6 |  9.0 |      3.2 |        63 |            11 |           217 |                77 |               75 |                   12 |        6 |
+
+Seasonal Accumulated DOC Bioavailability and Persistance
+
+``` r
+bioav.table3 <- bioav.table %>% 
+  select(-c(ave_Ez:sd_int_delta_DOC_ez)) %>% 
+  drop_na(accm_doc) %>% 
+  group_by(Season, degree_bin) %>% 
+  summarize(accm = mean(accm_doc, na.rm = T),
+            sd_accm = sd(accm_doc, na.rm = T),
+            total.bv = mean(total.bioav_accm_doc, na.rm = T),
+            sd_total.bv = sd(total.bioav_accm_doc, na.rm = T),
+            st.bv = mean(st.bioav_accm_doc, na.rm = T),
+            sd_st.bv = sd(st.bioav_accm_doc, na.rm = T),
+            total.per_bv = mean(total.per_bioav, na.rm = T),
+            sd_total.per_bv = sd(total.per_bioav, na.rm = T),
+            st.per_bv = mean(st.per_bioav, na.rm = T),
+            sd_st.per_bv = sd(st.per_bioav, na.rm = T),
+            pers = mean(persis_doc, na.rm = T),
+            sd_pers = sd(persis_doc, na.rm = T),
+            per_pers = mean(per_persis, na.rm = T),
+            sd_per_pers = sd(per_persis, na.rm = T),
+            st.ddoc_rate = mean(st.ddoc, na.rm = T),
+            sd_st.ddoc_rate = sd(st.ddoc, na.rm = T),
+            total.ddoc_rate = mean(total.ddoc, na.rm = T),
+            sd_total.ddoc_rate = sd(total.ddoc, na.rm = T),
+            stations = n()
+            
+            ) %>% 
+  mutate_at(vars(accm:sd_st.bv, pers, sd_pers), round, 1) %>% 
+  mutate_at(vars(contains(c("per_", "rate"))), round) %>% 
+  arrange(factor(Season, levels = levels))
+```
+
+| Season       | degree\_bin | accm | sd\_accm | total.bv | sd\_total.bv | st.bv | sd\_st.bv | total.per\_bv | sd\_total.per\_bv | st.per\_bv | sd\_st.per\_bv | pers | sd\_pers | per\_pers | sd\_per\_pers | st.ddoc\_rate | sd\_st.ddoc\_rate | total.ddoc\_rate | sd\_total.ddoc\_rate | stations |
+| :----------- | :---------- | ---: | -------: | -------: | -----------: | ----: | --------: | ------------: | ----------------: | ---------: | -------------: | ---: | -------: | --------: | ------------: | ------------: | ----------------: | ---------------: | -------------------: | -------: |
+| Early Spring | 39          |  3.8 |      0.7 |      3.6 |          0.8 |   0.8 |       0.9 |            95 |                13 |         20 |             20 |  0.2 |      0.5 |         5 |            13 |           118 |               122 |               40 |                   11 |        4 |
+| Early Spring | 44          |  3.4 |      1.2 |      2.4 |          0.9 |   0.4 |       0.5 |            70 |                 2 |         14 |             19 |  1.0 |      0.3 |        30 |             2 |            50 |                71 |               28 |                   14 |        2 |
+| Late Spring  | 44          | 11.7 |       NA |      4.0 |           NA |   2.7 |        NA |            34 |                NA |         23 |             NA |  7.7 |       NA |        66 |            NA |           386 |                NA |               38 |                   NA |        1 |
+| Late Spring  | 48          |  2.8 |       NA |      NaN |           NA |   0.7 |        NA |           NaN |                NA |         25 |             NA |  NaN |       NA |       NaN |            NA |           100 |                NA |              NaN |                   NA |        1 |
+| Late Spring  | 50          |  7.9 |       NA |      NaN |           NA |   2.3 |        NA |           NaN |                NA |         29 |             NA |  NaN |       NA |       NaN |            NA |           329 |                NA |              NaN |                   NA |        1 |
+| Late Spring  | 54          |  6.9 |       NA |      NaN |           NA |   1.0 |        NA |           NaN |                NA |         14 |             NA |  NaN |       NA |       NaN |            NA |           143 |                NA |              NaN |                   NA |        1 |
+| Late Spring  | 56          |  3.3 |       NA |      NaN |           NA |   2.5 |        NA |           NaN |                NA |         76 |             NA |  NaN |       NA |       NaN |            NA |           357 |                NA |              NaN |                   NA |        1 |
+| Early Autumn | 42          | 12.2 |       NA |      4.7 |           NA |   2.3 |        NA |            39 |                NA |         19 |             NA |  7.5 |       NA |        61 |            NA |           329 |                NA |               68 |                   NA |        1 |
+| Early Autumn | 44          | 18.9 |       NA |      5.9 |           NA |   1.6 |        NA |            31 |                NA |          8 |             NA | 13.0 |       NA |        69 |            NA |           229 |                NA |               87 |                   NA |        1 |
+| Early Autumn | 47          | 14.1 |       NA |      4.5 |           NA |   1.6 |        NA |            32 |                NA |         11 |             NA |  9.6 |       NA |        68 |            NA |           229 |                NA |               68 |                   NA |        1 |
+| Early Autumn | 49          | 15.1 |       NA |      3.8 |           NA |   0.9 |        NA |            25 |                NA |          6 |             NA | 11.3 |       NA |        75 |            NA |           129 |                NA |               59 |                   NA |        1 |
+| Early Autumn | 52          | 14.2 |       NA |      5.3 |           NA |   0.9 |        NA |            37 |                NA |          6 |             NA |  8.9 |       NA |        63 |            NA |           129 |                NA |               85 |                   NA |        1 |
+| Early Autumn | 53          |  8.9 |       NA |      5.0 |           NA |   1.8 |        NA |            56 |                NA |         20 |             NA |  3.9 |       NA |        44 |            NA |           257 |                NA |               85 |                   NA |        1 |
 
 Seasonal Accumulated DOC Bioavailability and
 Persistance
 
 # Bar plots: Experiment ∆DOC and %Bioavailability
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
 
 # Table: NPP and BCD
 
@@ -179,42 +267,56 @@ bcd_table <- bcd %>%
             ) %>% 
   select(Cruise:degree_bin, ave_Ez:sd_int.NPP, everything()) %>% 
   mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
-  mutate_at(vars(ave_int.NPP:sd_int.BCD), round, 2)
+  mutate_at(vars(ave_int.NPP:sd_int.BCD), round, 2) %>% 
+  arrange(factor(Season, levels = levels), degree_bin)
 ```
 
 | Cruise | Subregion   | Season       | Station | degree\_bin | ave\_Ez | sd\_Ez | ave\_int.NPP | sd\_int.NPP | ave\_int.BCD | sd\_int.BCD | ave\_bcd.npp | sd\_bcd.npp |
 | :----- | :---------- | :----------- | ------: | ----------: | ------: | -----: | -----------: | ----------: | -----------: | ----------: | -----------: | ----------: |
-| AT32   | Subpolar    | Late Autumn  |       2 |          54 |     104 |      0 |         0.18 |        0.00 |         0.13 |        0.00 |           72 |           0 |
-| AT32   | Temperate   | Late Autumn  |       3 |          51 |      59 |      0 |         0.11 |        0.00 |         0.13 |        0.00 |          114 |           0 |
-| AT32   | Subtropical | Late Autumn  |       4 |          46 |     126 |      0 |         0.17 |        0.00 |         0.13 |        0.00 |           74 |           0 |
-| AT32   | Subtropical | Late Autumn  |       5 |          44 |     103 |      0 |         0.17 |        0.00 |         0.15 |        0.00 |           89 |           0 |
-| AT32   | Subtropical | Late Autumn  |       6 |          43 |     103 |      0 |         0.19 |        0.00 |         0.15 |        0.00 |           79 |           0 |
-| AT32   | Subtropical | Late Autumn  |       7 |          40 |      98 |      0 |         0.25 |        0.00 |         0.17 |        0.00 |           69 |           0 |
-| AT34   | Subpolar    | Late Spring  |       0 |          54 |      87 |      0 |         1.47 |        0.00 |         0.24 |        0.00 |           16 |           0 |
-| AT34   | Subpolar    | Late Spring  |       1 |          56 |      72 |      0 |         1.36 |        0.00 |         0.40 |        0.00 |           29 |           0 |
-| AT34   | Subpolar    | Late Spring  |       2 |          54 |      54 |      0 |         2.86 |        0.00 |         0.62 |        0.00 |           22 |           0 |
-| AT34   | Temperate   | Late Spring  |       3 |          50 |      52 |      0 |         3.34 |        0.00 |         0.47 |        0.00 |           14 |           0 |
-| AT34   | Subtropical | Late Spring  |       4 |          48 |     116 |     22 |         0.82 |        0.15 |         0.17 |        0.07 |           20 |           5 |
+| AT39   | GS/Sargasso | Early Spring |       1 |          39 |     106 |      0 |         0.60 |        0.00 |         0.11 |        0.00 |           19 |           0 |
+| AT39   | GS/Sargasso | Early Spring |       2 |          39 |      98 |      0 |         1.31 |        0.00 |         0.30 |        0.00 |           23 |           0 |
+| AT39   | Subtropical | Early Spring |       3 |          44 |     120 |      0 |         0.41 |        0.00 |         0.09 |        0.00 |           21 |           0 |
+| AT39   | Subtropical | Early Spring |       4 |          44 |     126 |      0 |         0.56 |        0.00 |         0.06 |        0.00 |           11 |           0 |
 | AT34   | Subtropical | Late Spring  |       5 |          44 |      91 |      0 |         0.99 |        0.00 |         0.51 |        0.00 |           52 |           0 |
+| AT34   | Subtropical | Late Spring  |       4 |          48 |     116 |     22 |         0.82 |        0.15 |         0.17 |        0.07 |           20 |           5 |
+| AT34   | Temperate   | Late Spring  |       3 |          50 |      52 |      0 |         3.34 |        0.00 |         0.47 |        0.00 |           14 |           0 |
+| AT34   | Subpolar    | Late Spring  |       0 |          54 |      87 |      0 |         1.47 |        0.00 |         0.24 |        0.00 |           16 |           0 |
+| AT34   | Subpolar    | Late Spring  |       2 |          54 |      54 |      0 |         2.86 |        0.00 |         0.62 |        0.00 |           22 |           0 |
+| AT34   | Subpolar    | Late Spring  |       1 |          56 |      72 |      0 |         1.36 |        0.00 |         0.40 |        0.00 |           29 |           0 |
 | AT38   | GS/Sargasso | Early Autumn |       1 |          42 |     244 |      0 |         0.11 |        0.00 |         0.12 |        0.00 |          103 |           0 |
 | AT38   | Subtropical | Early Autumn |       2 |          44 |     207 |      0 |         0.23 |        0.00 |         0.15 |        0.00 |           65 |           0 |
 | AT38   | Subtropical | Early Autumn |       3 |          47 |     200 |      0 |         0.18 |        0.00 |         0.07 |        0.00 |           38 |           0 |
 | AT38   | Subtropical | Early Autumn |       4 |          49 |     188 |      0 |         0.19 |        0.00 |         0.09 |        0.00 |           48 |           0 |
 | AT38   | Temperate   | Early Autumn |       5 |          52 |     157 |      0 |         0.42 |        0.00 |         0.12 |        0.00 |           28 |           0 |
 | AT38   | Subpolar    | Early Autumn |       6 |          53 |     103 |      6 |         0.66 |        0.07 |         0.13 |        0.03 |           20 |           5 |
-| AT39   | GS/Sargasso | Early Spring |       1 |          39 |     106 |      0 |         0.60 |        0.00 |         0.11 |        0.00 |           19 |           0 |
-| AT39   | GS/Sargasso | Early Spring |       2 |          39 |      98 |      0 |         1.31 |        0.00 |         0.30 |        0.00 |           23 |           0 |
-| AT39   | Subtropical | Early Spring |       3 |          44 |     120 |      0 |         0.41 |        0.00 |         0.09 |        0.00 |           21 |           0 |
-| AT39   | Subtropical | Early Spring |       4 |          44 |     126 |      0 |         0.56 |        0.00 |         0.06 |        0.00 |           11 |           0 |
+| AT32   | Subtropical | Late Autumn  |       7 |          40 |      98 |      0 |         0.25 |        0.00 |         0.17 |        0.00 |           69 |           0 |
+| AT32   | Subtropical | Late Autumn  |       6 |          43 |     103 |      0 |         0.19 |        0.00 |         0.15 |        0.00 |           79 |           0 |
+| AT32   | Subtropical | Late Autumn  |       5 |          44 |     103 |      0 |         0.17 |        0.00 |         0.15 |        0.00 |           89 |           0 |
+| AT32   | Subtropical | Late Autumn  |       4 |          46 |     126 |      0 |         0.17 |        0.00 |         0.13 |        0.00 |           74 |           0 |
+| AT32   | Temperate   | Late Autumn  |       3 |          51 |      59 |      0 |         0.11 |        0.00 |         0.13 |        0.00 |          114 |           0 |
+| AT32   | Subpolar    | Late Autumn  |       2 |          54 |     104 |      0 |         0.18 |        0.00 |         0.13 |        0.00 |           72 |           0 |
 
 BCD & NPP
+
+``` r
+bcd_table2 <- bcd_table %>% 
+  group_by(Cruise) %>% 
+  summarize(Ez = mean(ave_Ez),
+            sd_Ez = sd(ave_Ez),
+            NPP = mean(ave_int.NPP), 
+            sd_NPP = sd(ave_int.NPP),
+            BCD = mean(ave_int.BCD),
+            sd_BCD = sd(ave_int.BCD),
+            BCD_NPP = mean(ave_bcd.npp),
+            sd_BCD_NPP = sd(ave_bcd.npp))
+```
 
 # Bar plots: BCD and BCD:NPP
 
 We’ll convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup> before
 plotting.
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
 
 # Merge DOC and BCD data
 
@@ -306,8 +408,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.2205283 -0.004617140      -0.2645408              0.39
-    ## 2     MA 0.2206090 -0.004641131      -0.2659153              0.39
+    ## 1    OLS 0.2205283 -0.004617140      -0.2645408              0.33
+    ## 2     MA 0.2206090 -0.004641131      -0.2659153              0.33
     ## 3    SMA 0.4473010 -0.072045177      -4.1207648                NA
     ## 
     ## Confidence intervals
@@ -340,8 +442,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept         Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.1748337 -0.0002905547     -0.01664756              0.52
-    ## 2     MA 0.1748340 -0.0002905611     -0.01664793              0.52
+    ## 1    OLS 0.1748337 -0.0002905547     -0.01664756              0.42
+    ## 2     MA 0.1748340 -0.0002905611     -0.01664793              0.42
     ## 3    SMA 0.4151749 -0.0047263823     -0.27079974                NA
     ## 
     ## Confidence intervals
@@ -372,8 +474,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method  Intercept       Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.17239292 0.002567309       0.1470957              0.19
-    ## 2     MA 0.17238830 0.002567525       0.1471080              0.19
+    ## 1    OLS 0.17239292 0.002567309       0.1470957              0.17
+    ## 2     MA 0.17238830 0.002567525       0.1471080              0.17
     ## 3    SMA 0.02357684 0.009521332       0.5455156                NA
     ## 
     ## Confidence intervals
@@ -406,8 +508,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.2459200 -0.001494710     -0.08564053              0.27
-    ## 2     MA 0.2459227 -0.001494756     -0.08564317              0.27
+    ## 1    OLS 0.2459200 -0.001494710     -0.08564053              0.22
+    ## 2     MA 0.2459227 -0.001494756     -0.08564317              0.22
     ## 3    SMA 0.4930899 -0.005749591     -0.32942366                NA
     ## 
     ## Confidence intervals
@@ -438,8 +540,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS  0.11892114 0.0005338749      0.03058877              0.14
-    ## 2     MA  0.11892092 0.0005338760      0.03058884              0.14
+    ## 1    OLS  0.11892114 0.0005338749      0.03058877              0.09
+    ## 2     MA  0.11892092 0.0005338760      0.03058884              0.09
     ## 3    SMA -0.08323077 0.0015293702      0.08762639                NA
     ## 
     ## Confidence intervals
@@ -506,8 +608,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method  Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.04360225 -0.002287465      -0.1310618              0.19
-    ## 2     MA 0.04360339 -0.002287804      -0.1310813              0.19
+    ## 1    OLS 0.04360225 -0.002287465      -0.1310618              0.21
+    ## 2     MA 0.04360339 -0.002287804      -0.1310813              0.21
     ## 3    SMA 0.07756292 -0.012385245      -0.7095860                NA
     ## 
     ## Confidence intervals
@@ -540,8 +642,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS  0.01413558 0.0003263568      0.01869887              0.17
-    ## 2     MA  0.01413555 0.0003263572      0.01869889              0.17
+    ## 1    OLS  0.01413558 0.0003263568      0.01869887              0.23
+    ## 2     MA  0.01413555 0.0003263572      0.01869889              0.23
     ## 3    SMA -0.03138731 0.0011665443      0.06683804                NA
     ## 
     ## Confidence intervals
@@ -572,8 +674,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.032816659 0.0004914334      0.02815706               0.2
-    ## 2     MA 0.032816626 0.0004914349      0.02815714               0.2
+    ## 1    OLS 0.032816659 0.0004914334      0.02815706              0.19
+    ## 2     MA 0.032816626 0.0004914349      0.02815714              0.19
     ## 3    SMA 0.003926211 0.0018414543      0.10550744                NA
     ## 
     ## Confidence intervals
@@ -588,4 +690,4 @@ bcd_bioav <- bcd %>%
 
 # Plots: Property-Property
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-36-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-41-1.png" style="display: block; margin: auto;" />

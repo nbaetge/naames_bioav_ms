@@ -270,8 +270,8 @@ doc %>%
 ```
 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8, fig.align = "center", warning = FALSE}
-doc %>% 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 8, fig.align = "center", warning = FALSE}
+doc44a <- doc %>% 
   filter(degree_bin == 44) %>% 
   drop_na(sd_doc) %>% 
   group_by(Cruise, Station) %>%
@@ -281,18 +281,42 @@ doc %>%
   geom_vline(aes(xintercept = 30), linetype = 3) +
   geom_errorbar(aes(ymin = norm_doc - sd_doc, ymax = norm_doc + sd_doc, color = factor(Season, levels = levels)), width = 0.5) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Season, linetype = bge), size = 0.75, alpha = 0.7) +
-  geom_label(aes(x = 7, y = -1, label = "Short-term"), size = 3) +
-  geom_label(aes(x = 30, y = -1, label = "Long-term"), size = 3) +
+  geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
+  #geom_label(aes(x = 7, y = -1, label = "Short-term"), size = 3) +
+  #geom_label(aes(x = 30, y = -1, label = "Long-term"), size = 3) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
   #facet_grid(~factor(Season, levels = levels), scales = "free") +
- labs(x = expression(italic("Days")), y = expression(italic(paste("Seasonally Accumulated DOC, µmol C L"^-1)))) +
+ labs(x = expression(italic("")), y = expression(italic(paste("Seasonally Accumulated DOC, µmol C L"^-1)))) +
   custom_theme() +
-  ggtitle("44˚N") +
-  guides(color = F, linetype = F)
-```
+  guides(color = F, linetype = F) 
+  
+doc44b <- doc %>% 
+  filter(degree_bin == 44) %>% 
+  drop_na(sd_doc) %>% 
+  group_by(Cruise, Station) %>%
+  mutate(norm_doc = norm_doc/accm_doc * 100) %>% 
+  ggplot(aes(x = Days, y = norm_doc, group = interaction(Cruise, Station, degree_bin))) + 
+  geom_hline(aes(yintercept = 0)) +
+  geom_vline(aes(xintercept = 7), linetype = 2) +
+  geom_vline(aes(xintercept = 30), linetype = 3) +
+  #geom_errorbar(aes(ymin = norm_doc - sd_doc, ymax = norm_doc + sd_doc, color = factor(Season, levels = levels)), width = 0.5) +
+  geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
+  geom_label(aes(x = 7, y = 0, label = "Short-term"), size = 4) +
+  geom_label(aes(x = 30, y = 0, label = "Long-term"), size = 4) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  #facet_grid(~factor(Season, levels = levels), scales = "free") +
+ labs(x = expression(italic("Days")), y = expression(italic(paste("% Seasonally Accumulated DOC Remaining")))) +
+  custom_theme() +
+  guides(color = F, linetype = F, fill = F)
 
+doc44a / doc44b +
+  plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(size = 14))
+  
+```
 
 Black vertical dashed and dotted lines indicate the 7 and 30-day marks, respectively. Dashed decay lines indicate experiments in which BGEs could be calculated. 
 
@@ -305,7 +329,7 @@ bioav.table <- doc %>%
   select(Season, Station, degree_bin, ave_Ez, sd_Ez, ave_int_delta_DOC_ez, sd_int_delta_DOC_ez, accm_doc, sd_accm_doc, total.bioav_accm_doc:lt.bioav_accm_doc, total.per_bioav:bge) %>% 
   distinct() %>% 
   mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez), funs(round((./ave_Ez) * 10^3, 2))) %>% 
-  arrange(degree_bin, factor(Season, levels = levels)) %>% 
+  arrange(factor(Season, levels = levels), degree_bin) %>% 
   ungroup()
 ```
 
@@ -348,6 +372,44 @@ bioav.table2 <- bioav.table %>%
 ```{r echo = FALSE, results = 'asis'}
 kable(bioav.table2, caption = "Seasonal Accumulated DOC Bioavailability and Persistance")
 ```
+
+
+```{r}
+bioav.table3 <- bioav.table %>% 
+  select(-c(ave_Ez:sd_int_delta_DOC_ez)) %>% 
+  drop_na(accm_doc) %>% 
+  group_by(Season, degree_bin) %>% 
+  summarize(accm = mean(accm_doc, na.rm = T),
+            sd_accm = sd(accm_doc, na.rm = T),
+            total.bv = mean(total.bioav_accm_doc, na.rm = T),
+            sd_total.bv = sd(total.bioav_accm_doc, na.rm = T),
+            st.bv = mean(st.bioav_accm_doc, na.rm = T),
+            sd_st.bv = sd(st.bioav_accm_doc, na.rm = T),
+            total.per_bv = mean(total.per_bioav, na.rm = T),
+            sd_total.per_bv = sd(total.per_bioav, na.rm = T),
+            st.per_bv = mean(st.per_bioav, na.rm = T),
+            sd_st.per_bv = sd(st.per_bioav, na.rm = T),
+            pers = mean(persis_doc, na.rm = T),
+            sd_pers = sd(persis_doc, na.rm = T),
+            per_pers = mean(per_persis, na.rm = T),
+            sd_per_pers = sd(per_persis, na.rm = T),
+            st.ddoc_rate = mean(st.ddoc, na.rm = T),
+            sd_st.ddoc_rate = sd(st.ddoc, na.rm = T),
+            total.ddoc_rate = mean(total.ddoc, na.rm = T),
+            sd_total.ddoc_rate = sd(total.ddoc, na.rm = T),
+            stations = n()
+            
+            ) %>% 
+  mutate_at(vars(accm:sd_st.bv, pers, sd_pers), round, 1) %>% 
+  mutate_at(vars(contains(c("per_", "rate"))), round) %>% 
+  arrange(factor(Season, levels = levels))
+```
+
+```{r echo = FALSE, results = 'asis'}
+kable(bioav.table3, caption = "Seasonal Accumulated DOC Bioavailability and Persistance")
+```
+
+
 
 # Bar plots: Experiment ∆DOC and %Bioavailability
 
@@ -555,15 +617,17 @@ ratio.bar <- bcd %>%
   mutate(bge = ifelse(Cruise == "AT39" & Station == 4, "!", NA),
          bge = ifelse(Cruise == "AT34" & Station %in% c(1, 2, 3), "!", bge),
          bge = ifelse(Cruise == "AT38" & Station %in% c(3, 6), "!", bge)) %>%  
-  mutate(degree_bin = as.character(degree_bin)) %>% 
+  mutate(degree_bin = as.character(degree_bin),
+         ave_bcd.npp = ave_bcd.npp/100,
+         sd_bcd.npp = sd_bcd.npp/100) %>% 
   group_by(Cruise, Station) %>% 
   ungroup() %>% 
   ##PLOT
   ggplot(aes(x = degree_bin, y = ave_bcd.npp, group = interaction(Season, Station, degree_bin)))  +
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1,  fill = "#999999") +
   geom_errorbar(aes(ymin = ave_bcd.npp - sd_bcd.npp, ymax = ave_bcd.npp + sd_bcd.npp), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-   geom_text(aes(label = bge, y = ave_bcd.npp + 12), position = position_dodge(width = 0.9), stat = "identity", size = 6, color = "#E41A1C") +
-  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("BCD:NPP"))), colour = expression(italic(""))) +
+   geom_text(aes(label = bge, y = ave_bcd.npp + 0.13), position = position_dodge(width = 0.9), stat = "identity", size = 6, color = "#E41A1C") +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("F"["c"]))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
   custom_theme() +
   facet_grid(~factor(Season, levels = levels), scales = "free") +
@@ -620,6 +684,7 @@ reg1 <- lmodel2(ave_int.BCD ~ ave_int.NPP, data = bcd_bioav, nperm = 99)
 ```{r echo = FALSE}
 reg1
 ```
+
 
 ## BCD v Seasonally Accumulated DOC
 
@@ -710,7 +775,7 @@ reg10
 
 # Plots: Property-Property
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 16, fig.align = "center", warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 8, fig.align = "center", warning = FALSE}
 reg1.plot <- bcd_bioav %>% 
   ggplot(aes(x = ave_int.NPP, y = ave_int.BCD)) + 
   geom_abline(intercept = reg1$regression.results[3,2],
@@ -718,7 +783,7 @@ reg1.plot <- bcd_bioav %>%
   geom_errorbar(aes(color = factor(Season, levels = levels), ymin = ave_int.BCD - sd_int.BCD, ymax = ave_int.BCD + sd_int.BCD), width = 0.05) +
   geom_errorbarh(aes(color = factor(Season, levels = levels), xmin = ave_int.NPP - sd_int.NPP, xmax = ave_int.NPP + sd_int.NPP), height = 0.01) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 1) +
-  labs(x = expression(italic(paste("NPP, mmol C m"^-3, "d"^-1))), y = expression(italic(paste("BCD, mmol C m"^-3, "d"^-1)))) +
+  labs(x = expression(italic(paste(""))), y = expression(italic(paste("BCD, mmol C m"^-3, "d"^-1)))) +
   scale_fill_manual(values = custom.colors) +
   scale_color_manual(values = custom.colors) +
   custom_theme() +
@@ -766,7 +831,7 @@ reg7.plot <- bcd_bioav %>%
   annotate( geom = "text", label = expression(atop("y = 0.04x + 0.01", paste("r"^2," = 0.42, ", italic("p "), "<< 0.01"))), x = 3.1, y = 0.015, size = 4) 
 
 
-(reg1.plot + reg2.plot) / (reg7.plot + reg4.plot) + plot_annotation(tag_levels = "a")
+(reg1.plot) / (reg7.plot) + plot_annotation(tag_levels = "a")
 
 ```
 
