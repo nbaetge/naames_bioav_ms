@@ -126,7 +126,7 @@ NPP and BCD are converted to: mmol C m^-3^ d^-1^
 # Box plots: NPP, BP, BA, µ, ∆DOC
 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 16, fig.width = 7, fig.align = "center", warning = FALSE}
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 12, fig.align = "center", warning = FALSE}
 my_comparisons <- list( c("Early Spring", "Late Spring"), c("Early Spring", "Early Autumn"), c("Early Spring", "Late Autumn"), c("Late Spring", "Early Autumn"), c("Late Spring", "Late Autumn"), c("Early Autumn", "Late Autumn") ) 
 
 #npp
@@ -202,7 +202,6 @@ mew.boxplot <- bcd %>%
             add = "jitter",
             width = 0.5,
             ggtheme = custom_theme()) + 
-  rremove("x.text") +
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.signif",
                      step.increase = 0.25) + 
@@ -226,7 +225,7 @@ deldoc.boxplot <- doc %>%
   stat_compare_means(label.y = 16) 
 
 
-npp.boxplot / bp.boxplot / ba.boxplot / mew.boxplot / deldoc.boxplot +
+(npp.boxplot / deldoc.boxplot) | (bp.boxplot / ba.boxplot / mew.boxplot) +
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 ```
@@ -439,6 +438,7 @@ bioav.table <- doc %>%
   select(Season, Station, degree_bin, ave_Ez, sd_Ez, ave_int_delta_DOC_ez, sd_int_delta_DOC_ez, accm_doc, sd_accm_doc, total.bioav_accm_doc:lt.bioav_accm_doc, total.per_bioav:bge) %>% 
   distinct() %>% 
   mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez), funs(round((./ave_Ez) * 10^3, 2))) %>% 
+    mutate_at(vars(contains("ddoc")), funs(round(./10^3, 2))) %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
   ungroup()
 ```
