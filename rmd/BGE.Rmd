@@ -106,16 +106,16 @@ bge_lvls2 <- c("POC",
 
 ```{r message = F, warning = F}
 
-ba <- readRDS("~/naames_bioav_ms/Output/processed_bacterial_abundance.rds") %>% 
+ba <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_bacterial_abundance.rds") %>% 
   mutate(key = paste(Cruise, Station, Depth, Treatment, Bottle, Timepoint, sep = "."),
          Depth = as.numeric(Depth)) %>% 
   filter(!Treatment %in% c("GF75", "Niskin", "TFF-Ret", "Volume", "Parallel"))
 
-oc <- readRDS("~/naames_bioav_ms/Output/processed_doc.rds") %>% 
+oc <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_doc.rds") %>% 
   select(-Days) %>% 
   filter(!Treatment == "Parallel")
 
-bc <- readRDS("~/naames_bioav_ms/Output/processed_bacterial_carbon.rds") %>% 
+bc <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_bacterial_carbon.rds") %>% 
   select(-c(contains(".ug"), contains("gf75.cells"))) 
 
 
@@ -387,7 +387,7 @@ calcs <- interpolated %>%
   mutate_at(vars(bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee), round, 2) %>% 
  
   #add metadata
-  left_join(., readRDS("~/naames_export_ms/Output/processed_export_for_bioavMS.5.14.20.rds") %>% 
+  left_join(., readRDS("~/GITHUB/naames_export_ms/Output/processed_export_for_bioavMS.5.14.20.rds") %>% 
               mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>%
               mutate_at(vars(Station), as.character) %>% 
               select(Cruise:Subregion) %>% 
@@ -395,6 +395,92 @@ calcs <- interpolated %>%
   )
 ```
 
+
+# Calculate BGE via slopes
+
+```{r}
+test <-  calcs %>% 
+  filter(Season == "Early Spring", Treatment == "Control", Depth == 10, Station == "S2RF", Bottle == "A") %>% 
+  select(Season:sd_doc,interp_cells, interp_doc, cell_div, i.bc.ccf.c1, s.bc.ccf.c1, del.bc.poc.c1, del.bc.p.ccf.c1, del.doc, bge.bc.poc.c1, bge.p.bc.ccf.c1)
+```
+
+
+```{r}
+input <- test %>% 
+  select(Season:Days, cell_div, i.bc.ccf.c1, s.bc.ccf.c1, doc, sd_doc) %>% 
+  distinct() %>% 
+  #filter(Days <= 60) %>% 
+  mutate(bc = ifelse(cell_div == "lag", i.bc.ccf.c1, NA),
+         bc = ifelse(cell_div %in% c("exponential", "stationary"), s.bc.ccf.c1, bc),
+         delta_bc = bc - bc[which.min(Hours)],
+         delta_bc_s.ccf = s.bc.ccf.c1 - s.bc.ccf.c1[which.min(Hours)],
+         delta_doc = ifelse(!is.na(doc), doc - doc[which.min(Hours)], NA)) 
+```
+
+```{r}
+model <-  input %>% 
+  filter(cell_div %in% c("lag", "exponential")) %>% 
+  drop_na(delta_bc) %>% 
+  lm(delta_bc ~ Days, data = .)
+
+model_coef = tidy(model) %>% 
+  filter(term == "Days") %>% 
+  rename(bc_slope = estimate) %>% 
+  select(bc_slope)
+
+model2 <-  input %>% 
+  drop_na(delta_doc) %>% 
+  lm(delta_doc ~ Days, data = .)
+
+model2_coef = tidy(model2) %>% 
+  filter(term == "Days") %>% 
+  rename(doc_slope = estimate) %>% 
+  select(doc_slope) %>% 
+  bind_cols(., model_coef) %>% 
+  mutate(Cruise = "AT34")
+
+slope_bge <- input %>% 
+  full_join(., model2_coef) %>% 
+  mutate(bge = abs(round(bc_slope/doc_slope, 2)))
+```
+### Plots
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 20, fig.align = "center", warning = FALSE}
+input %>% 
+  drop_na(delta_doc) %>% 
+  ggplot(aes(x = Days, y = delta_doc)) + 
+  # geom_errorbar(aes(ymin = deltadoc - sd_doc, ymax = doc + sd_doc, color = Bottle), width = 0.5) +
+  geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Bottle), alpha = 0.7) +
+  geom_abline(intercept = model2$coefficients[[1]],
+              slope = model2$coefficients[[2]],colour = "black", linetype = 2, size = 1) +
+  geom_vline(aes(xintercept = stationary/24), linetype = 3, size = 1, color = "blue") +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("∆DOC, µmol C L"^-1))) +
+  custom_theme() +
+  guides(fill = F, color = F) +
+  annotate( geom = "text", label = expression( paste("slope = -0.09")), x = 25, y = 0, size = 6) +
+  
+  
+input %>% 
+  drop_na(delta_bc) %>% 
+  ggplot(aes(x = Days, y = delta_bc)) + 
+  # geom_errorbar(aes(ymin = deltadoc - sd_doc, ymax = doc + sd_doc, color = Bottle), width = 0.5) +
+  geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Bottle), alpha = 0.7) +
+  geom_abline(intercept = model$coefficients[[1]],
+              slope = model$coefficients[[2]],colour = "black", linetype = 2, size = 1) +
+  geom_vline(aes(xintercept = stationary/24), linetype = 3, size = 1, color = "blue") +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(paste("Bacterial Carbon, µmol C L"^-1))) +
+  custom_theme() +
+  guides(fill = F, color = F) +
+  annotate( geom = "text", label = expression( paste("slope = 0.4")), x = 0.5, y = 1.5, size = 6) +
+  
+  plot_annotation(title = "AT39 S2RD") 
+```
 
 
 # Summary Data, Table, and Plots
