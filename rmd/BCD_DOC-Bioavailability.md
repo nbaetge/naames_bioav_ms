@@ -32,7 +32,7 @@ library(ggpubr)
 # Import Data
 
 ``` r
-doc <- read_rds("~/naames_bioav_ms/Output/processed_bioavailability.rds") %>% 
+doc <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bioavailability.rds") %>% 
    select(-c(Bottle, doc, interp_doc)) %>% 
   arrange(Cruise, Station, Hours) %>% 
   distinct() %>% 
@@ -43,7 +43,7 @@ doc <- read_rds("~/naames_bioav_ms/Output/processed_bioavailability.rds") %>%
   distinct() 
 
 
-bcd <- read_rds("~/naames_bioav_ms/Output/processed_integrated_BCD.rds") %>% 
+bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_integrated_BCD.rds") %>% 
   group_by(Cruise, Station) %>% 
   mutate(ave_int.BCD = mean(int.bcd, na.rm = T),
          sd_int.BCD = sd(int.bcd, na.rm = T),
@@ -81,9 +81,13 @@ Units for imported data frames are currently:
 NPP and BCD are converted to: mmol C m<sup>-3</sup>
 d<sup>-1</sup>
 
-# Bar plots: NPP, BP, BA, µ, ∆DOC
+# Box plots: NPP, BP, BA, µ, ∆DOC
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+
+# Bar plots: NPP, BP, BA, µ, ∆DOC
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
 
 Error bars for µ represent standard deviation from mean of values
 calculated using different CCFs to convert BA to BC (Global Initial CCF,
@@ -94,11 +98,11 @@ values.
 
 # Line plots: DOC Decay Curves
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
-
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
 
 Black vertical dashed and dotted lines indicate the 7 and 30-day marks,
 respectively. Dashed decay lines indicate experiments in which BGEs
@@ -238,9 +242,9 @@ Persistance
 
 # Bar plots: Experiment ∆DOC and %Bioavailability
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
-
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
 
 # Table: NPP and BCD
 
@@ -316,7 +320,7 @@ bcd_table2 <- bcd_table %>%
 We’ll convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup> before
 plotting.
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-20-1.png" style="display: block; margin: auto;" />
 
 # Merge DOC and BCD data
 
@@ -408,8 +412,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.2205283 -0.004617140      -0.2645408              0.33
-    ## 2     MA 0.2206090 -0.004641131      -0.2659153              0.33
+    ## 1    OLS 0.2205283 -0.004617140      -0.2645408               0.4
+    ## 2     MA 0.2206090 -0.004641131      -0.2659153               0.4
     ## 3    SMA 0.4473010 -0.072045177      -4.1207648                NA
     ## 
     ## Confidence intervals
@@ -442,8 +446,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept         Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.1748337 -0.0002905547     -0.01664756              0.42
-    ## 2     MA 0.1748340 -0.0002905611     -0.01664793              0.42
+    ## 1    OLS 0.1748337 -0.0002905547     -0.01664756              0.53
+    ## 2     MA 0.1748340 -0.0002905611     -0.01664793              0.53
     ## 3    SMA 0.4151749 -0.0047263823     -0.27079974                NA
     ## 
     ## Confidence intervals
@@ -474,8 +478,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method  Intercept       Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.17239292 0.002567309       0.1470957              0.17
-    ## 2     MA 0.17238830 0.002567525       0.1471080              0.17
+    ## 1    OLS 0.17239292 0.002567309       0.1470957              0.18
+    ## 2     MA 0.17238830 0.002567525       0.1471080              0.18
     ## 3    SMA 0.02357684 0.009521332       0.5455156                NA
     ## 
     ## Confidence intervals
@@ -508,8 +512,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.2459200 -0.001494710     -0.08564053              0.22
-    ## 2     MA 0.2459227 -0.001494756     -0.08564317              0.22
+    ## 1    OLS 0.2459200 -0.001494710     -0.08564053              0.18
+    ## 2     MA 0.2459227 -0.001494756     -0.08564317              0.18
     ## 3    SMA 0.4930899 -0.005749591     -0.32942366                NA
     ## 
     ## Confidence intervals
@@ -540,8 +544,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS  0.11892114 0.0005338749      0.03058877              0.09
-    ## 2     MA  0.11892092 0.0005338760      0.03058884              0.09
+    ## 1    OLS  0.11892114 0.0005338749      0.03058877              0.15
+    ## 2     MA  0.11892092 0.0005338760      0.03058884              0.15
     ## 3    SMA -0.08323077 0.0015293702      0.08762639                NA
     ## 
     ## Confidence intervals
@@ -608,8 +612,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method  Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.04360225 -0.002287465      -0.1310618              0.21
-    ## 2     MA 0.04360339 -0.002287804      -0.1310813              0.21
+    ## 1    OLS 0.04360225 -0.002287465      -0.1310618              0.26
+    ## 2     MA 0.04360339 -0.002287804      -0.1310813              0.26
     ## 3    SMA 0.07756292 -0.012385245      -0.7095860                NA
     ## 
     ## Confidence intervals
@@ -642,8 +646,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS  0.01413558 0.0003263568      0.01869887              0.23
-    ## 2     MA  0.01413555 0.0003263572      0.01869889              0.23
+    ## 1    OLS  0.01413558 0.0003263568      0.01869887              0.19
+    ## 2     MA  0.01413555 0.0003263572      0.01869889              0.19
     ## 3    SMA -0.03138731 0.0011665443      0.06683804                NA
     ## 
     ## Confidence intervals
@@ -674,8 +678,8 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.032816659 0.0004914334      0.02815706              0.19
-    ## 2     MA 0.032816626 0.0004914349      0.02815714              0.19
+    ## 1    OLS 0.032816659 0.0004914334      0.02815706              0.13
+    ## 2     MA 0.032816626 0.0004914349      0.02815714              0.13
     ## 3    SMA 0.003926211 0.0018414543      0.10550744                NA
     ## 
     ## Confidence intervals
@@ -688,6 +692,59 @@ bcd_bioav <- bcd %>%
     ## 
     ## H statistic used for computing C.I. of MA: 1.130705e-06
 
+## \*\* BCD:NPP v NPP
+
+### exponential model using lm function
+
+``` r
+reg11 <- lm(log(ave_bcd.npp) ~ ave_int.NPP, data = bcd_bioav)
+
+reg11.df <- data.frame(x = bcd_bioav$ave_int.NPP, y = exp(fitted(reg11)))
+```
+
+### manual exponential model
+
+y = alpha \* (e^beta \* x) + theta
+
+    ## $alpha
+    ## (Intercept) 
+    ##    46.16852 
+    ## 
+    ## $beta
+    ## ave_int.NPP 
+    ##  -0.5890522 
+    ## 
+    ## $theta
+    ## [1] 5.5
+
+``` r
+model <- nls(ave_bcd.npp ~ alpha * exp(beta * ave_int.NPP) + theta , data = bcd_bioav, start = start)
+```
+
+``` r
+model.df <- data.frame(x = bcd_bioav$ave_int.NPP, y = predict(model, list(x = bcd_bioav$ave_int.NPP)) )
+```
+
+``` r
+summary(model)
+```
+
+    ## 
+    ## Formula: ave_bcd.npp ~ alpha * exp(beta * ave_int.NPP) + theta
+    ## 
+    ## Parameters:
+    ##       Estimate Std. Error t value Pr(>|t|)    
+    ## alpha  209.133     61.314   3.411 0.002932 ** 
+    ## beta    -8.178      2.070  -3.950 0.000859 ***
+    ## theta   22.242      4.463   4.984 8.24e-05 ***
+    ## ---
+    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+    ## 
+    ## Residual standard error: 13.86 on 19 degrees of freedom
+    ## 
+    ## Number of iterations to convergence: 9 
+    ## Achieved convergence tolerance: 1.704e-06
+
 # Plots: Property-Property
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-41-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-47-1.png" style="display: block; margin: auto;" />
