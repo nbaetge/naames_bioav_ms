@@ -225,8 +225,9 @@ deldoc.boxplot <- doc %>%
   stat_compare_means(label.y = 16) 
 
 
-(npp.boxplot / deldoc.boxplot) | (bp.boxplot / ba.boxplot / mew.boxplot) +
-  plot_annotation(tag_levels = "a") &
+patchwork <- npp.boxplot / deldoc.boxplot | bp.boxplot / ba.boxplot / mew.boxplot 
+
+patchwork +  plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 ```
 
