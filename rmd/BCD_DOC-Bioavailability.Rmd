@@ -999,7 +999,7 @@ reg11.plot <- bcd_bioav %>%
   geom_errorbar(aes(color = factor(Season, levels = levels), ymin = ave_bcd.npp - sd_bcd.npp, ymax = ave_bcd.npp + sd_bcd.npp), width = 0.05) +
   geom_errorbarh(aes(color = factor(Season, levels = levels), xmin = ave_int.NPP - sd_int.NPP, xmax = ave_int.NPP + sd_int.NPP), height = 0.01) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 1) +
-  labs(x = expression(italic(paste(""))), y = expression(italic(paste("BCD:NPP")))) +
+  labs(x = expression(italic(paste("NPP, mmol C m"^-3, "d"^-1))), y = expression(italic(paste("BCD:NPP")))) +
   scale_fill_manual(values = custom.colors) +
   scale_color_manual(values = custom.colors) +
   custom_theme() +
