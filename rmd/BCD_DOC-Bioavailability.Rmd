@@ -119,9 +119,9 @@ Units for imported data frames are currently:
 - BC,  µmol C m^-3^
 - mew, d^-1^
 - NPP, µmol C m^-3^ d^-1^
-- ∆DOC (from export MS, integrated to Ez), mol C m^-2^
+- ∆DOC and NCP (from export MS, integrated to Ez), mol C m^-2^
 
-NPP and BCD are converted to: mmol C m^-3^ d^-1^
+NPP, NCP and BCD are converted to: mmol C m^-3^ d^-1^
 
 # Box plots: NPP, BP, BA, µ, ∆DOC
 
@@ -245,6 +245,39 @@ deldoc.boxplot <- doc %>%
                      label = "p.signif",
                      step.increase = 0.25) + 
   stat_compare_means(label.y = 16) 
+
+
+#ncp
+doc_ncp.boxplot <- doc %>% 
+  select(Season,  ave_Ez, ave_NCP_mol_ez, ave_int_delta_DOC_ez) %>%
+  mutate_at(vars("ave_NCP_mol_ez", "ave_int_delta_DOC_ez"), funs(./ave_Ez * 10^3)) %>% 
+  drop_na(ave_NCP_mol_ez) %>% 
+  distinct() %>% 
+  mutate(doc_ncp = ave_int_delta_DOC_ez/ave_NCP_mol_ez) %>% 
+  ggboxplot(., x = "Season", y = "doc_ncp", 
+            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
+            xlab = F, 
+            ylab = expression(italic(paste("DOC:NCP"))),
+            add = "jitter",
+            width = 0.5,
+            ggtheme = custom_theme()) + 
+  rremove("x.text") +
+  stat_compare_means(comparisons = my_comparisons, 
+                     label = "p.signif",
+                     step.increase = 0.25) +
+  stat_compare_means(label.y = 0.7) 
+```
+
+```{r}
+doc %>% 
+  select(Season,  ave_Ez, ave_NCP_mol_ez, ave_int_delta_DOC_ez) %>%
+  mutate_at(vars("ave_NCP_mol_ez", "ave_int_delta_DOC_ez"), funs(./ave_Ez * 10^3)) %>% 
+  drop_na(ave_NCP_mol_ez) %>% 
+  distinct() %>% 
+  mutate(doc_ncp = ave_int_delta_DOC_ez/ave_NCP_mol_ez) %>% 
+  group_by(Season) %>% 
+  summarise(ave_doc_ncp = round(mean(doc_ncp),2),
+            sd_doc_ncp = round(sd(doc_ncp), 2))
 ```
 
 

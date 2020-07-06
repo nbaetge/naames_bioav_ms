@@ -409,7 +409,7 @@ test <-  calcs %>%
 input <- test %>% 
   select(Season:Days, cell_div, i.bc.ccf.c1, s.bc.ccf.c1, doc, sd_doc) %>% 
   distinct() %>% 
-  #filter(Days <= 60) %>% 
+  filter(Days <= 60) %>% 
   mutate(bc = ifelse(cell_div == "lag", i.bc.ccf.c1, NA),
          bc = ifelse(cell_div %in% c("exponential", "stationary"), s.bc.ccf.c1, bc),
          delta_bc = bc - bc[which.min(Hours)],
@@ -446,7 +446,16 @@ slope_bge <- input %>%
 ### Plots
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 20, fig.align = "center", warning = FALSE}
-input %>% 
+input.data <- test %>% 
+  select(Season:Days, cell_div, i.bc.ccf.c1, s.bc.ccf.c1, doc, sd_doc) %>% 
+  distinct() %>% 
+  mutate(bc = ifelse(cell_div == "lag", i.bc.ccf.c1, NA),
+         bc = ifelse(cell_div %in% c("exponential", "stationary"), s.bc.ccf.c1, bc),
+         delta_bc = bc - bc[which.min(Hours)],
+         delta_bc_s.ccf = s.bc.ccf.c1 - s.bc.ccf.c1[which.min(Hours)],
+         delta_doc = ifelse(!is.na(doc), doc - doc[which.min(Hours)], NA)) 
+
+input.data %>% 
   drop_na(delta_doc) %>% 
   ggplot(aes(x = Days, y = delta_doc)) + 
   # geom_errorbar(aes(ymin = deltadoc - sd_doc, ymax = doc + sd_doc, color = Bottle), width = 0.5) +
@@ -463,7 +472,7 @@ input %>%
   annotate( geom = "text", label = expression( paste("slope = -0.09")), x = 25, y = 0, size = 6) +
   
   
-input %>% 
+input.data %>% 
   drop_na(delta_bc) %>% 
   ggplot(aes(x = Days, y = delta_bc)) + 
   # geom_errorbar(aes(ymin = deltadoc - sd_doc, ymax = doc + sd_doc, color = Bottle), width = 0.5) +
@@ -499,6 +508,8 @@ bge_summary <- calcs %>%
          !Cruise == "AT39" | !Station == 1 | !Depth == 10 | !Treatment == "Control") %>% 
    filter(!Station == "U", Depth == 10)
 ```
+
+
 
 ```{r}
 ccfs <- bge_summary %>% 
@@ -716,6 +727,16 @@ ave_bges <- bge_summary.table %>%
 ave_bges
 ```
 
+```{r}
+global_bge <- bge_summary.table %>% 
+  filter(appr %in% c("bge.bc.poc.c1", "bge.p.bc.ccf.c1")) %>% 
+  mutate(global_bge = round(mean(ave_bge), 2), 
+         sd_global_bge = round(sd(ave_bge),2)) %>% 
+  select(contains("global_bge")) %>% 
+  distinct()
+
+global_bge
+```
 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 23, fig.align = "center", warning = FALSE}
@@ -763,7 +784,7 @@ calcs %>%
               select(Season, global_initial_ccf:ave_stationary_ccf) %>% 
               distinct() ) %>% 
   left_join(., ave_bges %>% filter(group == "Empirical") %>% select(Season, group_bge, global_bge) %>% distinct() %>% rename(season_bge = group_bge)) %>% 
-  saveRDS(., "~/naames_bioav_ms/Output/processed_bge.rds")
+  saveRDS(., "~/GITHUB/naames_bioav_ms/Output/processed_bge.rds")
 
 
 ```

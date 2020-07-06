@@ -78,18 +78,37 @@ Units for imported data frames are currently:
   - NPP, µmol C m<sup>-3</sup> d<sup>-1</sup>
   - ∆DOC (from export MS, integrated to Ez), mol C m<sup>-2</sup>
 
-NPP and BCD are converted to: mmol C m<sup>-3</sup>
-d<sup>-1</sup>
+NPP and BCD are converted to: mmol C m<sup>-3</sup> d<sup>-1</sup>
 
 # Box plots: NPP, BP, BA, µ, ∆DOC
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
+``` r
+doc %>% 
+  select(Season,  ave_Ez, ave_NCP_mol_ez, ave_int_delta_DOC_ez) %>%
+  mutate_at(vars("ave_NCP_mol_ez", "ave_int_delta_DOC_ez"), funs(./ave_Ez * 10^3)) %>% 
+  drop_na(ave_NCP_mol_ez) %>% 
+  distinct() %>% 
+  mutate(doc_ncp = ave_int_delta_DOC_ez/ave_NCP_mol_ez) %>% 
+  group_by(Season) %>% 
+  summarise(ave_doc_ncp = round(mean(doc_ncp),2),
+            sd_doc_ncp = round(sd(doc_ncp), 2))
+```
+
+    ## # A tibble: 4 x 3
+    ##   Season       ave_doc_ncp sd_doc_ncp
+    ##   <chr>              <dbl>      <dbl>
+    ## 1 Early Autumn        0.18       0.07
+    ## 2 Early Spring        0.11       0.12
+    ## 3 Late Autumn         0.14       0.05
+    ## 4 Late Spring         0.12       0.06
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
 
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+
 # Bar plots: NPP, BP, BA, µ, ∆DOC
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
 
 Error bars for µ represent standard deviation from mean of values
 calculated using different CCFs to convert BA to BC (Global Initial CCF,
@@ -100,11 +119,11 @@ values.
 
 # Line plots: DOC Decay Curves
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
-
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
 
 Black vertical dashed and dotted lines indicate the 7 and 30-day marks,
 respectively. Dashed decay lines indicate experiments in which BGEs
@@ -245,9 +264,9 @@ Persistance
 
 # Bar plots: Experiment ∆DOC and %Bioavailability
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
-
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
 
 # Table: NPP and BCD
 
@@ -323,7 +342,7 @@ bcd_table2 <- bcd_table %>%
 We’ll convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup> before
 plotting.
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-23-1.png" style="display: block; margin: auto;" />
 
 # Merge DOC and BCD data
 
@@ -750,4 +769,4 @@ summary(model)
 
 # Plots: Property-Property
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-49-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-50-1.png" style="display: block; margin: auto;" />

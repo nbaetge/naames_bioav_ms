@@ -33,16 +33,16 @@ library(ggpubr)
 # Merge Processed Data
 
 ``` r
-ba <- readRDS("~/naames_bioav_ms/Output/processed_bacterial_abundance.rds") %>% 
+ba <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_bacterial_abundance.rds") %>% 
   mutate(key = paste(Cruise, Station, Depth, Treatment, Bottle, Timepoint, sep = "."),
          Depth = as.numeric(Depth)) %>% 
   filter(!Treatment %in% c("GF75", "Niskin", "TFF-Ret", "Volume", "Parallel"))
 
-oc <- readRDS("~/naames_bioav_ms/Output/processed_doc.rds") %>% 
+oc <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_doc.rds") %>% 
   select(-Days) %>% 
   filter(!Treatment == "Parallel")
 
-bc <- readRDS("~/naames_bioav_ms/Output/processed_bacterial_carbon.rds") %>% 
+bc <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_bacterial_carbon.rds") %>% 
   select(-c(contains(".ug"), contains("gf75.cells"))) 
 
 
@@ -329,7 +329,7 @@ calcs <- interpolated %>%
   mutate_at(vars(bge.bc.poc:bge.ph.bc.dyn.ccf.white_lee), round, 2) %>% 
  
   #add metadata
-  left_join(., readRDS("~/naames_export_ms/Output/processed_export_for_bioavMS.5.14.20.rds") %>% 
+  left_join(., readRDS("~/GITHUB/naames_export_ms/Output/processed_export_for_bioavMS.5.14.20.rds") %>% 
               mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>%
               mutate_at(vars(Station), as.character) %>% 
               select(Cruise:Subregion) %>% 
@@ -349,6 +349,59 @@ calcs <- interpolated %>%
     ##   # Using lambdas
     ##   list(~ mean(., trim = .2), ~ median(., na.rm = TRUE))
     ## This warning is displayed once per session.
+
+# Calculate BGE via slopes
+
+``` r
+test <-  calcs %>% 
+  filter(Season == "Early Spring", Treatment == "Control", Depth == 10, Station == "S2RF", Bottle == "A") %>% 
+  select(Season:sd_doc,interp_cells, interp_doc, cell_div, i.bc.ccf.c1, s.bc.ccf.c1, del.bc.poc.c1, del.bc.p.ccf.c1, del.doc, bge.bc.poc.c1, bge.p.bc.ccf.c1)
+```
+
+``` r
+input <- test %>% 
+  select(Season:Days, cell_div, i.bc.ccf.c1, s.bc.ccf.c1, doc, sd_doc) %>% 
+  distinct() %>% 
+  filter(Days <= 60) %>% 
+  mutate(bc = ifelse(cell_div == "lag", i.bc.ccf.c1, NA),
+         bc = ifelse(cell_div %in% c("exponential", "stationary"), s.bc.ccf.c1, bc),
+         delta_bc = bc - bc[which.min(Hours)],
+         delta_bc_s.ccf = s.bc.ccf.c1 - s.bc.ccf.c1[which.min(Hours)],
+         delta_doc = ifelse(!is.na(doc), doc - doc[which.min(Hours)], NA)) 
+```
+
+``` r
+model <-  input %>% 
+  filter(cell_div %in% c("lag", "exponential")) %>% 
+  drop_na(delta_bc) %>% 
+  lm(delta_bc ~ Days, data = .)
+
+model_coef = tidy(model) %>% 
+  filter(term == "Days") %>% 
+  rename(bc_slope = estimate) %>% 
+  select(bc_slope)
+
+model2 <-  input %>% 
+  drop_na(delta_doc) %>% 
+  lm(delta_doc ~ Days, data = .)
+
+model2_coef = tidy(model2) %>% 
+  filter(term == "Days") %>% 
+  rename(doc_slope = estimate) %>% 
+  select(doc_slope) %>% 
+  bind_cols(., model_coef) %>% 
+  mutate(Cruise = "AT34")
+
+slope_bge <- input %>% 
+  full_join(., model2_coef) %>% 
+  mutate(bge = abs(round(bc_slope/doc_slope, 2)))
+```
+
+    ## Joining, by = "Cruise"
+
+### Plots
+
+<img src="BGE_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
 
 # Summary Data, Table, and Plots
 
@@ -396,7 +449,7 @@ ccfs
     ## 2 Early Spring       5       NA        22         NA
     ## 3 Late Spring       14.5      4.9      17.8       13
 
-<img src="BGE_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
+<img src="BGE_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
 Generally, good agreement between BGEs estimated using empirical ∆POC
 and empirical CCFs.
@@ -490,7 +543,23 @@ ave_bges
     ## 12 Late … Lee …    0.62   0.09 Lee …      0.62        NA          0.43
     ## # … with 1 more variable: sd_global_bge <dbl>
 
-<img src="BGE_files/figure-gfm/unnamed-chunk-13-1.png" style="display: block; margin: auto;" />
+``` r
+global_bge <- bge_summary.table %>% 
+  filter(appr %in% c("bge.bc.poc.c1", "bge.p.bc.ccf.c1")) %>% 
+  mutate(global_bge = round(mean(ave_bge), 2), 
+         sd_global_bge = round(sd(ave_bge),2)) %>% 
+  select(contains("global_bge")) %>% 
+  distinct()
+
+global_bge
+```
+
+    ## # A tibble: 1 x 2
+    ##   global_bge sd_global_bge
+    ##        <dbl>         <dbl>
+    ## 1       0.24          0.02
+
+<img src="BGE_files/figure-gfm/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
 
 # Save Data
 
@@ -524,5 +593,5 @@ calcs %>%
               select(Season, global_initial_ccf:ave_stationary_ccf) %>% 
               distinct() ) %>% 
   left_join(., ave_bges %>% filter(group == "Empirical") %>% select(Season, group_bge, global_bge) %>% distinct() %>% rename(season_bge = group_bge)) %>% 
-  saveRDS(., "~/naames_bioav_ms/Output/processed_bge.rds")
+  saveRDS(., "~/GITHUB/naames_bioav_ms/Output/processed_bge.rds")
 ```
