@@ -83,11 +83,13 @@ d<sup>-1</sup>
 
 # Box plots: NPP, BP, BA, µ, ∆DOC
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
 
 # Bar plots: NPP, BP, BA, µ, ∆DOC
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
 
 Error bars for µ represent standard deviation from mean of values
 calculated using different CCFs to convert BA to BC (Global Initial CCF,
@@ -98,11 +100,11 @@ values.
 
 # Line plots: DOC Decay Curves
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
-
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
-
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
 
 Black vertical dashed and dotted lines indicate the 7 and 30-day marks,
 respectively. Dashed decay lines indicate experiments in which BGEs
@@ -243,9 +245,9 @@ Persistance
 
 # Bar plots: Experiment ∆DOC and %Bioavailability
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-17-1.png" style="display: block; margin: auto;" />
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
 
 # Table: NPP and BCD
 
@@ -321,7 +323,7 @@ bcd_table2 <- bcd_table %>%
 We’ll convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup> before
 plotting.
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-20-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
 
 # Merge DOC and BCD data
 
@@ -748,4 +750,4 @@ summary(model)
 
 # Plots: Property-Property
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-47-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-49-1.png" style="display: block; margin: auto;" />

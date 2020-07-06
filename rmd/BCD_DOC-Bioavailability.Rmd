@@ -145,7 +145,7 @@ npp.boxplot <- bcd %>%
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.signif",
                      step.increase = 0.25) +
-  stat_compare_means(label.y = 7) 
+  stat_compare_means(label.y = 7)
 
 #bp
 bp.boxplot <- bcd %>% 
@@ -207,6 +207,28 @@ mew.boxplot <- bcd %>%
                      step.increase = 0.25) + 
   stat_compare_means(label.y = 0.22) 
 
+
+#ncp
+ncp.boxplot <- doc %>% 
+  select(Season,  ave_Ez, ave_NCP_mol_ez) %>%
+  mutate_at(vars("ave_NCP_mol_ez"), funs(./ave_Ez * 10^3)) %>% 
+  drop_na(ave_NCP_mol_ez) %>% 
+  distinct() %>% 
+  ggboxplot(., x = "Season", y = "ave_NCP_mol_ez", 
+            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
+            xlab = F, 
+            ylab = expression(italic(paste("NCP, mmol C m"^-3))),
+            add = "jitter",
+            width = 0.5,
+            ggtheme = custom_theme()) + 
+  rremove("x.text") +
+  stat_compare_means(comparisons = my_comparisons, 
+                     label = "p.signif",
+                     step.increase = 0.25) +
+  stat_compare_means(label.y = 150) 
+
+
+
 deldoc.boxplot <- doc %>% 
   select(Season, ave_Ez, ave_int_delta_DOC_ez) %>% 
   mutate_at(vars(contains("int_delta_DOC")), funs(./ave_Ez * 10^3)) %>% 
@@ -223,13 +245,28 @@ deldoc.boxplot <- doc %>%
                      label = "p.signif",
                      step.increase = 0.25) + 
   stat_compare_means(label.y = 16) 
+```
 
 
-patchwork <- npp.boxplot / deldoc.boxplot | bp.boxplot / ba.boxplot / mew.boxplot 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 7, fig.align = "center", warning = FALSE}
+
+patchwork <- npp.boxplot / bp.boxplot / ba.boxplot / mew.boxplot 
 
 patchwork +  plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
+
 ```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 7, fig.align = "center", warning = FALSE}
+
+patchwork2 <- ncp.boxplot / deldoc.boxplot 
+
+patchwork2 +  plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(size = 14))
+
+```
+
 
 # Bar plots: NPP, BP, BA, µ, ∆DOC
 

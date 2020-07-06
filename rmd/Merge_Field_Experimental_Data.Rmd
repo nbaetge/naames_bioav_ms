@@ -40,7 +40,7 @@ We'll convert NPP from mg C m^-2^ d to µmol C m^-2^ d^-1^
 
 #NPP data
 #we'll convert NPP from mg C/ m2 / d to umol C/ m2 / d 
-npp <- read_rds("~/naames_export_ms/Output/processed_bf.2.2020.rds") %>% 
+npp <- read_rds("~/GITHUB/naames_export_ms/Output/processed_bf.2.2020.rds") %>% 
   #omitting CampCN 98 because only measurements at 5 m and below 1500 m were taken. the interpolated values for this cast were as a result, not reliable
   filter(Cruise %in% c("AT32", "AT34", "AT38", "AT39-6"),
          !CampCN == 98) %>% 
@@ -48,7 +48,7 @@ npp <- read_rds("~/naames_export_ms/Output/processed_bf.2.2020.rds") %>%
   mutate(degree_bin = ifelse(Cruise == "AT34" & Station == "4", 48, degree_bin),
          Max_MLD = ifelse(Cruise == "AT34" & Station == "4", 508, Max_MLD),) %>% 
   select(Cruise, Latitude, Longitude, Date, degree_bin, Station, Season, Subregion, CampCN) %>% 
-  left_join(., read_xlsx("~/naames_bioav_ms/Input/NPP for Nick.xlsx", sheet = 2) %>% 
+  left_join(., read_xlsx("~/GITHUB/naames_bioav_ms/Input/NPP for Nick.xlsx", sheet = 2) %>% 
               filter(!station %in% c("NA","N4S2RF")) %>% 
               separate(station, into = c("Cruise", "Station"), sep = "S") %>% 
               select(-Cruise) %>% 
@@ -68,7 +68,7 @@ npp <- read_rds("~/naames_export_ms/Output/processed_bf.2.2020.rds") %>%
 
 
 #Bacterial Production and Abundance Data, join with NPP
-bact_npp <- read_rds("~/naames_bioav_ms/Input/processed_bf.2.2020.rds") %>%
+bact_npp <- read_rds("~/GITHUB/naames_bioav_ms/Input/processed_bf.2.2020.rds") %>%
   filter(Target_Z %in% c(0, 5, 10, 25, 50, 75, 100, 150, 200, 300, 400, 500, 750, 1000, 1250, 1500 )) %>% 
   select(Cruise:Station, degree_bin, CampCN, Target_Z, BactProd_C, BactProd_C_sd, BactAbund, BactAbund_sd) %>%  
   group_by(Cruise, Station, CampCN, Target_Z) %>% 
@@ -167,7 +167,7 @@ BCD and specific growth rates will be integrated through the euphotic zone.
 ```{r message = F}
 #calculate bcd and specific growth rates
 bcd <- interpolated.df %>% 
-  full_join(.,   readRDS("~/naames_bioav_ms/Output/processed_bge.rds") %>%
+  full_join(.,   readRDS("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>%
               select(Season, season_bge,  global_initial_ccf:ave_stationary_ccf) %>%
               distinct()) %>% 
   select(-c(bp:sd_ba)) %>% 
@@ -226,31 +226,33 @@ Here, we put our experimental DOC data in the context of the results from the ex
 
 ```{r message = F, warning = F}
 
-export <- readRDS("~/naames_bioav_ms/Input/processed_export_for_bioavMS.5.29.20.rds") %>% 
+export <- readRDS("~/GITHUB/naames_bioav_ms/Input/processed_export_for_bioavMS.5.29.20.rds") %>% 
   mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
-  select(Cruise, Season, degree_bin, CampCN, Subregion, Station, Ez, Target_Z, interp_doc, interp_don, redis_DOC_vol, int_delta_DOC_ez) %>% 
+  select(Cruise, Season, degree_bin, CampCN, Subregion, Station, Ez, Target_Z, interp_doc, interp_don, redis_DOC_vol, int_delta_DOC_ez, NCP_mol_ez) %>% 
   distinct() %>% 
   mutate_at(vars(redis_DOC_vol), round, 1) %>% 
-  mutate_at(vars(int_delta_DOC_ez), round, 2) %>%
+  mutate_at(vars(int_delta_DOC_ez, NCP_mol_ez), round, 2) %>%
   mutate_at(vars(Station), as.character) %>% 
   drop_na(int_delta_DOC_ez)
 
 
-export_bioav <- full_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") %>% 
+export_bioav <- full_join(readRDS("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>% 
                             filter(!Station == "U", Depth == 10, Treatment == "Control") %>% 
                             select(Cruise, Season, Station, Subregion, Bottle, Hours, Days, doc, interp_doc) %>% 
                             distinct() %>% 
                             drop_na(interp_doc), 
                           export %>% 
-                            select(Cruise, degree_bin, Subregion, Station, Ez, redis_DOC_vol, int_delta_DOC_ez) %>%  
+                            select(Cruise, degree_bin, Subregion, Station, Ez, redis_DOC_vol, int_delta_DOC_ez, NCP_mol_ez) %>%  
                             group_by(Cruise, Station) %>% 
                             mutate(ave_Ez = mean(Ez),
                                    sd_Ez = sd(Ez),
                                    ave_int_delta_DOC_ez = mean(int_delta_DOC_ez, na.rm = T),
-                                   sd_int_delta_DOC_ez = sd(int_delta_DOC_ez, na.rm = T)) %>% 
+                                   sd_int_delta_DOC_ez = sd(int_delta_DOC_ez, na.rm = T),
+                                   ave_NCP_mol_ez = mean(NCP_mol_ez, na.rm = T),
+                                   sd_NCP_mol_ez = sd(NCP_mol_ez, na.rm = T)) %>% 
                             mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
-                             mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez), round, 2) %>% 
-                            select(-c(Ez, int_delta_DOC_ez)) %>% 
+                             mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez, ave_NCP_mol_ez, sd_NCP_mol_ez), round, 2) %>% 
+                            select(-c(Ez, int_delta_DOC_ez, NCP_mol_ez)) %>% 
                             distinct()) %>% 
   mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
          degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
@@ -290,11 +292,11 @@ export_bioav <- full_join(readRDS("~/naames_bioav_ms/Output/processed_bge.rds") 
 ```{r}
 
 # Integrated Bacteria
-saveRDS(int_bcd, "~/naames_bioav_ms/Output/processed_integrated_BCD.rds")
+saveRDS(int_bcd, "~/GITHUB/naames_bioav_ms/Output/processed_integrated_BCD.rds")
 # Field Data
-saveRDS(export, "~/naames_bioav_ms/Output/processed_field.rds")
+saveRDS(export, "~/GITHUB/naames_bioav_ms/Output/processed_field.rds")
 # Bioavailability
-saveRDS(export_bioav, "~/naames_bioav_ms/Output/processed_bioavailability.rds")
+saveRDS(export_bioav, "~/GITHUB/naames_bioav_ms/Output/processed_bioavailability.rds")
 
 ```
 
