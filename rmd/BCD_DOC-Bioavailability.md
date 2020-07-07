@@ -32,6 +32,8 @@ library(ggpubr)
 # Import Data
 
 ``` r
+export <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_field.rds") 
+
 doc <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bioavailability.rds") %>% 
    select(-c(Bottle, doc, interp_doc)) %>% 
   arrange(Cruise, Station, Hours) %>% 
@@ -76,39 +78,43 @@ Units for imported data frames are currently:
   - BC, µmol C m<sup>-3</sup>
   - mew, d<sup>-1</sup>
   - NPP, µmol C m<sup>-3</sup> d<sup>-1</sup>
-  - ∆DOC (from export MS, integrated to Ez), mol C m<sup>-2</sup>
+  - ∆DOC and NCP (from export MS, integrated to Ez), mol C
+    m<sup>-2</sup>
 
-NPP and BCD are converted to: mmol C m<sup>-3</sup> d<sup>-1</sup>
+NPP, NCP and BCD are converted to: mmol C m<sup>-3</sup>
+d<sup>-1</sup>
 
 # Box plots: NPP, BP, BA, µ, ∆DOC
 
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
+
+## Surface 100 m
+
 ``` r
-doc %>% 
-  select(Season,  ave_Ez, ave_NCP_mol_ez, ave_int_delta_DOC_ez) %>%
-  mutate_at(vars("ave_NCP_mol_ez", "ave_int_delta_DOC_ez"), funs(./ave_Ez * 10^3)) %>% 
-  drop_na(ave_NCP_mol_ez) %>% 
-  distinct() %>% 
-  mutate(doc_ncp = ave_int_delta_DOC_ez/ave_NCP_mol_ez) %>% 
+export %>% 
+  select(Season,  doc_ncp_100) %>%
   group_by(Season) %>% 
-  summarise(ave_doc_ncp = round(mean(doc_ncp),2),
-            sd_doc_ncp = round(sd(doc_ncp), 2))
+  summarise(ave_doc_ncp = round(mean(doc_ncp_100),2),
+            sd_doc_ncp = round(sd(doc_ncp_100), 2))
 ```
 
     ## # A tibble: 4 x 3
     ##   Season       ave_doc_ncp sd_doc_ncp
     ##   <chr>              <dbl>      <dbl>
-    ## 1 Early Autumn        0.18       0.07
-    ## 2 Early Spring        0.11       0.12
-    ## 3 Late Autumn         0.14       0.05
-    ## 4 Late Spring         0.12       0.06
-
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-6-1.png" style="display: block; margin: auto;" />
+    ## 1 Early Autumn        0.19       0.06
+    ## 2 Early Spring        0.12       0.1 
+    ## 3 Late Autumn         0.14       0.04
+    ## 4 Late Spring         0.11       0.06
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
 
-# Bar plots: NPP, BP, BA, µ, ∆DOC
+## Euphotic Zone
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
+
+# Bar plots: NPP, BP, BA, µ
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
 
 Error bars for µ represent standard deviation from mean of values
 calculated using different CCFs to convert BA to BC (Global Initial CCF,
@@ -119,11 +125,11 @@ values.
 
 # Line plots: DOC Decay Curves
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
-
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
 
 Black vertical dashed and dotted lines indicate the 7 and 30-day marks,
 respectively. Dashed decay lines indicate experiments in which BGEs
@@ -146,30 +152,39 @@ bioav.table <- doc %>%
 
 | Season       | Station | degree\_bin | ave\_Ez | sd\_Ez | ave\_int\_delta\_DOC\_ez | sd\_int\_delta\_DOC\_ez | accm\_doc | sd\_accm\_doc | total.bioav\_accm\_doc | st.bioav\_accm\_doc | lt.bioav\_accm\_doc | total.per\_bioav | st.per\_bioav | lt.per\_bioav | persis\_doc | per\_persis | st.ddoc | lt.ddoc | total.ddoc | bge   |
 | :----------- | :------ | :---------- | ------: | -----: | -----------------------: | ----------------------: | --------: | ------------: | ---------------------: | ------------------: | ------------------: | ---------------: | ------------: | ------------: | ----------: | ----------: | ------: | ------: | ---------: | :---- |
-| Early Spring | 1       | 39          |     106 |      0 |                     1.79 |                    0.28 |       4.2 |           0.6 |                    4.7 |                 2.0 |                 2.7 |              112 |            48 |            64 |       \-0.5 |        \-12 |    0.29 |    0.04 |       0.06 | FALSE |
-| Early Spring | 2       | 39          |      98 |      0 |                     1.43 |                    0.20 |       3.5 |           0.1 |                    3.1 |                 0.3 |                 2.8 |               89 |             9 |            80 |         0.4 |          11 |    0.04 |    0.04 |       0.04 | FALSE |
+| Early Spring | 1       | 39          |     106 |      7 |                     1.98 |                    0.00 |       4.2 |           0.6 |                    4.7 |                 2.0 |                 2.7 |              112 |            48 |            64 |       \-0.5 |        \-12 |    0.29 |    0.04 |       0.06 | FALSE |
+| Early Spring | 2       | 39          |      98 |      7 |                     1.53 |                    0.00 |       3.5 |           0.1 |                    3.1 |                 0.3 |                 2.8 |               89 |             9 |            80 |         0.4 |          11 |    0.04 |    0.04 |       0.04 | FALSE |
 | Early Spring | S2RD    | 39          |      NA |     NA |                       NA |                      NA |       4.5 |           0.1 |                    3.7 |                 0.9 |                 2.8 |               82 |            20 |            62 |         0.8 |          18 |    0.13 |    0.03 |       0.04 | FALSE |
 | Early Spring | S2RF    | 39          |      NA |     NA |                       NA |                      NA |       3.0 |           0.7 |                    2.9 |                 0.1 |                 2.8 |               97 |             3 |            93 |         0.1 |           3 |    0.01 |    0.03 |       0.03 | FALSE |
-| Early Spring | 3       | 44          |     120 |      0 |                     2.67 |                    0.00 |       4.3 |           0.3 |                    3.1 |                 0.0 |                 3.1 |               72 |             0 |            72 |         1.2 |          28 |    0.00 |    0.04 |       0.04 | FALSE |
-| Early Spring | 4       | 44          |     126 |      0 |                     0.08 |                    0.00 |       2.6 |           0.3 |                    1.8 |                 0.7 |                 1.1 |               69 |            27 |            42 |         0.8 |          31 |    0.10 |    0.01 |       0.02 | TRUE  |
-| Late Spring  | 5       | 44          |      91 |      0 |                     3.52 |                    1.10 |      11.7 |           0.5 |                    4.0 |                 2.7 |                 1.3 |               34 |            23 |            11 |         7.7 |          66 |    0.39 |    0.01 |       0.04 | FALSE |
-| Late Spring  | 4       | 48          |     125 |     31 |                     2.00 |                    0.56 |       2.8 |           0.8 |                     NA |                 0.7 |                  NA |               NA |            25 |            NA |          NA |          NA |    0.10 |      NA |         NA | FALSE |
-| Late Spring  | 3       | 50          |      52 |      0 |                     3.85 |                    0.77 |       7.9 |           0.0 |                     NA |                 2.3 |                  NA |               NA |            29 |            NA |          NA |          NA |    0.33 |      NA |         NA | TRUE  |
-| Late Spring  | 0       | 54          |      87 |      0 |                     2.07 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Spring  | 2       | 54          |      54 |      0 |                     3.33 |                    0.56 |       6.9 |           0.4 |                     NA |                 1.0 |                  NA |               NA |            14 |            NA |          NA |          NA |    0.14 |      NA |         NA | TRUE  |
-| Late Spring  | 1       | 56          |      72 |      0 |                     0.42 |                    0.14 |       3.3 |           1.0 |                     NA |                 2.5 |                  NA |               NA |            76 |            NA |          NA |          NA |    0.36 |      NA |         NA | TRUE  |
-| Early Autumn | 1       | 42          |     244 |      0 |                     1.72 |                    0.00 |      12.2 |           0.2 |                    4.7 |                 2.3 |                 2.4 |               39 |            19 |            20 |         7.5 |          61 |    0.33 |    0.04 |       0.07 | FALSE |
-| Early Autumn | 2       | 44          |     207 |      0 |                     4.30 |                    0.19 |      18.9 |           0.8 |                    5.9 |                 1.6 |                 4.3 |               31 |             8 |            23 |        13.0 |          69 |    0.23 |    0.07 |       0.09 | FALSE |
-| Early Autumn | 3       | 47          |     200 |      0 |                     1.10 |                    0.05 |      14.1 |           1.6 |                    4.5 |                 1.6 |                 2.9 |               32 |            11 |            21 |         9.6 |          68 |    0.23 |    0.05 |       0.07 | TRUE  |
-| Early Autumn | 4       | 49          |     188 |      0 |                     5.11 |                    0.00 |      15.1 |           0.4 |                    3.8 |                 0.9 |                 2.9 |               25 |             6 |            19 |        11.3 |          75 |    0.13 |    0.05 |       0.06 | FALSE |
-| Early Autumn | 5       | 52          |     157 |      0 |                     4.84 |                    0.00 |      14.2 |           0.6 |                    5.3 |                 0.9 |                 4.4 |               37 |             6 |            31 |         8.9 |          63 |    0.13 |    0.08 |       0.09 | FALSE |
-| Early Autumn | 6       | 53          |     102 |      6 |                     3.63 |                    0.59 |       8.9 |           0.3 |                    5.0 |                 1.8 |                 3.2 |               56 |            20 |            36 |         3.9 |          44 |    0.26 |    0.06 |       0.09 | TRUE  |
-| Late Autumn  | 7       | 40          |     112 |     14 |                     6.25 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 6       | 43          |     103 |      0 |                     7.57 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 5       | 44          |     103 |      0 |                     5.53 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 4       | 46          |     126 |      0 |                     3.10 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 3       | 51          |      59 |      0 |                     7.12 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
-| Late Autumn  | 2       | 54          |     104 |      0 |                     1.54 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Early Spring | 2.1     | 42          |     120 |      7 |                   \-7.92 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Early Spring | 3       | 44          |     120 |      7 |                     2.67 |                    0.00 |       4.3 |           0.3 |                    3.1 |                 0.0 |                 3.1 |               72 |             0 |            72 |         1.2 |          28 |    0.00 |    0.04 |       0.04 | FALSE |
+| Early Spring | 4       | 44          |     126 |      7 |                     0.08 |                    0.00 |       2.6 |           0.3 |                    1.8 |                 0.7 |                 1.1 |               69 |            27 |            42 |         0.8 |          31 |    0.10 |    0.01 |       0.02 | TRUE  |
+| Late Spring  | 5       | 44          |      91 |     11 |                     3.52 |                    0.00 |      11.7 |           0.5 |                    4.0 |                 2.7 |                 1.3 |               34 |            23 |            11 |         7.7 |          66 |    0.39 |    0.01 |       0.04 | FALSE |
+| Late Spring  | 4       | 48          |     116 |     33 |                     2.07 |                    0.00 |       2.8 |           0.8 |                     NA |                 0.7 |                  NA |               NA |            25 |            NA |          NA |          NA |    0.10 |      NA |         NA | FALSE |
+| Late Spring  | 3       | 50          |      52 |      1 |                     3.85 |                    0.00 |       7.9 |           0.0 |                     NA |                 2.3 |                  NA |               NA |            29 |            NA |          NA |          NA |    0.33 |      NA |         NA | TRUE  |
+| Late Spring  | 0       | 54          |      87 |      1 |                     2.07 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Spring  | 2       | 54          |      58 |      5 |                     2.93 |                    0.00 |       6.9 |           0.4 |                     NA |                 1.0 |                  NA |               NA |            14 |            NA |          NA |          NA |    0.14 |      NA |         NA | TRUE  |
+| Late Spring  | 1       | 56          |      72 |      1 |                     0.42 |                    0.00 |       3.3 |           1.0 |                     NA |                 2.5 |                  NA |               NA |            76 |            NA |          NA |          NA |    0.36 |      NA |         NA | TRUE  |
+| Early Autumn | 0       | 42          |     236 |     11 |                   \-4.19 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Early Autumn | 1       | 42          |     236 |     11 |                     1.82 |                    0.00 |      12.2 |           0.2 |                    4.7 |                 2.3 |                 2.4 |               39 |            19 |            20 |         7.5 |          61 |    0.33 |    0.04 |       0.07 | FALSE |
+| Early Autumn | 1.5     | 44          |     207 |     21 |                     1.69 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Early Autumn | 2       | 44          |     207 |     21 |                     4.35 |                    0.00 |      18.9 |           0.8 |                    5.9 |                 1.6 |                 4.3 |               31 |             8 |            23 |        13.0 |          69 |    0.23 |    0.07 |       0.09 | FALSE |
+| Early Autumn | 3       | 47          |     200 |     21 |                     1.10 |                    0.00 |      14.2 |           1.6 |                    4.5 |                 1.6 |                 2.9 |               32 |            11 |            20 |         9.7 |          68 |    0.23 |    0.05 |       0.07 | TRUE  |
+| Early Autumn | 3.5     | 48          |     174 |     21 |                   \-0.80 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Early Autumn | 4       | 49          |     174 |     21 |                     5.57 |                    0.00 |      15.1 |           0.4 |                    3.8 |                 0.9 |                 2.9 |               25 |             6 |            19 |        11.3 |          75 |    0.13 |    0.05 |       0.06 | FALSE |
+| Early Autumn | 4.5     | 50          |     157 |      7 |                     2.17 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Early Autumn | 5       | 52          |     157 |      7 |                     4.84 |                    0.00 |      14.2 |           0.6 |                    5.3 |                 0.9 |                 4.4 |               37 |             6 |            31 |         8.9 |          63 |    0.13 |    0.08 |       0.09 | FALSE |
+| Early Autumn | 5.5     | 53          |     101 |      7 |                     3.86 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Early Autumn | 6       | 53          |     101 |      7 |                     3.86 |                    0.00 |       8.9 |           0.3 |                    5.0 |                 1.8 |                 3.2 |               56 |            20 |            36 |         3.9 |          44 |    0.26 |    0.06 |       0.09 | TRUE  |
+| Late Autumn  | 7       | 40          |     112 |     19 |                     6.16 |                    0.36 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 7       | 41          |     112 |     19 |                     6.16 |                    0.36 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 6       | 43          |     104 |      1 |                     4.33 |                    2.12 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 6       | 43          |     112 |     19 |                     4.02 |                    1.96 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 5       | 44          |     103 |      1 |                     5.53 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 4       | 46          |     126 |      1 |                     3.10 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 1       | 51          |     102 |      4 |                     2.94 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 3       | 51          |      59 |      1 |                     7.12 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
+| Late Autumn  | 2       | 54          |     102 |      4 |                     1.57 |                    0.00 |        NA |            NA |                     NA |                  NA |                  NA |               NA |            NA |            NA |          NA |          NA |      NA |      NA |         NA | FALSE |
 
 Seasonal Accumulated DOC Bioavailability and Persistance
 
@@ -208,7 +223,7 @@ bioav.table2 <- bioav.table %>%
 | :----------- | ---: | -------: | -------: | -----------: | ----: | --------: | ------------: | ----------------: | ---------: | -------------: | ---: | -------: | --------: | ------------: | ------------: | ----------------: | ---------------: | -------------------: | -------: |
 | Early Spring |  3.7 |      0.8 |      3.2 |          1.0 |   0.7 |       0.7 |            87 |                16 |         18 |             18 |  0.5 |      0.6 |        13 |            16 |             0 |                 0 |                0 |                    0 |        6 |
 | Late Spring  |  6.5 |      3.6 |      4.0 |           NA |   1.8 |       0.9 |            34 |                NA |         33 |             24 |  7.7 |       NA |        66 |            NA |             0 |                 0 |                0 |                   NA |        5 |
-| Early Autumn | 13.9 |      3.3 |      4.9 |          0.7 |   1.5 |       0.5 |            37 |                11 |         12 |              6 |  9.0 |      3.2 |        63 |            11 |             0 |                 0 |                0 |                    0 |        6 |
+| Early Autumn | 13.9 |      3.3 |      4.9 |          0.7 |   1.5 |       0.5 |            37 |                11 |         12 |              6 |  9.1 |      3.2 |        63 |            11 |             0 |                 0 |                0 |                    0 |        6 |
 
 Seasonal Accumulated DOC Bioavailability and Persistance
 
@@ -254,7 +269,7 @@ bioav.table3 <- bioav.table %>%
 | Late Spring  | 56          |  3.3 |       NA |      NaN |           NA |   2.5 |        NA |           NaN |                NA |         76 |             NA |  NaN |       NA |       NaN |            NA |             0 |                NA |              NaN |                   NA |        1 |
 | Early Autumn | 42          | 12.2 |       NA |      4.7 |           NA |   2.3 |        NA |            39 |                NA |         19 |             NA |  7.5 |       NA |        61 |            NA |             0 |                NA |                0 |                   NA |        1 |
 | Early Autumn | 44          | 18.9 |       NA |      5.9 |           NA |   1.6 |        NA |            31 |                NA |          8 |             NA | 13.0 |       NA |        69 |            NA |             0 |                NA |                0 |                   NA |        1 |
-| Early Autumn | 47          | 14.1 |       NA |      4.5 |           NA |   1.6 |        NA |            32 |                NA |         11 |             NA |  9.6 |       NA |        68 |            NA |             0 |                NA |                0 |                   NA |        1 |
+| Early Autumn | 47          | 14.2 |       NA |      4.5 |           NA |   1.6 |        NA |            32 |                NA |         11 |             NA |  9.7 |       NA |        68 |            NA |             0 |                NA |                0 |                   NA |        1 |
 | Early Autumn | 49          | 15.1 |       NA |      3.8 |           NA |   0.9 |        NA |            25 |                NA |          6 |             NA | 11.3 |       NA |        75 |            NA |             0 |                NA |                0 |                   NA |        1 |
 | Early Autumn | 52          | 14.2 |       NA |      5.3 |           NA |   0.9 |        NA |            37 |                NA |          6 |             NA |  8.9 |       NA |        63 |            NA |             0 |                NA |                0 |                   NA |        1 |
 | Early Autumn | 53          |  8.9 |       NA |      5.0 |           NA |   1.8 |        NA |            56 |                NA |         20 |             NA |  3.9 |       NA |        44 |            NA |             0 |                NA |                0 |                   NA |        1 |
@@ -264,9 +279,9 @@ Persistance
 
 # Bar plots: Experiment ∆DOC and %Bioavailability
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
-
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-20-1.png" style="display: block; margin: auto;" />
 
 # Table: NPP and BCD
 
@@ -342,7 +357,7 @@ bcd_table2 <- bcd_table %>%
 We’ll convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup> before
 plotting.
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-23-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-24-1.png" style="display: block; margin: auto;" />
 
 # Merge DOC and BCD data
 
@@ -424,9 +439,9 @@ bcd_bioav <- bcd %>%
     ## Call: lmodel2(formula = ave_int.BCD ~ ave_int_delta_DOC_ez, data =
     ## bcd_bioav, nperm = 99)
     ## 
-    ## n = 22   r = -0.06408674   r-square = 0.00410711 
-    ## Parametric P-values:   2-tailed = 0.7769175    1-tailed = 0.3884587 
-    ## Angle between the two OLS regression lines = 48.08123 degrees
+    ## n = 22   r = -0.05951588   r-square = 0.003542139 
+    ## Parametric P-values:   2-tailed = 0.7924794    1-tailed = 0.3962397 
+    ## Angle between the two OLS regression lines = 53.03987 degrees
     ## 
     ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
     ## A permutation test of r is equivalent to a permutation test of the OLS slope
@@ -434,19 +449,19 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.2205283 -0.004617140      -0.2645408               0.4
-    ## 2     MA 0.2206090 -0.004641131      -0.2659153               0.4
-    ## 3    SMA 0.4473010 -0.072045177      -4.1207648                NA
+    ## 1    OLS 0.2203520 -0.004754269      -0.2723975              0.38
+    ## 2     MA 0.2204502 -0.004784693      -0.2741406              0.38
+    ## 3    SMA 0.4629475 -0.079882375      -4.5672246                NA
     ## 
     ## Confidence intervals
-    ##   Method 2.5%-Intercept 97.5%-Intercept  2.5%-Slope 97.5%-Slope
-    ## 1    OLS     0.08743695       0.3536196 -0.03815250  0.02891822
-    ## 2     MA     0.10719073       0.3340627 -0.03837518  0.02908236
-    ## 3    SMA     0.35947908       0.5850501 -0.11300313 -0.04593242
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS     0.08099559       0.3597084 -0.0419482  0.03243967
+    ## 2     MA     0.09951597       0.3414278 -0.0422496  0.03266679
+    ## 3    SMA     0.36943478       0.6096400 -0.1253108 -0.05092293
     ## 
-    ## Eigenvalues: 4.650989 0.02404081 
+    ## Eigenvalues: 3.783152 0.02405442 
     ## 
-    ## H statistic used for computing C.I. of MA: 0.001136288
+    ## H statistic used for computing C.I. of MA: 0.001401086
 
 ## BCD v % DOC Bioavailability
 
@@ -624,9 +639,9 @@ bcd_bioav <- bcd %>%
     ## Call: lmodel2(formula = ave_int.mew ~ ave_int_delta_DOC_ez, data =
     ## bcd_bioav, nperm = 99)
     ## 
-    ## n = 22   r = -0.1846927   r-square = 0.0341114 
-    ## Parametric P-values:   2-tailed = 0.4106029    1-tailed = 0.2053015 
-    ## Angle between the two OLS regression lines = 3.705372 degrees
+    ## n = 22   r = -0.1951303   r-square = 0.03807583 
+    ## Parametric P-values:   2-tailed = 0.3841765    1-tailed = 0.1920883 
+    ## Angle between the two OLS regression lines = 3.872092 degrees
     ## 
     ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
     ## A permutation test of r is equivalent to a permutation test of the OLS slope
@@ -634,19 +649,19 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method  Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.04360225 -0.002287465      -0.1310618              0.26
-    ## 2     MA 0.04360339 -0.002287804      -0.1310813              0.26
-    ## 3    SMA 0.07756292 -0.012385245      -0.7095860                NA
+    ## 1    OLS 0.04456187 -0.002679633      -0.1535313              0.23
+    ## 2     MA 0.04456344 -0.002680120      -0.1535592              0.23
+    ## 3    SMA 0.08025269 -0.013732533      -0.7867668                NA
     ## 
     ## Confidence intervals
     ##   Method 2.5%-Intercept 97.5%-Intercept   2.5%-Slope  97.5%-Slope
-    ## 1    OLS     0.02106989      0.06613461 -0.007965000  0.003390071
-    ## 2     MA     0.02450592      0.06270136 -0.007966345  0.003390591
-    ## 3    SMA     0.06263639      0.10082555 -0.019302098 -0.007947027
+    ## 1    OLS     0.02102398      0.06809976 -0.008961848  0.003602581
+    ## 2     MA     0.02427386      0.06485371 -0.008963704  0.003603253
+    ## 3    SMA     0.06438666      0.10495834 -0.021383496 -0.008819067
     ## 
-    ## Eigenvalues: 4.650914 0.0006890806 
+    ## Eigenvalues: 3.783093 0.0006862509 
     ## 
-    ## H statistic used for computing C.I. of MA: 3.224362e-05
+    ## H statistic used for computing C.I. of MA: 3.947998e-05
 
 ## µ v % DOC Bioavailability
 
@@ -769,4 +784,4 @@ summary(model)
 
 # Plots: Property-Property
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-50-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-51-1.png" style="display: block; margin: auto;" />

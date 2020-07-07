@@ -73,6 +73,8 @@ levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT
 # Import Data
 
 ```{r}
+export <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_field.rds") 
+
 doc <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bioavailability.rds") %>% 
    select(-c(Bottle, doc, interp_doc)) %>% 
   arrange(Cruise, Station, Hours) %>% 
@@ -128,6 +130,8 @@ NPP, NCP and BCD are converted to: mmol C m^-3^ d^-1^
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 12, fig.align = "center", warning = FALSE}
 my_comparisons <- list( c("Early Spring", "Late Spring"), c("Early Spring", "Early Autumn"), c("Early Spring", "Late Autumn"), c("Late Spring", "Early Autumn"), c("Late Spring", "Late Autumn"), c("Early Autumn", "Late Autumn") ) 
+
+my_comparisons2 <- list( c("Early Spring", "Late Spring"), c("Early Spring", "Early Autumn"),  c("Late Spring", "Early Autumn") ) 
 
 #npp
 npp.boxplot <- bcd %>% 
@@ -209,76 +213,131 @@ mew.boxplot <- bcd %>%
 
 
 #ncp
-ncp.boxplot <- doc %>% 
-  select(Season,  ave_Ez, ave_NCP_mol_ez) %>%
-  mutate_at(vars("ave_NCP_mol_ez"), funs(./ave_Ez * 10^3)) %>% 
-  drop_na(ave_NCP_mol_ez) %>% 
+ncp.boxplot <- export %>% 
+  filter(!Season == "Late Autumn") %>% 
+  select(Season,  ave_Ez, NCP_mol_ez) %>%
+  mutate_at(vars("NCP_mol_ez"), funs(./ave_Ez * 10^3)) %>% 
+  drop_na(NCP_mol_ez) %>% 
   distinct() %>% 
-  ggboxplot(., x = "Season", y = "ave_NCP_mol_ez", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
+  ggboxplot(., x = "Season", y = "NCP_mol_ez", 
+            order = c("Early Spring", "Late Spring", "Early Autumn"),
             xlab = F, 
             ylab = expression(italic(paste("NCP, mmol C m"^-3))),
             add = "jitter",
             width = 0.5,
             ggtheme = custom_theme()) + 
   rremove("x.text") +
-  stat_compare_means(comparisons = my_comparisons, 
+  stat_compare_means(comparisons = my_comparisons2, 
                      label = "p.signif",
                      step.increase = 0.25) +
-  stat_compare_means(label.y = 150) 
+  stat_compare_means(label.y = 100) 
 
 
 
-deldoc.boxplot <- doc %>% 
-  select(Season, ave_Ez, ave_int_delta_DOC_ez) %>% 
+deldoc.boxplot <- export %>% 
+  filter(!Season == "Late Autumn") %>% 
+  select(Season, ave_Ez, int_delta_DOC_ez) %>% 
   mutate_at(vars(contains("int_delta_DOC")), funs(./ave_Ez * 10^3)) %>% 
-  drop_na(ave_int_delta_DOC_ez) %>% 
+  drop_na(int_delta_DOC_ez) %>% 
   distinct() %>% 
-   ggboxplot(., x = "Season", y = "ave_int_delta_DOC_ez", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
+   ggboxplot(., x = "Season", y = "int_delta_DOC_ez", 
+            order = c("Early Spring", "Late Spring", "Early Autumn"),
             xlab = F, 
             ylab = expression(italic(paste("∆DOC, mmol C m"^-3))),
             add = "jitter",
             width = 0.5,
             ggtheme = custom_theme()) + 
-  stat_compare_means(comparisons = my_comparisons, 
+  stat_compare_means(comparisons = my_comparisons2, 
                      label = "p.signif",
                      step.increase = 0.25) + 
   stat_compare_means(label.y = 16) 
 
 
-#ncp
-doc_ncp.boxplot <- doc %>% 
-  select(Season,  ave_Ez, ave_NCP_mol_ez, ave_int_delta_DOC_ez) %>%
-  mutate_at(vars("ave_NCP_mol_ez", "ave_int_delta_DOC_ez"), funs(./ave_Ez * 10^3)) %>% 
-  drop_na(ave_NCP_mol_ez) %>% 
-  distinct() %>% 
-  mutate(doc_ncp = ave_int_delta_DOC_ez/ave_NCP_mol_ez) %>% 
-  ggboxplot(., x = "Season", y = "doc_ncp", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
+#doc:ncp
+doc_ncp.boxplot <- export %>% 
+  filter(!Season == "Late Autumn") %>% 
+  select(Season, doc_ncp_ez) %>%
+  distinct() %>%
+  drop_na(doc_ncp_ez) %>% 
+  ggboxplot(., x = "Season", y = "doc_ncp_ez", 
+            order = c("Early Spring", "Late Spring", "Early Autumn"),
             xlab = F, 
             ylab = expression(italic(paste("DOC:NCP"))),
             add = "jitter",
             width = 0.5,
             ggtheme = custom_theme()) + 
   rremove("x.text") +
-  stat_compare_means(comparisons = my_comparisons, 
+  stat_compare_means(comparisons = my_comparisons2, 
                      label = "p.signif",
                      step.increase = 0.25) +
   stat_compare_means(label.y = 0.7) 
+
+
+
+#ncp_100
+ncp_100.boxplot <- export %>% 
+  filter(!Season == "Late Autumn") %>% 
+  select(Season, NCP_mol_100) %>%
+  distinct() %>% 
+  mutate_at(vars("NCP_mol_100"), funs(./100 * 10^3)) %>% 
+  drop_na(NCP_mol_100) %>% 
+  distinct() %>% 
+  ggboxplot(., x = "Season", y = "NCP_mol_100", 
+            order = c("Early Spring", "Late Spring", "Early Autumn"),
+            xlab = F, 
+            ylab = expression(italic(paste("NCP, mmol C m"^-3))),
+            add = "jitter",
+            width = 0.5,
+            ggtheme = custom_theme()) + 
+  rremove("x.text") +
+  stat_compare_means(comparisons = my_comparisons2, 
+                     label = "p.signif",
+                     step.increase = 0.25) +
+  stat_compare_means(label.y = 100) 
+
+
+#∆doc_100
+deldoc_100.boxplot <- export %>% 
+  filter(!Season == "Late Autumn") %>% 
+  select(Season, int_delta_DOC_100) %>%
+  distinct() %>% 
+  mutate_at(vars("int_delta_DOC_100"), funs(./100 * 10^3)) %>% 
+  drop_na(int_delta_DOC_100) %>% 
+  distinct() %>% 
+   ggboxplot(., x = "Season", y = "int_delta_DOC_100", 
+            order = c("Early Spring", "Late Spring", "Early Autumn"),
+            xlab = F, 
+            ylab = expression(italic(paste("∆DOC, mmol C m"^-3))),
+            add = "jitter",
+            width = 0.5,
+            ggtheme = custom_theme()) + 
+  rremove("x.text") +
+  stat_compare_means(comparisons = my_comparisons2, 
+                     label = "p.signif",
+                     step.increase = 0.25) + 
+  stat_compare_means(label.y = 17) 
+
+
+#doc:ncp_100
+doc_ncp_100.boxplot <- export %>% 
+  filter(!Season == "Late Autumn") %>% 
+  select(Season,  Station, doc_ncp_100) %>%
+  drop_na(doc_ncp_100) %>% 
+  distinct() %>% 
+  ggboxplot(., x = "Season", y = "doc_ncp_100", 
+            order = c("Early Spring", "Late Spring", "Early Autumn"),
+            xlab = F, 
+            ylab = expression(italic(paste("DOC:NCP"))),
+            add = "jitter",
+            width = 0.5,
+            ggtheme = custom_theme()) + 
+  stat_compare_means(comparisons = my_comparisons2, 
+                     label = "p.signif",
+                     step.increase = 0.25) +
+  stat_compare_means(label.y = 0.55) 
+
 ```
 
-```{r}
-doc %>% 
-  select(Season,  ave_Ez, ave_NCP_mol_ez, ave_int_delta_DOC_ez) %>%
-  mutate_at(vars("ave_NCP_mol_ez", "ave_int_delta_DOC_ez"), funs(./ave_Ez * 10^3)) %>% 
-  drop_na(ave_NCP_mol_ez) %>% 
-  distinct() %>% 
-  mutate(doc_ncp = ave_int_delta_DOC_ez/ave_NCP_mol_ez) %>% 
-  group_by(Season) %>% 
-  summarise(ave_doc_ncp = round(mean(doc_ncp),2),
-            sd_doc_ncp = round(sd(doc_ncp), 2))
-```
 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 7, fig.align = "center", warning = FALSE}
@@ -290,18 +349,37 @@ patchwork +  plot_annotation(tag_levels = "a") &
 
 ```
 
+## Surface 100 m
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 7, fig.align = "center", warning = FALSE}
+```{r}
+export %>% 
+  select(Season,  doc_ncp_100) %>%
+  group_by(Season) %>% 
+  summarise(ave_doc_ncp = round(mean(doc_ncp_100),2),
+            sd_doc_ncp = round(sd(doc_ncp_100), 2))
+```
 
-patchwork2 <- ncp.boxplot / deldoc.boxplot 
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 6, fig.align = "center", warning = FALSE}
+
+patchwork2 <- ncp_100.boxplot / deldoc_100.boxplot / doc_ncp_100.boxplot
 
 patchwork2 +  plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 
 ```
 
+## Euphotic Zone
 
-# Bar plots: NPP, BP, BA, µ, ∆DOC
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 6, fig.align = "center", warning = FALSE}
+
+patchwork3 <- ncp.boxplot / deldoc.boxplot / doc_ncp.boxplot
+
+patchwork3 +  plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(size = 14))
+
+```
+
+# Bar plots: NPP, BP, BA, µ
 
 
 ```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 14, fig.width = 12, fig.align = "center", warning = FALSE}
@@ -369,7 +447,7 @@ mew.bar <- bcd %>%
   ggplot(aes(x = degree_bin, y =  ave, group = interaction(Season, Station, degree_bin)))  + 
   geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
   geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("")), y = expression(italic(paste("µ, d"^-1))), colour = expression(italic(""))) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("µ, d"^-1))), colour = expression(italic(""))) +
   scale_y_continuous(breaks = pretty_breaks()) +
   scale_fill_manual(values = custom.colors) +
   custom_theme() +
@@ -394,7 +472,7 @@ deldoc.bar <- doc %>%
   theme(strip.background = element_blank(), strip.text = element_blank()) +
   guides(fill = F)
 
-npp.bar / bp.bar / ba.bar / mew.bar / deldoc.bar +
+npp.bar / bp.bar / ba.bar / mew.bar  +
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 ```

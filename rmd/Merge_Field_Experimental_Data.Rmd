@@ -226,14 +226,14 @@ Here, we put our experimental DOC data in the context of the results from the ex
 
 ```{r message = F, warning = F}
 
-export <- readRDS("~/GITHUB/naames_bioav_ms/Input/processed_export_for_bioavMS.5.29.20.rds") %>% 
+export <- readRDS("~/GITHUB/naames_bioav_ms/Input/processed_export_for_bioavMS.6.7.20-2.rds") %>% 
   mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
-  select(Cruise, Season, degree_bin, CampCN, Subregion, Station, Ez, Target_Z, interp_doc, interp_don, redis_DOC_vol, int_delta_DOC_ez, NCP_mol_ez) %>% 
+  select(Cruise, Season, degree_bin,  Subregion, Station, ave_Ez, sd_Ez, Target_Z,  redis_DOC_vol, int_delta_DOC_ez, int_delta_DOC_100, NCP_mol_ez, NCP_mol_100, doc_ncp_100, doc_ncp_ez) %>% 
   distinct() %>% 
   mutate_at(vars(redis_DOC_vol), round, 1) %>% 
-  mutate_at(vars(int_delta_DOC_ez, NCP_mol_ez), round, 2) %>%
+  mutate_at(vars(int_delta_DOC_ez, NCP_mol_ez, int_delta_DOC_100, NCP_mol_100), round, 2) %>%
   mutate_at(vars(Station), as.character) %>% 
-  drop_na(int_delta_DOC_ez)
+  drop_na(int_delta_DOC_100)
 
 
 export_bioav <- full_join(readRDS("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>% 
@@ -242,17 +242,17 @@ export_bioav <- full_join(readRDS("~/GITHUB/naames_bioav_ms/Output/processed_bge
                             distinct() %>% 
                             drop_na(interp_doc), 
                           export %>% 
-                            select(Cruise, degree_bin, Subregion, Station, Ez, redis_DOC_vol, int_delta_DOC_ez, NCP_mol_ez) %>%  
+                            select(Cruise, degree_bin, Subregion, Station, ave_Ez, sd_Ez, redis_DOC_vol, int_delta_DOC_ez, NCP_mol_ez, doc_ncp_ez) %>%  
                             group_by(Cruise, Station) %>% 
-                            mutate(ave_Ez = mean(Ez),
-                                   sd_Ez = sd(Ez),
-                                   ave_int_delta_DOC_ez = mean(int_delta_DOC_ez, na.rm = T),
+                            mutate(ave_int_delta_DOC_ez = mean(int_delta_DOC_ez, na.rm = T),
                                    sd_int_delta_DOC_ez = sd(int_delta_DOC_ez, na.rm = T),
                                    ave_NCP_mol_ez = mean(NCP_mol_ez, na.rm = T),
-                                   sd_NCP_mol_ez = sd(NCP_mol_ez, na.rm = T)) %>% 
+                                   sd_NCP_mol_ez = sd(NCP_mol_ez, na.rm = T), 
+                                   ave_doc_ncp_ez = mean(doc_ncp_ez, na.rm = T),
+                                   sd_doc_ncp_ez = sd(doc_ncp_ez, na.rm = T)) %>% 
                             mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
                              mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez, ave_NCP_mol_ez, sd_NCP_mol_ez), round, 2) %>% 
-                            select(-c(Ez, int_delta_DOC_ez, NCP_mol_ez)) %>% 
+                            select(-c(int_delta_DOC_ez, NCP_mol_ez)) %>% 
                             distinct()) %>% 
   mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
          degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
