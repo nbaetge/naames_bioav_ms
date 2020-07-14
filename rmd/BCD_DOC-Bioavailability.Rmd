@@ -527,11 +527,81 @@ doc %>%
   guides(color = F, linetype = F)
 ```
 
+## Experiments at 44˚N
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 8, fig.align = "center", warning = FALSE}
-doc44a <- doc %>% 
+### Add 57 Day Timepoints
+
+If experiments do this timepoint, they will be added and then interpolated. This timepoint is the longest timepoint shared by all all of the cruises. 
+
+```{r}
+keys <-  doc %>% 
   filter(degree_bin == 44) %>% 
   drop_na(sd_doc) %>% 
+  group_by(Cruise, Station) %>%
+  group_keys() %>%
+  mutate(key = paste(Cruise, ", S", Station, sep = ""))
+header <- keys$key
+
+list <- doc %>% 
+  filter(degree_bin == 44) %>% 
+  drop_na(sd_doc) %>% 
+  group_by(Cruise, Station) %>%
+  group_split()
+names(list) <- header
+
+newrow.func <- function(morty){
+   morty[nrow(morty) + 1,] <- NA
+   morty$Days[is.na(morty$Days)] <- 68
+  rick <- morty %>% 
+    fill(., Cruise:Subregion, degree_bin:sd_doc_ncp_ez, accm_doc:bge, .direction = c("updown")) 
+}
+
+add <- lapply(list, newrow.func) %>% 
+  plyr::ldply(., as.data.frame) %>% 
+  select(-.id) %>% 
+  arrange(Cruise, Station, Days) %>% 
+  group_by(Cruise, Station, Days) %>%
+  fill(Hours, ave_doc:norm_doc, .direction = "downup") %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  mutate(Hours = ifelse(is.na(Hours), 1632, Hours)) %>% 
+  group_by(Cruise, Station)  
+
+add_keys <- add %>% 
+  group_keys() %>%
+  mutate(key = paste(Cruise, ", S", Station, sep = ""))
+add_header <- add_keys$key
+
+add_list <- add %>%
+  group_split()
+names(add_list) <- add_header
+```
+
+### Interpolations
+
+```{r warning = FALSE}
+interp.func <- function(x) {
+  y <- zoo(x, order.by = x$Hours)
+  interp_doc <- round(as.numeric(na.approx(y$ave_doc, na.rm = F)), 1)
+  interp_norm_doc <- round(as.numeric(na.approx(y$norm_doc, na.rm = F)), 1)
+  z <- cbind(y, interp_doc, interp_norm_doc)
+  as_tibble(z)
+}
+
+interpolated <- lapply(add_list, interp.func) %>% 
+  plyr::ldply(., as.data.frame) %>% 
+  select(-.id) %>% 
+  mutate_at(vars(Station, Hours:total.ddoc, contains("interp")), as.numeric) %>% 
+  select(Cruise:norm_doc, contains("interp"), everything())
+```
+
+### Plots
+
+We've propogated the error for derived variables
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 16, fig.width = 8, fig.align = "center", warning = FALSE}
+doc44a <- interpolated %>% 
+  drop_na(norm_doc) %>% 
   group_by(Cruise, Station) %>%
   ggplot(aes(x = Days, y = norm_doc, group = interaction(Cruise, Station, degree_bin))) + 
   geom_hline(aes(yintercept = 0)) +
@@ -549,16 +619,16 @@ doc44a <- doc %>%
   custom_theme() +
   guides(color = F, linetype = F) 
   
-doc44b <- doc %>% 
-  filter(degree_bin == 44) %>% 
-  drop_na(sd_doc) %>% 
+doc44b <- interpolated %>% 
   group_by(Cruise, Station) %>%
-  mutate(norm_doc = norm_doc/accm_doc * 100) %>% 
-  ggplot(aes(x = Days, y = norm_doc, group = interaction(Cruise, Station, degree_bin))) + 
+  drop_na(norm_doc) %>% 
+  mutate(per_doc = norm_doc/accm_doc * 100,
+         per_doc_error = sqrt( (sd_doc/norm_doc)^2/(sd_accm_doc/accm_doc)^2 ) ) %>% 
+  ggplot(aes(x = Days, y = per_doc, group = interaction(Cruise, Station, degree_bin))) + 
   geom_hline(aes(yintercept = 0)) +
   geom_vline(aes(xintercept = 7), linetype = 2) +
   geom_vline(aes(xintercept = 30), linetype = 3) +
-  #geom_errorbar(aes(ymin = norm_doc - sd_doc, ymax = norm_doc + sd_doc, color = factor(Season, levels = levels)), width = 0.5) +
+  geom_errorbar(aes(ymin = per_doc - per_doc_error, ymax = per_doc + per_doc_error, color = factor(Season, levels = levels)), width = 0.5) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
   geom_label(aes(x = 7, y = 0, label = "Short-term"), size = 4) +
@@ -570,7 +640,31 @@ doc44b <- doc %>%
   custom_theme() +
   guides(color = F, linetype = F, fill = F)
 
-doc44a / doc44b +
+doc44c <- interpolated %>%  
+  group_by(Cruise, Station) %>%
+  filter(Days <= 68) %>% 
+  mutate(delta_doc = interp_norm_doc - last(interp_norm_doc),
+         last_doc_error = last(sd_doc),
+         last_doc_error = ifelse(is.na(last_doc_error), 0, last_doc_error),
+         delta_doc_error = sqrt( (sd_doc)^2 + (last_doc_error)^2 )) %>% 
+  ggplot(aes(x = Days, y = delta_doc, group = interaction(Cruise, Station, degree_bin))) + 
+  geom_hline(aes(yintercept = 0)) +
+  geom_vline(aes(xintercept = 7), linetype = 2) +
+  geom_vline(aes(xintercept = 30), linetype = 3) +
+  geom_errorbar(aes(ymin = delta_doc - delta_doc_error, ymax = delta_doc + delta_doc_error, color = factor(Season, levels = levels)), width = 0.5) +
+  geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
+  geom_label(aes(x = 7, y = 0, label = "Short-term"), size = 4) +
+  geom_label(aes(x = 30, y = 0, label = "Long-term"), size = 4) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+  #facet_grid(~factor(Season, levels = levels), scales = "free") +
+ labs(x = expression(italic("")), y = expression(italic(paste("Seasonally Accumulated Bioavailable DOC")))) +
+  custom_theme() +
+  guides(color = F, linetype = F, fill = F)
+
+
+doc44a / doc44c / doc44b + 
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
   

@@ -129,7 +129,82 @@ values.
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+## Experiments at 44˚N
+
+### Add 57 Day Timepoints
+
+If experiments do this timepoint, they will be added and then
+interpolated. This timepoint is the longest timepoint shared by all all
+of the cruises.
+
+``` r
+keys <-  doc %>% 
+  filter(degree_bin == 44) %>% 
+  drop_na(sd_doc) %>% 
+  group_by(Cruise, Station) %>%
+  group_keys() %>%
+  mutate(key = paste(Cruise, ", S", Station, sep = ""))
+header <- keys$key
+
+list <- doc %>% 
+  filter(degree_bin == 44) %>% 
+  drop_na(sd_doc) %>% 
+  group_by(Cruise, Station) %>%
+  group_split()
+names(list) <- header
+
+newrow.func <- function(morty){
+   morty[nrow(morty) + 1,] <- NA
+   morty$Days[is.na(morty$Days)] <- 68
+  rick <- morty %>% 
+    fill(., Cruise:Subregion, degree_bin:sd_doc_ncp_ez, accm_doc:bge, .direction = c("updown")) 
+}
+
+add <- lapply(list, newrow.func) %>% 
+  plyr::ldply(., as.data.frame) %>% 
+  select(-.id) %>% 
+  arrange(Cruise, Station, Days) %>% 
+  group_by(Cruise, Station, Days) %>%
+  fill(Hours, ave_doc:norm_doc, .direction = "downup") %>% 
+  distinct() %>% 
+  ungroup() %>% 
+  mutate(Hours = ifelse(is.na(Hours), 1632, Hours)) %>% 
+  group_by(Cruise, Station)  
+
+add_keys <- add %>% 
+  group_keys() %>%
+  mutate(key = paste(Cruise, ", S", Station, sep = ""))
+add_header <- add_keys$key
+
+add_list <- add %>%
+  group_split()
+names(add_list) <- add_header
+```
+
+### Interpolations
+
+``` r
+interp.func <- function(x) {
+  y <- zoo(x, order.by = x$Hours)
+  interp_doc <- round(as.numeric(na.approx(y$ave_doc, na.rm = F)), 1)
+  interp_norm_doc <- round(as.numeric(na.approx(y$norm_doc, na.rm = F)), 1)
+  z <- cbind(y, interp_doc, interp_norm_doc)
+  as_tibble(z)
+}
+
+interpolated <- lapply(add_list, interp.func) %>% 
+  plyr::ldply(., as.data.frame) %>% 
+  select(-.id) %>% 
+  mutate_at(vars(Station, Hours:total.ddoc, contains("interp")), as.numeric) %>% 
+  select(Cruise:norm_doc, contains("interp"), everything())
+```
+
+### Plots
+
+We’ve propogated the error for derived
+variables
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
 
 Black vertical dashed and dotted lines indicate the 7 and 30-day marks,
 respectively. Dashed decay lines indicate experiments in which BGEs
@@ -279,9 +354,9 @@ Persistance
 
 # Bar plots: Experiment ∆DOC and %Bioavailability
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-21-1.png" style="display: block; margin: auto;" />
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-20-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
 
 # Table: NPP and BCD
 
@@ -357,7 +432,7 @@ bcd_table2 <- bcd_table %>%
 We’ll convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup> before
 plotting.
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-24-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-26-1.png" style="display: block; margin: auto;" />
 
 # Merge DOC and BCD data
 
@@ -784,4 +859,4 @@ summary(model)
 
 # Plots: Property-Property
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-51-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-53-1.png" style="display: block; margin: auto;" />
