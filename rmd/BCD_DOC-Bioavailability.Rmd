@@ -455,24 +455,8 @@ mew.bar <- bcd %>%
   theme(strip.background = element_blank(), strip.text = element_blank()) +
   guides(fill = F) 
 
-# ∆DOC
-deldoc.bar <- doc %>% 
-  select(Season:Subregion, degree_bin, ave_Ez, ave_int_delta_DOC_ez, sd_int_delta_DOC_ez) %>% 
-  mutate_at(vars(contains("int_delta_DOC")), funs(./ave_Ez * 10^3)) %>% 
-  drop_na(ave_int_delta_DOC_ez) %>% 
-  distinct() %>% 
-  ##PLOT
-  ggplot(aes(x = degree_bin, y =  ave_int_delta_DOC_ez, group = interaction(Season, Station, degree_bin)))  + 
-  geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
-  geom_errorbar(aes(ymin = ave_int_delta_DOC_ez - sd_int_delta_DOC_ez, ymax = ave_int_delta_DOC_ez + sd_int_delta_DOC_ez), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("∆DOC, mmol C m"^-3))), colour = expression(italic(""))) +
-  scale_y_continuous(breaks = pretty_breaks()) +
-  custom_theme() +
-  facet_grid(~factor(Season, levels = levels), scales = "free") +
-  theme(strip.background = element_blank(), strip.text = element_blank()) +
-  guides(fill = F)
 
-npp.bar / bp.bar / ba.bar / mew.bar  +
+npp.bar / bp.bar / ba.bar / mew.bar   +
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 ```
@@ -606,12 +590,9 @@ doc44a <- interpolated %>%
   ggplot(aes(x = Days, y = norm_doc, group = interaction(Cruise, Station, degree_bin))) + 
   geom_hline(aes(yintercept = 0)) +
   geom_vline(aes(xintercept = 7), linetype = 2) +
-  geom_vline(aes(xintercept = 30), linetype = 3) +
   geom_errorbar(aes(ymin = norm_doc - sd_doc, ymax = norm_doc + sd_doc, color = factor(Season, levels = levels)), width = 0.5) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
-  #geom_label(aes(x = 7, y = -1, label = "Short-term"), size = 3) +
-  #geom_label(aes(x = 30, y = -1, label = "Long-term"), size = 3) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
   #facet_grid(~factor(Season, levels = levels), scales = "free") +
@@ -627,12 +608,10 @@ doc44b <- interpolated %>%
   ggplot(aes(x = Days, y = per_doc, group = interaction(Cruise, Station, degree_bin))) + 
   geom_hline(aes(yintercept = 0)) +
   geom_vline(aes(xintercept = 7), linetype = 2) +
-  geom_vline(aes(xintercept = 30), linetype = 3) +
   geom_errorbar(aes(ymin = per_doc - per_doc_error, ymax = per_doc + per_doc_error, color = factor(Season, levels = levels)), width = 0.5) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
-  geom_label(aes(x = 7, y = 0, label = "Short-term"), size = 4) +
-  geom_label(aes(x = 30, y = 0, label = "Long-term"), size = 4) +
+  geom_label(aes(x = 7, y = 0, label = "7 days"), size = 4) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
   #facet_grid(~factor(Season, levels = levels), scales = "free") +
@@ -642,20 +621,17 @@ doc44b <- interpolated %>%
 
 doc44c <- interpolated %>%  
   group_by(Cruise, Station) %>%
-  filter(Days <= 68) %>% 
-  mutate(delta_doc = interp_norm_doc - last(interp_norm_doc),
+  drop_na(norm_doc) %>% 
+  #filter(Days <= 68) %>% 
+  mutate(delta_doc = norm_doc - last(norm_doc),
          last_doc_error = last(sd_doc),
-         last_doc_error = ifelse(is.na(last_doc_error), 0, last_doc_error),
          delta_doc_error = sqrt( (sd_doc)^2 + (last_doc_error)^2 )) %>% 
   ggplot(aes(x = Days, y = delta_doc, group = interaction(Cruise, Station, degree_bin))) + 
   geom_hline(aes(yintercept = 0)) +
   geom_vline(aes(xintercept = 7), linetype = 2) +
-  geom_vline(aes(xintercept = 30), linetype = 3) +
   geom_errorbar(aes(ymin = delta_doc - delta_doc_error, ymax = delta_doc + delta_doc_error, color = factor(Season, levels = levels)), width = 0.5) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
-  geom_label(aes(x = 7, y = 0, label = "Short-term"), size = 4) +
-  geom_label(aes(x = 30, y = 0, label = "Long-term"), size = 4) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
   #facet_grid(~factor(Season, levels = levels), scales = "free") +
@@ -985,8 +961,32 @@ ratio.bar <- bcd %>%
   custom_theme() +
   facet_grid(~factor(Season, levels = levels), scales = "free") +
   theme(strip.background = element_blank(), strip.text = element_blank())
+
+
+# ∆DOC
+deldoc.bar <- export %>% 
+  select(Cruise:Station, int_delta_DOC_100) %>%
+  mutate(degree_bin = as.character(degree_bin)) %>% 
+  mutate_at(vars(contains("int_delta_DOC")), funs(./100 * 10^3)) %>% 
+  drop_na(int_delta_DOC_100) %>% 
+  group_by(Season, Station, degree_bin) %>% 
+  mutate(deldoc = mean(int_delta_DOC_100),
+         sd_deldoc = sd(int_delta_DOC_100)) %>% 
+  ungroup() %>% 
+  select(Cruise:degree_bin, Station, deldoc, sd_deldoc) %>% 
+  distinct() %>% 
+  ##PLOT
+  ggplot(aes(x = degree_bin, y =  deldoc, group = interaction(Season, Station, degree_bin)))  + 
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", fill = "#999999", alpha = 1) +
+  geom_errorbar(aes(ymin = deldoc - sd_deldoc, ymax = deldoc + sd_deldoc), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("∆DOC, mmol C m"^-3))), colour = expression(italic(""))) +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
+  guides(fill = F)
   
-bcd.bar / bcd.npp.bar / ratio.bar +
+bcd.bar / bcd.npp.bar / ratio.bar / deldoc.bar +
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 ```
