@@ -87,6 +87,7 @@ doc <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bioavailability.rds")
 
 
 bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_integrated_BCD.rds") %>% 
+  mutate(bp.npp = int.bp/int.NPP * 100) %>% 
   group_by(Cruise, Station) %>% 
   mutate(ave_int.BCD = mean(int.bcd, na.rm = T),
          sd_int.BCD = sd(int.bcd, na.rm = T),
@@ -105,10 +106,12 @@ bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_integrated_BCD.rds") 
          ave_int.mew_s = mean(mew.season_s, na.rm = T),
          sd_int.mew_s = sd(mew.season_s, na.rm = T),
          ave_bcd.npp = mean(bcd.npp, na.rm = T),
-         sd_bcd.npp = sd(bcd.npp, na.rm = T)) %>% 
+         sd_bcd.npp = sd(bcd.npp, na.rm = T),
+         ave_bp.npp = mean(bp.npp, na.rm = T),
+         sd_bp.npp = sd(bp.npp, na.rm = T)) %>% 
   ungroup() %>% 
-  mutate_at(vars(ave_int.bp, sd_int.bp, ave_int.bc_i:sd_int.mew_s), round, 2) %>% 
-  mutate_at(vars(ave_bcd.npp, sd_bcd.npp), round)
+  mutate_at(vars(ave_int.bp, sd_int.bp, ave_int.bc_i:sd_int.mew_s), round, 3) %>% 
+  mutate_at(vars(ave_bcd.npp:sd_bp.npp), round)
 
 ```
 
@@ -348,6 +351,42 @@ patchwork +  plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 
 ```
+
+```{r message = F}
+bact_table <- bcd %>% 
+  select(Cruise:degree_bin, ave_int.bp, sd_int.bp, ave_int.ba, sd_int.ba) %>% 
+  distinct() %>% 
+  mutate_at(vars(ave_int.bp, sd_int.bp), funs(./10^3)) %>% 
+  distinct() %>% 
+  left_join(., bcd %>%
+              group_by(Cruise, Station) %>% 
+              mutate(ave_Ez = mean(Ez, na.rm = T),
+                     sd_Ez = sd(Ez, na.rm = T)) %>% 
+              ungroup() %>% 
+              select(Cruise:degree_bin, ave_Ez, sd_Ez, ave_int.NPP, sd_int.NPP) %>% 
+              distinct() %>% 
+              mutate_at(vars(contains("NPP")), funs(round(./10^3, 2)))
+            ) %>% 
+  left_join(., bcd %>% 
+              select(Cruise:degree_bin, contains("ave_int.mew")) %>% 
+              distinct() %>% 
+              pivot_longer(cols = c(ave_int.mew_i, ave_int.mew_s), names_to = "ccf", values_to = "mew") %>%  
+              mutate(ccf = ifelse(ccf == "ave_int.mew_i", "Initial CCF", NA),
+                     ccf = ifelse(is.na(ccf), "Stationary CCF", ccf)) %>% 
+              group_by(Cruise, Station) %>% 
+              mutate(ave_mew = mean(mew),
+                     sd_mew = sd(mew)) %>% 
+              ungroup() %>% 
+              select(-c(ccf, mew)) %>% 
+              distinct()
+            ) %>% 
+  select(Cruise:degree_bin, ave_Ez:sd_int.NPP, everything()) %>% 
+  mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
+  mutate_at(vars(ave_int.NPP:sd_int.bp, ave_mew, sd_mew), round, 2) %>% 
+  arrange(factor(Season, levels = levels), degree_bin) %>% 
+  mutate(bp_npp = ave_int.bp/ave_int.NPP)
+```
+
 
 ## Surface 100 m
 
@@ -671,7 +710,7 @@ kable(bioav.table, caption = "Seasonal Accumulated DOC Bioavailability and Persi
 bioav.table2 <- bioav.table %>% 
   select(-c(ave_Ez:sd_int_delta_DOC_ez)) %>% 
   drop_na(accm_doc) %>% 
-  group_by(Season) %>% 
+ # group_by(Season) %>% 
   summarize(accm = mean(accm_doc, na.rm = T),
             sd_accm = sd(accm_doc, na.rm = T),
             total.bv = mean(total.bioav_accm_doc, na.rm = T),
@@ -694,8 +733,8 @@ bioav.table2 <- bioav.table %>%
             
             ) %>% 
   mutate_at(vars(accm:sd_st.bv, pers, sd_pers), round, 1) %>% 
-  mutate_at(vars(contains(c("per_", "rate"))), round) %>% 
-  arrange(factor(Season, levels = levels))
+  mutate_at(vars(contains(c("per_", "rate"))), round,3) # %>% 
+  #arrange(factor(Season, levels = levels))
 ```
 
 ```{r echo = FALSE, results = 'asis'}
@@ -835,13 +874,13 @@ ddoc44.bar / bioav_doc44.bar +
 
 # Table: NPP and BCD
 
-NPP and BCD are converted to: mmol C m^-3^ d^-1^
+NPP, BP, and BCD are converted to: mmol C m^-3^ d^-1^
 
 ```{r message = F}
 bcd_table <- bcd %>% 
-  select(Cruise:degree_bin, ave_int.BCD, sd_int.BCD) %>% 
+  select(Cruise:degree_bin, ave_int.BCD, sd_int.BCD, ave_int.bp, sd_int.bp) %>% 
   distinct() %>% 
-  mutate_at(vars(ave_int.BCD, sd_int.BCD), funs(./10^3)) %>% 
+  mutate_at(vars(ave_int.BCD, sd_int.BCD, ave_int.bp, sd_int.bp), funs(./10^3)) %>% 
   distinct() %>% 
   left_join(., bcd %>%
               group_by(Cruise, Station) %>% 
@@ -850,15 +889,16 @@ bcd_table <- bcd %>%
               ungroup() %>% 
               select(Cruise:degree_bin, ave_Ez, sd_Ez, ave_int.NPP, sd_int.NPP) %>% 
               distinct() %>% 
-              mutate_at(vars(contains("NPP")), funs(round(./10^3, 2)))
+              mutate_at(vars(contains("NPP")), funs(round(./10^3, 3)))
             ) %>% 
   left_join(., bcd %>% 
-              select(Cruise:degree_bin, ave_bcd.npp, sd_bcd.npp) %>% 
+              select(Cruise:degree_bin, ave_bcd.npp:sd_bp.npp) %>% 
               distinct()
             ) %>% 
   select(Cruise:degree_bin, ave_Ez:sd_int.NPP, everything()) %>% 
   mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
-  mutate_at(vars(ave_int.NPP:sd_int.BCD), round, 2) %>% 
+  mutate_at(vars(ave_int.NPP:sd_int.BCD), round, 3) %>% 
+    mutate_at(vars(ave_int.bp, sd_int.bp), round, 3) %>% 
   arrange(factor(Season, levels = levels), degree_bin)
 ```
 
@@ -868,15 +908,20 @@ kable(bcd_table, caption = "BCD & NPP")
 
 ```{r}
 bcd_table2 <- bcd_table %>% 
-  group_by(Cruise) %>% 
+  group_by(Season, Cruise) %>% 
   summarize(Ez = mean(ave_Ez),
             sd_Ez = sd(ave_Ez),
             NPP = mean(ave_int.NPP), 
             sd_NPP = sd(ave_int.NPP),
+            BP = mean(ave_int.bp),
+            sd_BP = sd(ave_int.bp),
+            BP_NPP = mean(ave_bp.npp),
+            sd_BP_NPP = sd(ave_bp.npp),
             BCD = mean(ave_int.BCD),
             sd_BCD = sd(ave_int.BCD),
             BCD_NPP = mean(ave_bcd.npp),
-            sd_BCD_NPP = sd(ave_bcd.npp))
+            sd_BCD_NPP = sd(ave_bcd.npp)) %>% 
+  arrange(factor(Season, levels = levels))
 ```
 
 
