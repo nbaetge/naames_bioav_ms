@@ -75,7 +75,7 @@ Upon importing the dataset, we'll add two categorical variables that indicate wh
 
 ```{r message = F}
 
-bigelow <- read_csv("~/naames_bioav_ms/Input/N2-4_BactC_Processing.csv") %>% 
+bigelow <- read_csv("~/GITHUB/naames_bioav_ms/Input/N2-4_BactC_Processing.csv") %>% 
   select(-c(Treatment_Btl:Days)) %>% 
   rename(Filter = Rep) %>% 
   mutate(BlnkFiltrate = ifelse(Cruise == "AT34", "0.2 µm", "TFF"),
@@ -324,7 +324,7 @@ The GF75 POC data are tidied before calculations are made (e.g renaming bottle i
 
 ```{r}
 #initial cell abundance
-i.gf75 <- readRDS("~/naames_bioav_ms/Output/tidy_bacterial_abundance.rds") %>% 
+i.gf75 <- readRDS("~/GITHUB/naames_bioav_ms/Output/tidy_bacterial_abundance.rds") %>% 
   select(Season:cells) %>% 
   filter(Timepoint == 0, Bottle %in% c("GF75", "Niskin")) %>% 
   group_by(Cruise, Station, Depth) %>% 
@@ -337,7 +337,7 @@ i.gf75 <- readRDS("~/naames_bioav_ms/Output/tidy_bacterial_abundance.rds") %>%
   select(Season:Depth, i.gf75.cells, i.gf75.ret)
 
 #stationary cell abundance
-s.gf75 <- readRDS("~/naames_bioav_ms/Output/tidy_bacterial_abundance.rds") %>% 
+s.gf75 <- readRDS("~/GITHUB/naames_bioav_ms/Output/tidy_bacterial_abundance.rds") %>% 
   select(Season:cells) %>% 
   filter(!Timepoint == 0) %>% 
   arrange(Cruise, Station, Depth, Bottle, Timepoint) %>% 
@@ -864,8 +864,27 @@ fg_cell.qc %>%
          i.ccf.c1 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c1),
          i.ccf.c2 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c2),
          i.ccf.c3 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c3)) %>% 
-  saveRDS(., "~/naames_bioav_ms/Output/processed_bacterial_carbon.rds")
+  saveRDS(., "~/GITHUB/naames_bioav_ms/Output/processed_bacterial_carbon.rds")
 ```
+
+```{r}
+fg_cell.qc %>% 
+  select(Season:s.gf75.ret) %>% 
+  filter(Depth == 10, Treatment == "Control") %>% 
+  select(-c(Depth:Treatment, type)) %>% 
+  distinct() %>% 
+  mutate(i.gf75.ret = ifelse(Cruise == "AT39" & Station == 1, NA, i.gf75.ret),
+        s.gf75.ret = ifelse(Cruise == "AT39" & Station == 1, NA, s.gf75.ret),
+        i.gf75.ret = ifelse(Cruise == "AT38" & Station == 1, NA, i.gf75.ret),
+        s.gf75.ret = ifelse(Cruise == "AT38" & Station == 1, NA, s.gf75.ret),
+        i.gf75.ret = ifelse(Bottle == "B", NA, i.gf75.ret)) %>% 
+  pivot_longer(i.gf75.ret:s.gf75.ret, names_to = "names", values_to = "ret" ) %>% 
+  drop_na(ret) %>% 
+  mutate(ave_ret = mean(ret),
+         sd_re = sd(ret))
+  
+```
+
 
 
 # Side Experiment: Sampling Volume Effect on Bacterial Carbon
