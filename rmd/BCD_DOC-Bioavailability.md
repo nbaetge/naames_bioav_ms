@@ -46,6 +46,7 @@ doc <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bioavailability.rds")
 
 
 bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_integrated_BCD.rds") %>% 
+  mutate(bp.npp = int.bp/int.NPP * 100) %>% 
   group_by(Cruise, Station) %>% 
   mutate(ave_int.BCD = mean(int.bcd, na.rm = T),
          sd_int.BCD = sd(int.bcd, na.rm = T),
@@ -64,10 +65,12 @@ bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_integrated_BCD.rds") 
          ave_int.mew_s = mean(mew.season_s, na.rm = T),
          sd_int.mew_s = sd(mew.season_s, na.rm = T),
          ave_bcd.npp = mean(bcd.npp, na.rm = T),
-         sd_bcd.npp = sd(bcd.npp, na.rm = T)) %>% 
+         sd_bcd.npp = sd(bcd.npp, na.rm = T),
+         ave_bp.npp = mean(bp.npp, na.rm = T),
+         sd_bp.npp = sd(bp.npp, na.rm = T)) %>% 
   ungroup() %>% 
-  mutate_at(vars(ave_int.bp, sd_int.bp, ave_int.bc_i:sd_int.mew_s), round, 2) %>% 
-  mutate_at(vars(ave_bcd.npp, sd_bcd.npp), round)
+  mutate_at(vars(ave_int.bp, sd_int.bp, ave_int.bc_i:sd_int.mew_s), round, 3) %>% 
+  mutate_at(vars(ave_bcd.npp:sd_bp.npp), round)
 ```
 
 Units for imported data frames are currently:
@@ -88,6 +91,41 @@ d<sup>-1</sup>
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-5-1.png" style="display: block; margin: auto;" />
 
+``` r
+bact_table <- bcd %>% 
+  select(Cruise:degree_bin, ave_int.bp, sd_int.bp, ave_int.ba, sd_int.ba) %>% 
+  distinct() %>% 
+  mutate_at(vars(ave_int.bp, sd_int.bp), funs(./10^3)) %>% 
+  distinct() %>% 
+  left_join(., bcd %>%
+              group_by(Cruise, Station) %>% 
+              mutate(ave_Ez = mean(Ez, na.rm = T),
+                     sd_Ez = sd(Ez, na.rm = T)) %>% 
+              ungroup() %>% 
+              select(Cruise:degree_bin, ave_Ez, sd_Ez, ave_int.NPP, sd_int.NPP) %>% 
+              distinct() %>% 
+              mutate_at(vars(contains("NPP")), funs(round(./10^3, 2)))
+            ) %>% 
+  left_join(., bcd %>% 
+              select(Cruise:degree_bin, contains("ave_int.mew")) %>% 
+              distinct() %>% 
+              pivot_longer(cols = c(ave_int.mew_i, ave_int.mew_s), names_to = "ccf", values_to = "mew") %>%  
+              mutate(ccf = ifelse(ccf == "ave_int.mew_i", "Initial CCF", NA),
+                     ccf = ifelse(is.na(ccf), "Stationary CCF", ccf)) %>% 
+              group_by(Cruise, Station) %>% 
+              mutate(ave_mew = mean(mew),
+                     sd_mew = sd(mew)) %>% 
+              ungroup() %>% 
+              select(-c(ccf, mew)) %>% 
+              distinct()
+            ) %>% 
+  select(Cruise:degree_bin, ave_Ez:sd_int.NPP, everything()) %>% 
+  mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
+  mutate_at(vars(ave_int.NPP:sd_int.bp, ave_mew, sd_mew), round, 2) %>% 
+  arrange(factor(Season, levels = levels), degree_bin) %>% 
+  mutate(bp_npp = ave_int.bp/ave_int.NPP)
+```
+
 ## Surface 100 m
 
 ``` r
@@ -106,15 +144,15 @@ export %>%
     ## 3 Late Autumn         0.14       0.04
     ## 4 Late Spring         0.11       0.06
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
 
 ## Euphotic Zone
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-8-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
 
 # Bar plots: NPP, BP, BA, µ
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
 
 Error bars for µ represent standard deviation from mean of values
 calculated using different CCFs to convert BA to BC (Global Initial CCF,
@@ -125,9 +163,9 @@ values.
 
 # Line plots: DOC Decay Curves
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-10-1.png" style="display: block; margin: auto;" />
-
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-11-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
 
 ## Experiments at 44˚N
 
@@ -204,7 +242,7 @@ interpolated <- lapply(add_list, interp.func) %>%
 We’ve propogated the error for derived
 variables
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-14-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-15-1.png" style="display: block; margin: auto;" />
 
 Black vertical dashed and dotted lines indicate the 7 and 30-day marks,
 respectively. Dashed decay lines indicate experiments in which BGEs
@@ -267,7 +305,7 @@ Seasonal Accumulated DOC Bioavailability and Persistance
 bioav.table2 <- bioav.table %>% 
   select(-c(ave_Ez:sd_int_delta_DOC_ez)) %>% 
   drop_na(accm_doc) %>% 
-  group_by(Season) %>% 
+ # group_by(Season) %>% 
   summarize(accm = mean(accm_doc, na.rm = T),
             sd_accm = sd(accm_doc, na.rm = T),
             total.bv = mean(total.bioav_accm_doc, na.rm = T),
@@ -290,15 +328,13 @@ bioav.table2 <- bioav.table %>%
             
             ) %>% 
   mutate_at(vars(accm:sd_st.bv, pers, sd_pers), round, 1) %>% 
-  mutate_at(vars(contains(c("per_", "rate"))), round) %>% 
-  arrange(factor(Season, levels = levels))
+  mutate_at(vars(contains(c("per_", "rate"))), round,3) # %>% 
+  #arrange(factor(Season, levels = levels))
 ```
 
-| Season       | accm | sd\_accm | total.bv | sd\_total.bv | st.bv | sd\_st.bv | total.per\_bv | sd\_total.per\_bv | st.per\_bv | sd\_st.per\_bv | pers | sd\_pers | per\_pers | sd\_per\_pers | st.ddoc\_rate | sd\_st.ddoc\_rate | total.ddoc\_rate | sd\_total.ddoc\_rate | stations |
-| :----------- | ---: | -------: | -------: | -----------: | ----: | --------: | ------------: | ----------------: | ---------: | -------------: | ---: | -------: | --------: | ------------: | ------------: | ----------------: | ---------------: | -------------------: | -------: |
-| Early Spring |  3.7 |      0.8 |      3.2 |          1.0 |   0.7 |       0.7 |            87 |                16 |         18 |             18 |  0.5 |      0.6 |        13 |            16 |             0 |                 0 |                0 |                    0 |        6 |
-| Late Spring  |  6.5 |      3.6 |      4.0 |           NA |   1.8 |       0.9 |            34 |                NA |         33 |             24 |  7.7 |       NA |        66 |            NA |             0 |                 0 |                0 |                   NA |        5 |
-| Early Autumn | 13.9 |      3.3 |      4.9 |          0.7 |   1.5 |       0.5 |            37 |                11 |         12 |              6 |  9.1 |      3.2 |        63 |            11 |             0 |                 0 |                0 |                    0 |        6 |
+| accm | sd\_accm | total.bv | sd\_total.bv | st.bv | sd\_st.bv | total.per\_bv | sd\_total.per\_bv | st.per\_bv | sd\_st.per\_bv | pers | sd\_pers | per\_pers | sd\_per\_pers | st.ddoc\_rate | sd\_st.ddoc\_rate | total.ddoc\_rate | sd\_total.ddoc\_rate | stations |
+| ---: | -------: | -------: | -----------: | ----: | --------: | ------------: | ----------------: | ---------: | -------------: | ---: | -------: | --------: | ------------: | ------------: | ----------------: | ---------------: | -------------------: | -------: |
+|  8.1 |      5.3 |        4 |          1.1 |   1.3 |       0.9 |        59.615 |            29.059 |     20.235 |          18.62 |    5 |      4.8 |    40.385 |        29.059 |         0.188 |             0.124 |            0.057 |                0.024 |       17 |
 
 Seasonal Accumulated DOC Bioavailability and Persistance
 
@@ -354,19 +390,19 @@ Persistance
 
 # Bar plots: Experiment ∆DOC and %Bioavailability
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-21-1.png" style="display: block; margin: auto;" />
-
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-23-1.png" style="display: block; margin: auto;" />
 
 # Table: NPP and BCD
 
-NPP and BCD are converted to: mmol C m<sup>-3</sup> d<sup>-1</sup>
+NPP, BP, and BCD are converted to: mmol C m<sup>-3</sup> d<sup>-1</sup>
 
 ``` r
 bcd_table <- bcd %>% 
-  select(Cruise:degree_bin, ave_int.BCD, sd_int.BCD) %>% 
+  select(Cruise:degree_bin, ave_int.BCD, sd_int.BCD, ave_int.bp, sd_int.bp) %>% 
   distinct() %>% 
-  mutate_at(vars(ave_int.BCD, sd_int.BCD), funs(./10^3)) %>% 
+  mutate_at(vars(ave_int.BCD, sd_int.BCD, ave_int.bp, sd_int.bp), funs(./10^3)) %>% 
   distinct() %>% 
   left_join(., bcd %>%
               group_by(Cruise, Station) %>% 
@@ -375,56 +411,62 @@ bcd_table <- bcd %>%
               ungroup() %>% 
               select(Cruise:degree_bin, ave_Ez, sd_Ez, ave_int.NPP, sd_int.NPP) %>% 
               distinct() %>% 
-              mutate_at(vars(contains("NPP")), funs(round(./10^3, 2)))
+              mutate_at(vars(contains("NPP")), funs(round(./10^3, 3)))
             ) %>% 
   left_join(., bcd %>% 
-              select(Cruise:degree_bin, ave_bcd.npp, sd_bcd.npp) %>% 
+              select(Cruise:degree_bin, ave_bcd.npp:sd_bp.npp) %>% 
               distinct()
             ) %>% 
   select(Cruise:degree_bin, ave_Ez:sd_int.NPP, everything()) %>% 
   mutate_at(vars(ave_Ez, sd_Ez), round) %>% 
-  mutate_at(vars(ave_int.NPP:sd_int.BCD), round, 2) %>% 
+  mutate_at(vars(ave_int.NPP:sd_int.BCD), round, 3) %>% 
+    mutate_at(vars(ave_int.bp, sd_int.bp), round, 3) %>% 
   arrange(factor(Season, levels = levels), degree_bin)
 ```
 
-| Cruise | Subregion   | Season       | Station | degree\_bin | ave\_Ez | sd\_Ez | ave\_int.NPP | sd\_int.NPP | ave\_int.BCD | sd\_int.BCD | ave\_bcd.npp | sd\_bcd.npp |
-| :----- | :---------- | :----------- | ------: | ----------: | ------: | -----: | -----------: | ----------: | -----------: | ----------: | -----------: | ----------: |
-| AT39   | GS/Sargasso | Early Spring |       1 |          39 |     106 |      0 |         0.60 |        0.00 |         0.11 |        0.00 |           19 |           0 |
-| AT39   | GS/Sargasso | Early Spring |       2 |          39 |      98 |      0 |         1.31 |        0.00 |         0.30 |        0.00 |           23 |           0 |
-| AT39   | Subtropical | Early Spring |       3 |          44 |     120 |      0 |         0.41 |        0.00 |         0.09 |        0.00 |           21 |           0 |
-| AT39   | Subtropical | Early Spring |       4 |          44 |     126 |      0 |         0.56 |        0.00 |         0.06 |        0.00 |           11 |           0 |
-| AT34   | Subtropical | Late Spring  |       5 |          44 |      91 |      0 |         0.99 |        0.00 |         0.51 |        0.00 |           52 |           0 |
-| AT34   | Subtropical | Late Spring  |       4 |          48 |     116 |     22 |         0.82 |        0.15 |         0.17 |        0.07 |           20 |           5 |
-| AT34   | Temperate   | Late Spring  |       3 |          50 |      52 |      0 |         3.34 |        0.00 |         0.47 |        0.00 |           14 |           0 |
-| AT34   | Subpolar    | Late Spring  |       0 |          54 |      87 |      0 |         1.47 |        0.00 |         0.24 |        0.00 |           16 |           0 |
-| AT34   | Subpolar    | Late Spring  |       2 |          54 |      54 |      0 |         2.86 |        0.00 |         0.62 |        0.00 |           22 |           0 |
-| AT34   | Subpolar    | Late Spring  |       1 |          56 |      72 |      0 |         1.36 |        0.00 |         0.40 |        0.00 |           29 |           0 |
-| AT38   | GS/Sargasso | Early Autumn |       1 |          42 |     244 |      0 |         0.11 |        0.00 |         0.12 |        0.00 |          103 |           0 |
-| AT38   | Subtropical | Early Autumn |       2 |          44 |     207 |      0 |         0.23 |        0.00 |         0.15 |        0.00 |           65 |           0 |
-| AT38   | Subtropical | Early Autumn |       3 |          47 |     200 |      0 |         0.18 |        0.00 |         0.07 |        0.00 |           38 |           0 |
-| AT38   | Subtropical | Early Autumn |       4 |          49 |     188 |      0 |         0.19 |        0.00 |         0.09 |        0.00 |           48 |           0 |
-| AT38   | Temperate   | Early Autumn |       5 |          52 |     157 |      0 |         0.42 |        0.00 |         0.12 |        0.00 |           28 |           0 |
-| AT38   | Subpolar    | Early Autumn |       6 |          53 |     103 |      6 |         0.66 |        0.07 |         0.13 |        0.03 |           20 |           5 |
-| AT32   | Subtropical | Late Autumn  |       7 |          40 |      98 |      0 |         0.25 |        0.00 |         0.17 |        0.00 |           69 |           0 |
-| AT32   | Subtropical | Late Autumn  |       6 |          43 |     103 |      0 |         0.19 |        0.00 |         0.15 |        0.00 |           79 |           0 |
-| AT32   | Subtropical | Late Autumn  |       5 |          44 |     103 |      0 |         0.17 |        0.00 |         0.15 |        0.00 |           89 |           0 |
-| AT32   | Subtropical | Late Autumn  |       4 |          46 |     126 |      0 |         0.17 |        0.00 |         0.13 |        0.00 |           74 |           0 |
-| AT32   | Temperate   | Late Autumn  |       3 |          51 |      59 |      0 |         0.11 |        0.00 |         0.13 |        0.00 |          114 |           0 |
-| AT32   | Subpolar    | Late Autumn  |       2 |          54 |     104 |      0 |         0.18 |        0.00 |         0.13 |        0.00 |           72 |           0 |
+| Cruise | Subregion   | Season       | Station | degree\_bin | ave\_Ez | sd\_Ez | ave\_int.NPP | sd\_int.NPP | ave\_int.BCD | sd\_int.BCD | ave\_int.bp | sd\_int.bp | ave\_bcd.npp | sd\_bcd.npp | ave\_bp.npp | sd\_bp.npp |
+| :----- | :---------- | :----------- | ------: | ----------: | ------: | -----: | -----------: | ----------: | -----------: | ----------: | ----------: | ---------: | -----------: | ----------: | ----------: | ---------: |
+| AT39   | GS/Sargasso | Early Spring |       1 |          39 |     106 |      0 |        0.604 |       0.000 |        0.112 |       0.000 |       0.029 |      0.000 |           19 |           0 |           5 |          0 |
+| AT39   | GS/Sargasso | Early Spring |       2 |          39 |      98 |      0 |        1.306 |       0.000 |        0.298 |       0.004 |       0.077 |      0.001 |           23 |           0 |           6 |          0 |
+| AT39   | Subtropical | Early Spring |       3 |          44 |     120 |      0 |        0.412 |       0.000 |        0.088 |       0.000 |       0.023 |      0.000 |           21 |           0 |           6 |          0 |
+| AT39   | Subtropical | Early Spring |       4 |          44 |     126 |      0 |        0.557 |       0.000 |        0.061 |       0.000 |       0.016 |      0.000 |           11 |           0 |           3 |          0 |
+| AT34   | Subtropical | Late Spring  |       5 |          44 |      91 |      0 |        0.991 |       0.000 |        0.514 |       0.000 |       0.129 |      0.000 |           52 |           0 |          13 |          0 |
+| AT34   | Subtropical | Late Spring  |       4 |          48 |     116 |     22 |        0.817 |       0.147 |        0.172 |       0.072 |       0.043 |      0.018 |           20 |           5 |           5 |          1 |
+| AT34   | Temperate   | Late Spring  |       3 |          50 |      52 |      0 |        3.341 |       0.000 |        0.471 |       0.000 |       0.118 |      0.000 |           14 |           0 |           4 |          0 |
+| AT34   | Subpolar    | Late Spring  |       0 |          54 |      87 |      0 |        1.467 |       0.000 |        0.239 |       0.000 |       0.060 |      0.000 |           16 |           0 |           4 |          0 |
+| AT34   | Subpolar    | Late Spring  |       2 |          54 |      54 |      0 |        2.861 |       0.000 |        0.622 |       0.000 |       0.155 |      0.000 |           22 |           0 |           5 |          0 |
+| AT34   | Subpolar    | Late Spring  |       1 |          56 |      72 |      0 |        1.356 |       0.000 |        0.399 |       0.000 |       0.100 |      0.000 |           29 |           0 |           7 |          0 |
+| AT38   | GS/Sargasso | Early Autumn |       1 |          42 |     244 |      0 |        0.114 |       0.000 |        0.118 |       0.000 |       0.026 |      0.000 |          103 |           0 |          23 |          0 |
+| AT38   | Subtropical | Early Autumn |       2 |          44 |     207 |      0 |        0.226 |       0.000 |        0.147 |       0.000 |       0.032 |      0.000 |           65 |           0 |          14 |          0 |
+| AT38   | Subtropical | Early Autumn |       3 |          47 |     200 |      0 |        0.180 |       0.000 |        0.069 |       0.000 |       0.015 |      0.000 |           38 |           0 |           8 |          0 |
+| AT38   | Subtropical | Early Autumn |       4 |          49 |     188 |      0 |        0.192 |       0.000 |        0.093 |       0.000 |       0.020 |      0.000 |           48 |           0 |          11 |          0 |
+| AT38   | Temperate   | Early Autumn |       5 |          52 |     157 |      0 |        0.418 |       0.000 |        0.116 |       0.000 |       0.026 |      0.000 |           28 |           0 |           6 |          0 |
+| AT38   | Subpolar    | Early Autumn |       6 |          53 |     103 |      6 |        0.660 |       0.071 |        0.130 |       0.029 |       0.029 |      0.006 |           20 |           5 |           4 |          1 |
+| AT32   | Subtropical | Late Autumn  |       7 |          40 |      98 |      0 |        0.254 |       0.000 |        0.175 |       0.000 |       0.038 |      0.000 |           69 |           0 |          15 |          0 |
+| AT32   | Subtropical | Late Autumn  |       6 |          43 |     103 |      0 |        0.189 |       0.000 |        0.150 |       0.000 |       0.033 |      0.000 |           79 |           0 |          17 |          0 |
+| AT32   | Subtropical | Late Autumn  |       5 |          44 |     103 |      0 |        0.168 |       0.000 |        0.149 |       0.000 |       0.033 |      0.000 |           89 |           0 |          20 |          0 |
+| AT32   | Subtropical | Late Autumn  |       4 |          46 |     126 |      0 |        0.170 |       0.000 |        0.125 |       0.000 |       0.028 |      0.000 |           74 |           0 |          16 |          0 |
+| AT32   | Temperate   | Late Autumn  |       3 |          51 |      59 |      0 |        0.114 |       0.000 |        0.130 |       0.000 |       0.029 |      0.000 |          114 |           0 |          25 |          0 |
+| AT32   | Subpolar    | Late Autumn  |       2 |          54 |     104 |      0 |        0.177 |       0.000 |        0.128 |       0.000 |       0.028 |      0.000 |           72 |           0 |          16 |          0 |
 
 BCD & NPP
 
 ``` r
 bcd_table2 <- bcd_table %>% 
-  group_by(Cruise) %>% 
+  group_by(Season, Cruise) %>% 
   summarize(Ez = mean(ave_Ez),
             sd_Ez = sd(ave_Ez),
             NPP = mean(ave_int.NPP), 
             sd_NPP = sd(ave_int.NPP),
+            BP = mean(ave_int.bp),
+            sd_BP = sd(ave_int.bp),
+            BP_NPP = mean(ave_bp.npp),
+            sd_BP_NPP = sd(ave_bp.npp),
             BCD = mean(ave_int.BCD),
             sd_BCD = sd(ave_int.BCD),
             BCD_NPP = mean(ave_bcd.npp),
-            sd_BCD_NPP = sd(ave_bcd.npp))
+            sd_BCD_NPP = sd(ave_bcd.npp)) %>% 
+  arrange(factor(Season, levels = levels))
 ```
 
 # Bar plots: BCD and BCD:NPP
@@ -432,7 +474,7 @@ bcd_table2 <- bcd_table %>%
 We’ll convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup> before
 plotting.
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-26-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-27-1.png" style="display: block; margin: auto;" />
 
 # Merge DOC and BCD data
 
@@ -680,9 +722,9 @@ bcd_bioav <- bcd %>%
     ## Call: lmodel2(formula = ave_int.mew_i ~ ave_int.NPP, data = bcd_bioav,
     ## nperm = 99)
     ## 
-    ## n = 22   r = 0.6495765   r-square = 0.4219496 
-    ## Parametric P-values:   2-tailed = 0.001069158    1-tailed = 0.000534579 
-    ## Angle between the two OLS regression lines = 1.848474 degrees
+    ## n = 22   r = 0.6277263   r-square = 0.3940403 
+    ## Parametric P-values:   2-tailed = 0.001762307    1-tailed = 0.0008811533 
+    ## Angle between the two OLS regression lines = 1.99124 degrees
     ## 
     ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
     ## A permutation test of r is equivalent to a permutation test of the OLS slope
@@ -690,19 +732,19 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept      Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.018586145 0.02358895        1.351297              0.01
-    ## 2     MA 0.018572591 0.02360694        1.352327              0.01
-    ## 3    SMA 0.008995819 0.03631435        2.079745                NA
+    ## 1    OLS 0.019211943 0.02263795        1.296838              0.01
+    ## 2     MA 0.019198494 0.02265580        1.297860              0.01
+    ## 3    SMA 0.009094027 0.03606341        2.065386                NA
     ## 
     ## Confidence intervals
-    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
-    ## 1    OLS    0.003927892      0.03324440 0.01071082  0.03646708
-    ## 2     MA    0.008856002      0.02828327 0.01072184  0.03649988
-    ## 3    SMA   -0.002379573      0.01703128 0.02565210  0.05140836
+    ##   Method 2.5%-Intercept 97.5%-Intercept  2.5%-Slope 97.5%-Slope
+    ## 1    OLS    0.004307704      0.03411618 0.009543709  0.03573220
+    ## 2     MA    0.009318637      0.02907249 0.009553997  0.03576538
+    ## 3    SMA   -0.002510361      0.01722624 0.025272787  0.05146127
     ## 
-    ## Eigenvalues: 0.7626678 0.0005807298 
+    ## Eigenvalues: 0.7626342 0.0006004106 
     ## 
-    ## H statistic used for computing C.I. of MA: 0.0001659143
+    ## H statistic used for computing C.I. of MA: 0.0001715535
 
 ## µ v Seasonally Accumulated DOC
 
@@ -714,9 +756,9 @@ bcd_bioav <- bcd %>%
     ## Call: lmodel2(formula = ave_int.mew ~ ave_int_delta_DOC_ez, data =
     ## bcd_bioav, nperm = 99)
     ## 
-    ## n = 22   r = -0.1951303   r-square = 0.03807583 
-    ## Parametric P-values:   2-tailed = 0.3841765    1-tailed = 0.1920883 
-    ## Angle between the two OLS regression lines = 3.872092 degrees
+    ## n = 22   r = -0.1714731   r-square = 0.02940301 
+    ## Parametric P-values:   2-tailed = 0.4454571    1-tailed = 0.2227286 
+    ## Angle between the two OLS regression lines = 4.424644 degrees
     ## 
     ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
     ## A permutation test of r is equivalent to a permutation test of the OLS slope
@@ -724,19 +766,19 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method  Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.04456187 -0.002679633      -0.1535313              0.23
-    ## 2     MA 0.04456344 -0.002680120      -0.1535592              0.23
-    ## 3    SMA 0.08025269 -0.013732533      -0.7867668                NA
+    ## 1    OLS 0.04336613 -0.002344522      -0.1343310              0.26
+    ## 2     MA 0.04336750 -0.002344947      -0.1343553              0.26
+    ## 3    SMA 0.07994626 -0.013672829      -0.7833466                NA
     ## 
     ## Confidence intervals
     ##   Method 2.5%-Intercept 97.5%-Intercept   2.5%-Slope  97.5%-Slope
-    ## 1    OLS     0.02102398      0.06809976 -0.008961848  0.003602581
-    ## 2     MA     0.02427386      0.06485371 -0.008963704  0.003603253
-    ## 3    SMA     0.06438666      0.10495834 -0.021383496 -0.008819067
+    ## 1    OLS     0.01982516      0.06690709 -0.008627558  0.003938514
+    ## 2     MA     0.02307522      0.06366038 -0.008629340  0.003939260
+    ## 3    SMA     0.06409623      0.10467322 -0.021330388 -0.008764316
     ## 
-    ## Eigenvalues: 3.783093 0.0006862509 
+    ## Eigenvalues: 3.783087 0.0006864315 
     ## 
-    ## H statistic used for computing C.I. of MA: 3.947998e-05
+    ## H statistic used for computing C.I. of MA: 3.949044e-05
 
 ## µ v % DOC Bioavailability
 
@@ -748,9 +790,9 @@ bcd_bioav <- bcd %>%
     ## Call: lmodel2(formula = ave_int.mew ~ total.per_bioav, data =
     ## bcd_bioav, nperm = 99)
     ## 
-    ## n = 11   r = 0.2797637   r-square = 0.07826775 
-    ## Parametric P-values:   2-tailed = 0.4047332    1-tailed = 0.2023666 
-    ## Angle between the two OLS regression lines = 0.2202087 degrees
+    ## n = 11   r = 0.2912808   r-square = 0.0848445 
+    ## Parametric P-values:   2-tailed = 0.3848222    1-tailed = 0.1924111 
+    ## Angle between the two OLS regression lines = 0.2133316 degrees
     ## 
     ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
     ## A permutation test of r is equivalent to a permutation test of the OLS slope
@@ -758,19 +800,19 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS  0.01413558 0.0003263568      0.01869887              0.19
-    ## 2     MA  0.01413555 0.0003263572      0.01869889              0.19
-    ## 3    SMA -0.03138731 0.0011665443      0.06683804                NA
+    ## 1    OLS  0.01261491 0.0003451946      0.01977819              0.18
+    ## 2     MA  0.01261489 0.0003451950      0.01977822              0.18
+    ## 3    SMA -0.03289226 0.0011850921      0.06790075                NA
     ## 
     ## Confidence intervals
     ##   Method 2.5%-Intercept 97.5%-Intercept    2.5%-Slope 97.5%-Slope
-    ## 1    OLS    -0.03691876    0.0651899147 -0.0005181539 0.001170868
-    ## 2     MA    -0.03162166    0.0598927415 -0.0005181546 0.001170870
-    ## 3    SMA    -0.09196874   -0.0004544876  0.0005956365 0.002284658
+    ## 1    OLS    -0.03906581     0.064295633 -0.0005096774 0.001200067
+    ## 2     MA    -0.03370372     0.058933469 -0.0005096781 0.001200069
+    ## 3    SMA    -0.09417348    -0.001536443  0.0006063773 0.002316121
     ## 
-    ## Eigenvalues: 790.9637 0.000992119 
+    ## Eigenvalues: 790.9637 0.001016613 
     ## 
-    ## H statistic used for computing C.I. of MA: 7.132e-07
+    ## H statistic used for computing C.I. of MA: 7.308078e-07
 
     ## RMA was not requested: it will not be computed.
 
@@ -780,9 +822,9 @@ bcd_bioav <- bcd %>%
     ## Call: lmodel2(formula = ave_int.mew_i ~ st.per_bioav, data = bcd_bioav,
     ## nperm = 99)
     ## 
-    ## n = 15   r = 0.2668724   r-square = 0.07122089 
-    ## Parametric P-values:   2-tailed = 0.3362917    1-tailed = 0.1681458 
-    ## Angle between the two OLS regression lines = 0.367185 degrees
+    ## n = 15   r = 0.2563688   r-square = 0.06572496 
+    ## Parametric P-values:   2-tailed = 0.3563616    1-tailed = 0.1781808 
+    ## Angle between the two OLS regression lines = 0.3907739 degrees
     ## 
     ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
     ## A permutation test of r is equivalent to a permutation test of the OLS slope
@@ -790,19 +832,19 @@ bcd_bioav <- bcd %>%
     ## 
     ## Regression results
     ##   Method   Intercept        Slope Angle (degrees) P-perm (1-tailed)
-    ## 1    OLS 0.032816659 0.0004914334      0.02815706              0.13
-    ## 2     MA 0.032816626 0.0004914349      0.02815714              0.13
-    ## 3    SMA 0.003926211 0.0018414543      0.10550744                NA
+    ## 1    OLS 0.032198791 0.0004798073      0.02749093              0.16
+    ## 2     MA 0.032198758 0.0004798088      0.02749102              0.16
+    ## 3    SMA 0.002415479 0.0018715508      0.10723184                NA
     ## 
     ## Confidence intervals
     ##   Method 2.5%-Intercept 97.5%-Intercept    2.5%-Slope 97.5%-Slope
-    ## 1    OLS     0.00261697      0.06301635 -0.0005719096 0.001554776
-    ## 2     MA     0.01006099      0.05557224 -0.0005719114 0.001554782
-    ## 3    SMA    -0.02492755      0.02058353  0.0010630748 0.003189761
+    ## 1    OLS    0.001414844      0.06298274 -0.0006041077 0.001563722
+    ## 2     MA    0.009002877      0.05539461 -0.0006041097 0.001563728
+    ## 3    SMA   -0.027012391      0.01937917  0.0010788551 0.003246685
     ## 
-    ## Eigenvalues: 373.5429 0.001176453 
+    ## Eigenvalues: 373.5429 0.001222414 
     ## 
-    ## H statistic used for computing C.I. of MA: 1.130705e-06
+    ## H statistic used for computing C.I. of MA: 1.174879e-06
 
 ## \*\* BCD:NPP v NPP
 
@@ -859,4 +901,156 @@ summary(model)
 
 # Plots: Property-Property
 
-<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-53-1.png" style="display: block; margin: auto;" />
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-54-1.png" style="display: block; margin: auto;" />
+
+## Bottle v. Vial Incubation Comparisons
+
+### DOC filtered v . DOC\*
+
+``` r
+processed_bioav <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bioavailability.rds") %>% 
+  select(Season, Cruise, Station, Bottle, Hours, doc) %>% 
+  rename(doc_star = doc)
+
+doc_star.data <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_doc.rds") %>% 
+  filter(Depth == 10) %>% 
+  select(Season, Cruise, Station, Bottle, Hours, doc, pdoc) %>% 
+  left_join(., processed_bioav) %>% 
+  filter(Cruise != "AT34")
+```
+
+    ## Joining, by = c("Season", "Cruise", "Station", "Bottle", "Hours")
+
+``` r
+doc_star_bottle.reg <- lmodel2(doc ~ doc_star, data = doc_star.data , nperm = 99)
+```
+
+    ## RMA was not requested: it will not be computed.
+
+``` r
+doc_star_vial.reg <- lmodel2(pdoc ~ doc_star, data = doc_star.data , nperm = 99)
+```
+
+    ## RMA was not requested: it will not be computed.
+
+``` r
+doc_star_vial.reg 
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = pdoc ~ doc_star, data = doc_star.data, nperm =
+    ## 99)
+    ## 
+    ## n = 47   r = 0.7824522   r-square = 0.6122315 
+    ## Parametric P-values:   2-tailed = 8.254117e-11    1-tailed = 4.127059e-11 
+    ## Angle between the two OLS regression lines = 13.83151 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept     Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS  7.125144 0.8763774        41.23059              0.01
+    ## 2     MA -8.809311 1.1556790        49.13062              0.01
+    ## 3    SMA -6.776038 1.1200395        48.24070                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS      -4.826705       19.076992  0.6669685    1.085786
+    ## 2     MA     -27.206704        5.137341  0.9112199    1.478151
+    ## 3    SMA     -19.830284        4.063715  0.9300386    1.348856
+    ## 
+    ## Eigenvalues: 5.434478 0.6525159 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.01397937
+
+<img src="BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-57-1.png" style="display: block; margin: auto;" />
+
+### PDOC v DOC bottle
+
+``` r
+doc_pdoc.data <- doc_star.data %>% 
+  filter(Cruise == "AT39") 
+doc_pdoc.data.reg <- lmodel2(pdoc ~ doc, data = doc_pdoc.data , nperm = 99)
+doc_pdoc.data.reg
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = pdoc ~ doc, data = doc_pdoc.data, nperm = 99)
+    ## 
+    ## n = 36   r = 0.9821508   r-square = 0.9646201 
+    ## Parametric P-values:   2-tailed = 2.946125e-26    1-tailed = 1.473062e-26 
+    ## Angle between the two OLS regression lines = 1.031717 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method  Intercept     Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS -0.3283698 0.9991032        44.97430              0.01
+    ## 2     MA -1.4606558 1.0175770        45.49914              0.01
+    ## 3    SMA -1.4412633 1.0172606        45.49024                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS      -4.433858        3.777118  0.9324153    1.065791
+    ## 2     MA      -5.772456        2.567790  0.9518511    1.087926
+    ## 3    SMA      -5.662510        2.512315  0.9527562    1.086132
+    ## 
+    ## Eigenvalues: 69.07177 0.6218052 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.001113478
+
+### Bottle v. Vial Cell Abundance
+
+``` r
+btl_vial_cell.data <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bacterial_abundance.rds") %>% 
+ drop_na(p_cells)
+btl_vial_cell.reg <- lmodel2(p_cells ~ cells, data = btl_vial_cell.data, nperm = 99)
+btl_vial_cell.reg
+```
+
+    ## 
+    ## Model II regression
+    ## 
+    ## Call: lmodel2(formula = p_cells ~ cells, data = btl_vial_cell.data,
+    ## nperm = 99)
+    ## 
+    ## n = 17   r = 0.979752   r-square = 0.959914 
+    ## Parametric P-values:   2-tailed = 6.869573e-12    1-tailed = 3.434786e-12 
+    ## Angle between the two OLS regression lines = 1.169037 degrees
+    ## 
+    ## Permutation tests of OLS, MA, RMA slopes: 1-tailed, tail corresponding to sign
+    ## A permutation test of r is equivalent to a permutation test of the OLS slope
+    ## P-perm for SMA = NA because the SMA slope cannot be tested
+    ## 
+    ## Regression results
+    ##   Method Intercept    Slope Angle (degrees) P-perm (1-tailed)
+    ## 1    OLS -62025907 1.051394        46.43514              0.01
+    ## 2     MA -89040705 1.074686        47.06169              0.01
+    ## 3    SMA -87227207 1.073123        47.02008                NA
+    ## 
+    ## Confidence intervals
+    ##   Method 2.5%-Intercept 97.5%-Intercept 2.5%-Slope 97.5%-Slope
+    ## 1    OLS     -226182286       102130471  0.9331511    1.169637
+    ## 2     MA     -238461187        43365926  0.9605251    1.203517
+    ## 3    SMA     -231900733        42380931  0.9613744    1.197860
+    ## 
+    ## Eigenvalues: 1.3175e+18 1.340652e+16 
+    ## 
+    ## H statistic used for computing C.I. of MA: 0.003145633
+
+``` r
+vl_btl_cell + vl_btl_doc +
+  plot_annotation(tag_levels = "a", caption = "Solid line represents the 1:1 line.") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 14))
+```
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-62-1.png)<!-- -->

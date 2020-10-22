@@ -1300,12 +1300,112 @@ reg11.plot <- bcd_bioav %>%
 ```
 
 
+## Bottle v. Vial Incubation Comparisons
+
+### DOC filtered v . DOC*
+
+```{r}
+processed_bioav <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bioavailability.rds") %>% 
+  select(Season, Cruise, Station, Bottle, Hours, doc) %>% 
+  rename(doc_star = doc)
+
+doc_star.data <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_doc.rds") %>% 
+  filter(Depth == 10) %>% 
+  select(Season, Cruise, Station, Bottle, Hours, doc, pdoc) %>% 
+  left_join(., processed_bioav) %>% 
+  filter(Cruise != "AT34")
+  
+  
+doc_star_bottle.reg <- lmodel2(doc ~ doc_star, data = doc_star.data , nperm = 99)
+
+```
+
+```{r}
+doc_star_vial.reg <- lmodel2(pdoc ~ doc_star, data = doc_star.data , nperm = 99)
+doc_star_vial.reg 
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 4, fig.align = "center", warning = FALSE}
+doc_star.data %>% 
+  ggplot(aes(x = doc_star, y = doc, group = Bottle)) + 
+  geom_abline(aes(intercept = 0, slope = 1)) +
+  geom_abline(intercept = doc_star_bottle.reg$regression.results[3,2],
+              slope = doc_star_bottle.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_point(aes(fill = factor(Season, levels = levels)), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(x = expression(italic(paste("DOC*, µmol C L"^-1))), y = expression(italic(paste("DOC, µmol C L"^-1))),  caption = "Solid line represents the 1:1 line.") +
+  scale_fill_manual(values = custom.colors) +
+  custom_theme() +
+   annotate( geom = "text", label = expression(atop("y = 1.06x - 2.36", paste("r"^2,"= 0.89, ", italic("p "), "<< 0.01"))), x = 75, y = 52, size = 3) +
+  xlim(50, 80) +
+  ylim(50, 80)
 
 
+```
 
 
+### PDOC  v DOC bottle
+
+```{r message = F}
+doc_pdoc.data <- doc_star.data %>% 
+  filter(Cruise == "AT39") 
+doc_pdoc.data.reg <- lmodel2(pdoc ~ doc, data = doc_pdoc.data , nperm = 99)
+doc_pdoc.data.reg
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 4, fig.align = "center"}
+vl_btl_doc <- doc_pdoc.data %>% 
+  ggplot(aes(x = doc, y = pdoc, group = Bottle)) + 
+  geom_abline(aes(intercept = 0, slope = 1)) +
+  geom_abline(intercept = doc_pdoc.data.reg$regression.results[3,2],
+              slope = doc_pdoc.data.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+  geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(x = expression(italic(paste("Bottle DOC, µmol C L"^-1))), y = expression(italic(paste("Vial DOC, µmol C L"^-1))), fill = "Early Spring Station") +
+  custom_theme() +
+   annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
+  xlim(50, 85) +
+  ylim(50, 85) +
+  guides(fill = F)
 
 
+```
+
+### Bottle v. Vial Cell Abundance
+
+
+```{r message = F}
+btl_vial_cell.data <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bacterial_abundance.rds") %>% 
+ drop_na(p_cells)
+btl_vial_cell.reg <- lmodel2(p_cells ~ cells, data = btl_vial_cell.data, nperm = 99)
+btl_vial_cell.reg
+```
+
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 5, fig.width = 5, fig.align = "center", warning = FALSE}
+vl_btl_cell <- btl_vial_cell.data %>% 
+  ggplot(aes(x = cells, y = p_cells)) + 
+  geom_abline(aes(intercept = 0, slope = 1)) +
+  geom_abline(intercept = btl_vial_cell.reg$regression.results[3,2],
+              slope = btl_vial_cell.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
+ geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(x = expression(italic(paste("Bottle Cells L"^-1))), y = expression(italic(paste("Vial Cells L"^-1))), fill = "Early Spring Station") +
+  scale_y_continuous(breaks = pretty_breaks()) +
+  scale_x_continuous(breaks = pretty_breaks()) +
+  theme_test(base_size = 16) +
+  theme(legend.position = "top") +
+  annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
+  #theme(plot.caption = element_text(face = "italic")) +
+  ylim(4.5*10^8, 3.0*10^9) +
+  xlim(4.5*10^8, 3.0*10^9)
+
+```
+
+
+```{r fig.height=5, fig.width=10, message=FALSE, warning=FALSE}
+vl_btl_cell + vl_btl_doc +
+  plot_annotation(tag_levels = "a", caption = "Solid line represents the 1:1 line.") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 14))
+```
 
 
 

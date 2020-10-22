@@ -75,7 +75,7 @@ levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT
 We will need to tidy the data in the same way the bacterial abundance dataframe was tidied before merging the datasets. We'll then omit data low quality data i.e. poor replication or possible contamination. We observed contamination in many of the NAAMES 2 experiments after incubations were transferred to WHOI.
 
 ```{r message = F}
-oc.df <- read_csv("~/naames_bioav_ms/Input/N2-4_DOC_Remin_Master.csv") %>%
+oc.df <- read_csv("~/GITHUB/naames_bioav_ms/Input/N2-4_DOC_Remin_Master.csv") %>%
   mutate(Season = Cruise,
          Season = gsub("AT34", "Late Spring", Season),
          Season = gsub("AT38", "Early Autumn", Season),
@@ -575,7 +575,6 @@ oc_p %>%
  
 ```
 
-# Bottle v. Vial Incubation Comparisons
 
 ## PTOC v. PDOC
 
