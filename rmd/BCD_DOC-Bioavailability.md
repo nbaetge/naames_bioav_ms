@@ -22,19 +22,25 @@ library(ggpubr)
 # Import Data
 
 ``` r
+export_bioav <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds") 
+
 doc_og <- read_rds("~/GITHUB/naames_bioav_ms/Input/master/DOC_Input") %>% 
   filter(Cruise == "AT34", Treatment == "Control", Depth == 10) %>% 
   drop_na(doc) %>% 
-  select(Season, Cruise, Station, Bottle, Hours, doc) %>% 
+  left_join(., export_bioav %>% select(Season, Cruise, Station, Bottle, stationary.harvest)) %>% 
+  select(Season, Cruise, Station, Bottle, stationary.harvest, Hours, doc) %>% 
   mutate(Days = Hours/24) %>% 
   filter(Station == 4) %>% 
-  group_by(Season, Cruise, Station, Days) %>% 
+  group_by(Season, Cruise, Station, Days, stationary.harvest) %>% 
   summarise_at(vars(doc), list(mean = mean, sd = sd)) %>%
   ungroup() %>% 
-  mutate(per_increase = (last(mean) - first(mean))/first(mean) * 100)
+  mutate(increase = 56.2 - 53.4,
+         per_increase = increase / 53.4 * 100)
+```
 
-export_bioav <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds") 
+    ## Joining, by = c("Season", "Cruise", "Station", "Bottle")
 
+``` r
 bge <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>% 
   group_by(Cruise, Station, Treatment, Bottle) %>% 
   mutate(remin.end = last(Days),
@@ -144,10 +150,16 @@ vl_btl_cell + vl_btl_doc +
 # N2 Post-Cruise contamination
 
 ``` r
+unique(doc_og$increase)
+```
+
+    ## [1] 2.8
+
+``` r
 unique(doc_og$per_increase)
 ```
 
-    ## [1] 10.62847
+    ## [1] 5.243446
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/N2%20remin%20plot-1.png)<!-- -->
 

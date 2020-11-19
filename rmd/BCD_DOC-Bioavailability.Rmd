@@ -63,18 +63,20 @@ levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT
 
 ```{r Import processed data}
 
+export_bioav <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds") 
+
 doc_og <- read_rds("~/GITHUB/naames_bioav_ms/Input/master/DOC_Input") %>% 
   filter(Cruise == "AT34", Treatment == "Control", Depth == 10) %>% 
   drop_na(doc) %>% 
-  select(Season, Cruise, Station, Bottle, Hours, doc) %>% 
+  left_join(., export_bioav %>% select(Season, Cruise, Station, Bottle, stationary.harvest)) %>% 
+  select(Season, Cruise, Station, Bottle, stationary.harvest, Hours, doc) %>% 
   mutate(Days = Hours/24) %>% 
   filter(Station == 4) %>% 
-  group_by(Season, Cruise, Station, Days) %>% 
+  group_by(Season, Cruise, Station, Days, stationary.harvest) %>% 
   summarise_at(vars(doc), list(mean = mean, sd = sd)) %>%
   ungroup() %>% 
-  mutate(per_increase = (last(mean) - first(mean))/first(mean) * 100)
-
-export_bioav <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds") 
+  mutate(increase = 56.2 - 53.4,
+         per_increase = increase / 53.4 * 100)
 
 bge <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>% 
   group_by(Cruise, Station, Treatment, Bottle) %>% 
@@ -200,8 +202,13 @@ vl_btl_cell + vl_btl_doc +
 # N2 Post-Cruise contamination
 
 ```{r}
+unique(doc_og$increase)
+```
+
+```{r}
 unique(doc_og$per_increase)
 ```
+
 
 ```{r N2 remin plot, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 8}
 
@@ -209,6 +216,8 @@ doc_og %>%
   ggplot(aes(x = Days, y = mean)) + 
   geom_vline(aes(xintercept = 26), linetype = 2) +
   geom_label(aes(x = 26, y = 52, label = "Cruise End"), size = 3) +
+  geom_vline(aes(xintercept = 7), linetype = 2) +
+  geom_label(aes(x = 7, y = 52, label = "Large Volume Collection"), size = 3) +
   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd, color = factor(Season, levels = levels)), width = 0.5) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
