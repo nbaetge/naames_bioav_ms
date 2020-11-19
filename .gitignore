@@ -2,3 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+master
+unfiltered
+misc
+filt_processed_growthcurver.rds

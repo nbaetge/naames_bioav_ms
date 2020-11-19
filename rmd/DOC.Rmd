@@ -9,20 +9,12 @@ output: github_document
 
 This document shows how **individual bottle** DOC data from NAAMES remineralization bioassays were processed, QC'd, and analyzed. 
 
-```{r message = F, warning = F}
+```{r Packages, message = F, warning = F}
 library(tidyverse) 
-library(rmarkdown)
-library(knitr)
 library(readxl)
-library(data.table) 
-library(scales)
 library(zoo)
 library(oce)
 library(patchwork)
-#rmarkdown tables
-library(stargazer)
-library(pander)
-library(growthcurver)
 #stat tests
 library(lmtest)
 library(lmodel2)
@@ -31,7 +23,7 @@ library(ggpubr)
 ```
 
 
-```{r include = FALSE}
+```{r Aesthetics, include = FALSE}
 custom_theme <- function() {
   theme_test(base_size = 16) %+replace%
     theme(legend.position = "top",
@@ -74,8 +66,8 @@ levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT
 
 We will need to tidy the data in the same way the bacterial abundance dataframe was tidied before merging the datasets. We'll then omit data low quality data i.e. poor replication or possible contamination. We observed contamination in many of the NAAMES 2 experiments after incubations were transferred to WHOI.
 
-```{r message = F}
-oc.df <- read_csv("~/GITHUB/naames_bioav_ms/Input/N2-4_DOC_Remin_Master.csv") %>%
+```{r Import and tidy, message = F}
+oc.df <- read_csv("~/GITHUB/naames_bioav_ms/Input/master/N2-4_DOC_Remin_Master.csv") %>%
   mutate(Season = Cruise,
          Season = gsub("AT34", "Late Spring", Season),
          Season = gsub("AT38", "Early Autumn", Season),
@@ -141,11 +133,13 @@ oc.df <- read_csv("~/GITHUB/naames_bioav_ms/Input/N2-4_DOC_Remin_Master.csv") %>
   arrange(Cruise, Station, Depth, Treatment, Bottle, Hours)  %>% 
   filter(!is.na(Hours))
 
+saveRDS(oc.df, "~/GITHUB/naames_bioav_ms/Input/master/DOC_Input")
+
 ```
 
-Because a different suite of organic carbon samples were taken on each cruise, we'll separate the cruise datasets, drop NA values, quality filter them, and then recombine the datasets. To quality filter, we'll calculate rolling ∆DOC values i.e. the diffence between the one observation and the one before it. We'll omit the data where ∆DOC indicates contamination due to transport etc. after the 21 d shipboard occupation (increase greater than our detection limit, 1.5 µmol C L^-1^).
+Because a different suite of organic carbon samples were taken on each cruise, we'll separate the cruise datasets, drop NA values, quality filter them, and then recombine the datasets. To quality filter, we'll calculate rolling ∆DOC values i.e. the difference between the one observation and the one before it. We'll omit the data where ∆DOC indicates contamination due to transport etc. after the 21 d shipboard occupation (increase greater than our detection limit, 1.5 µmol C L^-1^).
 
-```{r}
+```{r QC data}
 n2_oc <- oc.df %>% 
   filter(Cruise == "AT34") %>% 
   drop_na(doc) %>%
@@ -192,135 +186,100 @@ oc_p <- bind_rows(n2_oc, n3_4_oc) %>%
          facet_bottle = gsub("W", "Whole Seawater", facet_bottle),
           facet_bottle = gsub("1.2", "1.2 µm Filtrate", facet_bottle), 
           facet_bottle = gsub("NV", "1.2 µm Filtrate: TFF Filtrate (3:7)", facet_bottle)) 
-
-oc_p$Treatment <- factor(oc_p$Treatment, levels = levels)
-oc_p$facet_treatment <- factor(oc_p$facet_treatment, levels = levels)
-oc_p$facet_bottle <- factor(oc_p$facet_bottle, levels = levels)
 ```
 
 # Save Data
 
-```{r}
-#saveRDS(oc_p, "~/naames_bioav_ms/Output/processed_doc.rds")
+```{r Subset and save}
+saveRDS(oc_p, "~/GITHUB/naames_bioav_ms/Output/unfiltered/processed_doc.rds")
+
+filtered_data <- oc_p %>% 
+  filter(Treatment %in% c("Control", "TW5", "TW10", "TW20"), Depth == 10, !Station == "U") %>% 
+  select(Season:Hours, Days, doc:sd_pdoc, everything(), -facet_depth)
+
+saveRDS(filtered_data, "~/GITHUB/naames_bioav_ms/Output/filt_processed_doc.rds")
+
+    
 ```
-
-
 
 # Plot Curves
 
 ## NAAMES 2
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 20, fig.align = "center", warning = FALSE}
-oc_p %>% 
-  filter(Cruise == "AT34", Treatment == "Control") %>% 
-  mutate(facet_depth = paste(Depth, "m")) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
+```{r N2 Control plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 8}
+filtered_data %>% 
+  filter(Cruise == "AT34") %>% 
+  group_by(Station, Bottle) %>%
   ggplot(aes(x = Days, y = doc, group = Bottle)) + 
   geom_errorbar(aes(ymin = doc - sd_doc, ymax = doc + sd_doc), width = 0.5) +
   geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Bottle), alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
-  facet_grid(facet_depth ~ Station, scales = "free") +
+  facet_grid(rows = "Station", scales = "free") +
   labs(y = expression(paste("DOC, µmol C L"^-1))) +
   custom_theme() +
   guides(color = F) +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
   
-  oc_p %>% 
-  filter(Cruise == "AT34", Treatment == "Control") %>% 
-  mutate(facet_depth = paste(Depth, "m")) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
+  filtered_data %>% 
+  filter(Cruise == "AT34") %>% 
+  group_by(Station, Bottle) %>%
   ggplot(aes(x = Days, y = -doc_from_t0, group = Bottle)) + 
   geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Bottle), alpha = 0.7) +
   geom_hline(yintercept = 0, linetype = 2) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
-  facet_grid(facet_depth ~ Station, scales = "free") +
+  facet_grid(rows = "Station", scales = "free") +
   labs(y = expression(paste("Delta DOC, µmol C L"^-1))) +
   custom_theme() +
   guides(color = F, fill = F) +
   
-  plot_annotation( title = "NAAMES 2 DOC: Control Experiments, > 30 d" ) 
+  plot_annotation( title = "NAAMES 2 Surface DOC Remin Experiments" ) 
 
 ```
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 20, fig.align = "center", warning = FALSE}
-oc_p %>% 
-  filter(Cruise == "AT34", Treatment == "Control", Days <= 7) %>% 
-  mutate(facet_depth = paste(Depth, "m")) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = doc, group = Bottle)) + 
-  geom_errorbar(aes(ymin = doc - sd_doc, ymax = doc + sd_doc), width = 0.5) +
-  geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Bottle), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(facet_depth ~ Station, scales = "free") +
-  labs(y = expression(paste("DOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F) +
-  
-  oc_p %>% 
-  filter(Cruise == "AT34", Treatment == "Control", Days <= 7) %>% 
-  mutate(facet_depth = paste(Depth, "m")) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = -doc_from_t0, group = Bottle)) + 
-  geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Bottle), alpha = 0.7) +
-  geom_hline(yintercept = 0, linetype = 2) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(facet_depth ~ Station, scales = "free") +
-  labs(y = expression(paste("Delta DOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F, fill = F) +
-  
-  plot_annotation( title = "NAAMES 2 DOC: Control Experiments, < 7 d") 
 
-```
+There looks to be some poor replication between the experiments conducted at station 4:
 
-There looks to be some poor replication between the experiments conducted at station 4 and U:
-
-- S4 bottle A measurements look suspect. additionally, the increase between day 6 and 7 for both bottles are suspect
-- SU bottle B measurements at 24 h is suspect relative to the downward trend in both bottles
+- S4 bottle A measurements look suspect. 
 
 These points will affect BGE calculations and my need to be omitted. The BGE from S4 Bottle A may be unreliable. 
 
-BGEs cannot be calculated for the 200 m control experiments given that not DOC drawdown was observed.
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 10, fig.align = "center", warning = FALSE}
-oc_p %>% 
-  filter(Cruise == "AT34", Station == 2) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = doc, group = Bottle)) + 
-  geom_errorbar(aes(ymin = doc - sd_doc, ymax = doc + sd_doc), width = 0.5) +
-  geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~facet_depth, scales = "free_y") +
-  labs(x = "", y = expression(paste("DOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F) +
-  
-  oc_p %>% 
-  filter(Cruise == "AT34", Station == 2) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = -doc_from_t0, group = Bottle)) + 
-  geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~facet_depth, scales = "free") +
-  labs(y = expression(paste("Delta DOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F, fill = F) +
-  theme(strip.background = element_blank(), strip.text = element_blank()) +
-
-  plot_annotation( title = "NAAMES 2 Station 2 Addition Experiment" ) +
-  plot_layout(nrow = 2, ncol = 1)
-
+```{r TW addition plots, include = FALSE, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 10}
+# oc_p %>% 
+#   filter(Cruise == "AT34", Station == 2) %>% 
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = doc, group = Bottle)) + 
+#   geom_errorbar(aes(ymin = doc - sd_doc, ymax = doc + sd_doc), width = 0.5) +
+#   geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~facet_depth, scales = "free_y") +
+#   labs(x = "", y = expression(paste("DOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F) +
+#   
+#   oc_p %>% 
+#   filter(Cruise == "AT34", Station == 2) %>% 
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = -doc_from_t0, group = Bottle)) + 
+#   geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~facet_depth, scales = "free") +
+#   labs(y = expression(paste("Delta DOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F, fill = F) +
+#   theme(strip.background = element_blank(), strip.text = element_blank()) +
+# 
+#   plot_annotation( title = "NAAMES 2 Station 2 Addition Experiment" ) +
+#   plot_layout(nrow = 2, ncol = 1)
+# 
 
 
 ```
@@ -329,331 +288,249 @@ oc_p %>%
 ## NAAMES 3
 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 20, fig.align = "center", warning = FALSE}
-oc_p %>% 
-  filter(Cruise == "AT38", Treatment == "Control") %>%  
-  group_by(Station, Depth, Treatment, Bottle) %>%
+```{r N3 Control plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 8}
+filtered_data %>% 
+  filter(Cruise == "AT38") %>%  
+  group_by(Station, Bottle) %>%
   ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
   geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
   geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Bottle), alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
-  facet_grid(facet_depth ~ Station, scales = "free") +
+  facet_grid(rows = "Station", scales = "free") +
   labs(y = expression(paste("TOC, µmol C L"^-1))) +
   custom_theme() +
   guides(color = F) +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
   
-  oc_p %>% 
-  filter(Cruise == "AT38", Treatment == "Control") %>%  
-  group_by(Station, Depth, Treatment, Bottle) %>%
+  filtered_data %>% 
+  filter(Cruise == "AT38") %>%  
+  group_by(Station, Bottle) %>%
   ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
   geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Bottle), alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
-  facet_grid(facet_depth ~ Station, scales = "free") +
+  facet_grid(rows = "Station", scales = "free") +
   labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
   custom_theme() +
   guides(color = F, fill = F) +
   
-  plot_annotation( title = "NAAMES 3 TOC: Control Experiments" ) 
+  plot_annotation( title = "NAAMES 3 Surface DOC Remin Experiments" ) 
 
 ```
 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 10, fig.align = "center", warning = FALSE}
-oc_p %>% 
-  filter(Cruise == "AT38", Station == 1, !Treatment %in% c("SynExd", "SynLys", "TWExd")) %>%
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
-  geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
-  geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~facet_depth, scales = "free") +
-  labs(x = "", y = expression(paste("TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F) +
-  
-  oc_p %>% 
-  filter(Cruise == "AT38", Station == 1, !Treatment %in% c("SynExd", "SynLys", "TWExd")) %>%
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
-  geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~facet_depth, scales = "free") +
-  labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F, fill = F) +
-  theme(strip.background = element_blank(), strip.text = element_blank()) +
-  
-  plot_annotation( title = "NAAMES 3 Station 1 Mixing Experiment" ) +
-  plot_layout(nrow = 2, ncol = 1)
-  
+```{r Mixing plots, include = FALSE, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 10}
+# oc_p %>% 
+#   filter(Cruise == "AT38", Station == 1, !Treatment %in% c("SynExd", "SynLys", "TWExd")) %>%
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
+#   geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
+#   geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~facet_depth, scales = "free") +
+#   labs(x = "", y = expression(paste("TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F) +
+#   
+#   oc_p %>% 
+#   filter(Cruise == "AT38", Station == 1, !Treatment %in% c("SynExd", "SynLys", "TWExd")) %>%
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
+#   geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~facet_depth, scales = "free") +
+#   labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F, fill = F) +
+#   theme(strip.background = element_blank(), strip.text = element_blank()) +
+#   
+#   plot_annotation( title = "NAAMES 3 Station 1 Mixing Experiment" ) +
+#   plot_layout(nrow = 2, ncol = 1)
+#   
 
 ```
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 10, fig.align = "center", warning = FALSE}
-oc_p %>% 
-  filter(Cruise == "AT38", Station == 1, Treatment %in% c("Control", "SynExd", "SynLys", "TWExd")) %>%
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
-  geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
-  geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~facet_depth, scales = "free") +
-  labs(x = "", y = expression(paste("TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F) +
-  
-  oc_p %>% 
-  filter(Cruise == "AT38", Station == 1, Treatment %in% c("Control", "SynExd", "SynLys", "TWExd")) %>%
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
-  geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~facet_depth, scales = "free") +
-  labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F, fill = F) +
-  theme(strip.background = element_blank(), strip.text = element_blank()) +
-  
-  plot_annotation( title = "NAAMES 3 Station 1 Addition Experiment" ) +
-  plot_layout(nrow = 2, ncol = 1)
+```{r Phyto addition plots, include = FALSE, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 10}
+# oc_p %>% 
+#   filter(Cruise == "AT38", Station == 1, Treatment %in% c("Control", "SynExd", "SynLys", "TWExd")) %>%
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
+#   geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
+#   geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~facet_depth, scales = "free") +
+#   labs(x = "", y = expression(paste("TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F) +
+#   
+#   oc_p %>% 
+#   filter(Cruise == "AT38", Station == 1, Treatment %in% c("Control", "SynExd", "SynLys", "TWExd")) %>%
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
+#   geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~facet_depth, scales = "free") +
+#   labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F, fill = F) +
+#   theme(strip.background = element_blank(), strip.text = element_blank()) +
+#   
+#   plot_annotation( title = "NAAMES 3 Station 1 Addition Experiment" ) +
+#   plot_layout(nrow = 2, ncol = 1)
 
 ```
 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 10, fig.align = "center", warning = FALSE}
-oc_p %>% 
-  filter(Cruise == "AT38", Depth == 10, Station %in% c(1, 3, 6), Treatment %in% c("Control", "SynLys")) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
-  geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
-  geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~Station, scales = "free_y") +
-  labs(x = "",  y = expression(paste("TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F) +
-  
-  oc_p %>% 
-  filter(Cruise == "AT38", Depth == 10, Station %in% c(1, 3, 6), Treatment %in% c("Control", "SynLys")) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
-  geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~Station, scales = "free_y") +
-  labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F, fill = F) +
-  theme(strip.background = element_blank(), strip.text = element_blank()) +
-  
-  plot_annotation( title = "NAAMES 3 Addition Experiments" ) +
-  plot_layout(nrow = 2, ncol = 1)
+```{r Syn lys latitude plots, include = FALSE, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 10}
+# oc_p %>% 
+#   filter(Cruise == "AT38", Depth == 10, Station %in% c(1, 3, 6), Treatment %in% c("Control", "SynLys")) %>% 
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
+#   geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
+#   geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~Station, scales = "free_y") +
+#   labs(x = "",  y = expression(paste("TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F) +
+#   
+#   oc_p %>% 
+#   filter(Cruise == "AT38", Depth == 10, Station %in% c(1, 3, 6), Treatment %in% c("Control", "SynLys")) %>% 
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
+#   geom_point(aes(fill = facet_treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~Station, scales = "free_y") +
+#   labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F, fill = F) +
+#   theme(strip.background = element_blank(), strip.text = element_blank()) +
+#   
+#   plot_annotation( title = "NAAMES 3 Addition Experiments" ) +
+#   plot_layout(nrow = 2, ncol = 1)
 
 ```
 
 
 ## NAAMES 4
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 14, fig.align = "center", warning = FALSE}
-oc_p %>% 
+```{r N4 Control plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 8}
+filtered_data %>% 
   filter(Cruise == "AT39", Treatment == "Control") %>% 
-  mutate(facet_depth = paste(Depth, "m")) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
+  group_by(Station, Bottle) %>%
   ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
   geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
   geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Bottle), alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
-  facet_grid(~Station, scales = "free") +
+  facet_grid(rows = "Station", scales = "free") +
   labs(x = "",y = expression(paste("TOC, µmol C L"^-1))) +
   custom_theme() +
   guides(color = F) +
+  theme(strip.background = element_blank(), strip.text = element_blank()) +
   
-  oc_p %>% 
+filtered_data %>% 
   filter(Cruise == "AT39", Treatment == "Control") %>% 
-  mutate(facet_depth = paste(Depth, "m")) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
+  group_by(Station, Bottle) %>%
   ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
   geom_point(aes(fill = Bottle), size = 4, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Bottle), alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
-  facet_grid(~Station, scales = "free") +
+  facet_grid(rows = "Station", scales = "free") +
   labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
   custom_theme() +
   guides(fill = F, color = F) +
-  theme(strip.background = element_blank(), strip.text = element_blank()) +
+ 
   
-  plot_annotation( title = "NAAMES 4 PTOC: Control Experiments" ) +
-  plot_layout(nrow = 2, ncol = 1)
+  plot_annotation( title = "NAAMES 4 Surface DOC Remin Experiments" ) 
 
 ```
 
 The replication between experiments at Station 4 is poor. 
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10, fig.align = "center", warning = FALSE}
-oc_p %>% 
-  filter(Cruise == "AT39", Station == 2, !Treatment == "Parallel") %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
-  geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
-  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~facet_treatment, scales = "free_y") +
-  labs(x = "", y = expression(paste("TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(fill = F, color = F) +
-  
-  oc_p %>% 
-  filter(Cruise == "AT39", Station == 2, !Treatment == "Parallel") %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
-  geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~facet_treatment, scales = "free_y") +
-  labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(fill = F, color = F) +
-  theme(strip.background = element_blank(), strip.text = element_blank()) +
-  
-  plot_annotation( title = "NAAMES 4 Addition Experiments" ) +
-  plot_layout(nrow = 2, ncol = 1)
+```{r Addition plots, include = FALSE, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 10}
+# oc_p %>% 
+#   filter(Cruise == "AT39", Station == 2, !Treatment == "Parallel") %>% 
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
+#   geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
+#   geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = Treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~facet_treatment, scales = "free_y") +
+#   labs(x = "", y = expression(paste("TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(fill = F, color = F) +
+#   
+#   oc_p %>% 
+#   filter(Cruise == "AT39", Station == 2, !Treatment == "Parallel") %>% 
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
+#   geom_point(aes(fill = Treatment), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = Treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~facet_treatment, scales = "free_y") +
+#   labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(fill = F, color = F) +
+#   theme(strip.background = element_blank(), strip.text = element_blank()) +
+#   
+#   plot_annotation( title = "NAAMES 4 Addition Experiments" ) +
+#   plot_layout(nrow = 2, ncol = 1)
 
 ```
 
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 14, fig.align = "center", warning = FALSE}
-oc_p %>% 
-  filter(Cruise == "AT39", Treatment %in% c("Control", "Parallel"), Depth == 10) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
-  geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
-  geom_point(aes(fill = facet_bottle), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_bottle, linetype = Treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~Station, scales = "free") +
-  labs(x = "", y = expression(paste("TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F) +
-  
-  oc_p %>% 
-  filter(Cruise == "AT39", Treatment %in% c("Control", "Parallel"), Depth == 10) %>% 
-  group_by(Station, Depth, Treatment, Bottle) %>%
-  ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
-  geom_point(aes(fill = facet_bottle), size = 4, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = facet_bottle, linetype = Treatment), alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
-  facet_grid(~Station, scales = "free_y") +
-  labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
-  custom_theme() +
-  guides(color = F, fill = F, linetype = F) +
-  theme(strip.background = element_blank(), strip.text = element_blank()) +
-  
-  plot_annotation( title = "NAAMES 4 Parallel Experiments" ) +
-  plot_layout(nrow = 2, ncol = 1)
+```{r Parallels, include = FALSE, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 14}
+# oc_p %>% 
+#   filter(Cruise == "AT39", Treatment %in% c("Control", "Parallel"), Depth == 10) %>% 
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = ptoc, group = Bottle)) + 
+#   geom_errorbar(aes(ymin = ptoc - sd_ptoc, ymax = ptoc + sd_ptoc), width = 0.5) +
+#   geom_point(aes(fill = facet_bottle), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_bottle, linetype = Treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~Station, scales = "free") +
+#   labs(x = "", y = expression(paste("TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F) +
+#   
+#   oc_p %>% 
+#   filter(Cruise == "AT39", Treatment %in% c("Control", "Parallel"), Depth == 10) %>% 
+#   group_by(Station, Depth, Treatment, Bottle) %>%
+#   ggplot(aes(x = Days, y = -ptoc_from_t0, group = Bottle)) + 
+#   geom_point(aes(fill = facet_bottle), size = 4, shape = 21, alpha = 0.7 ) +
+#   geom_line(aes(color = facet_bottle, linetype = Treatment), alpha = 0.7) +
+#   scale_color_manual(values = custom.colors) +
+#   scale_fill_manual(values = custom.colors) +
+#   facet_grid(~Station, scales = "free_y") +
+#   labs(y = expression(paste("Delta TOC, µmol C L"^-1))) +
+#   custom_theme() +
+#   guides(color = F, fill = F, linetype = F) +
+#   theme(strip.background = element_blank(), strip.text = element_blank()) +
+#   
+#   plot_annotation( title = "NAAMES 4 Parallel Experiments" ) +
+#   plot_layout(nrow = 2, ncol = 1)
  
-```
-
-
-## PTOC v. PDOC
-
-```{r message = F}
-ptoc_pdoc.data <- oc_p %>% 
-  filter(Cruise == "AT39", !Treatment == "Parallel") 
-ptoc_pdoc.reg <- lmodel2(pdoc ~ ptoc, data = ptoc_pdoc.data , nperm = 99)
-ptoc_pdoc.reg 
-```
-
-```{r message = F}
-delta_ptoc_pdoc.reg <- lmodel2(pdoc_from_t0 ~ ptoc_from_t0, data = ptoc_pdoc.data , nperm = 99)
-delta_ptoc_pdoc.reg
-```
-
-
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 8, fig.align = "center", warning = FALSE}
-ptoc_pdoc.data %>% 
-  ggplot(aes(x = ptoc, y = pdoc, group = Bottle)) + 
-  geom_abline(aes(intercept = 0, slope = 1)) +
-  geom_abline(intercept = ptoc_pdoc.reg$regression.results[3,2],
-              slope = ptoc_pdoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
-  geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(italic(paste("TOC, µmol C L"^-1))), y = expression(italic(paste("DOC, µmol C L"^-1))),  caption = "Solid line represents the 1:1 line.") +
-  custom_theme() +
-   annotate( geom = "text", label = expression(atop("y = 0.97x + 1.81", paste("r"^2,"= 0.95, ", italic("p "), "<< 0.01"))), x = 75, y = 55, size = 3) +
-  
-  ptoc_pdoc.data %>% 
-  ggplot(aes(x = ptoc_from_t0, y = pdoc_from_t0, group = Bottle)) + 
-  geom_abline(aes(intercept = 0, slope = 1)) +
-  geom_abline(intercept = delta_ptoc_pdoc.reg$regression.results[3,2],
-              slope = delta_ptoc_pdoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
-  geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(italic(paste("∆TOC, µmol C L"^-1))), y = expression(italic(paste("∆DOC, µmol C L"^-1)))) +
-  custom_theme() +
-   annotate( geom = "text", label = expression(atop("y = 0.97x - 0.03", paste("r"^2,"= 0.94, ", italic("p "), "<< 0.01"))), x = 20, y = 0.5, size = 3) +
-  theme(plot.caption = element_text(face = "italic")) 
-
-```
-
-## Bottle TOC v. Vial TOC
-
-Because the same samples are measured for TOC and PTOC for T0, these data are omitted from the regression analysis.
-
-```{r message = F}
-toc_ptoc.data <- oc_p %>% 
-  filter(!Cruise == "AT34", !Timepoint == 0, !Treatment == "Parallel") 
-toc_ptoc.reg <- lmodel2(ptoc ~ toc, data = toc_ptoc.data, nperm = 99)
-toc_ptoc.reg
-```
-
-```{r message = F}
-delta_toc_ptoc.reg <- lmodel2(ptoc_from_t0 ~ toc_from_t0, data = toc_ptoc.data, nperm = 99)
-delta_toc_ptoc.reg
-```
-
-```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 4, fig.width = 8, fig.align = "center", warning = FALSE}
-toc_ptoc.data %>% 
-  ggplot(aes(x = toc, y = ptoc)) + 
-  geom_abline(aes(intercept = 0, slope = 1)) +
-  geom_abline(intercept = toc_ptoc.reg$regression.results[3,2],
-              slope = toc_ptoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
-  geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(paste("Bottle TOC, µmol C L"^-1)), y = expression(paste("Vial TOC, µmol C L"^-1))) +
-  custom_theme() +
-   annotate( geom = "text", label = expression(atop("y = 0.93x + 2.20", paste("r"^2,"= 0.92, ", italic("p "), "<< 0.01"))), x = 73, y = 53, size = 3) +
-  
-  
-  toc_ptoc.data %>% 
-  ggplot(aes(x = toc_from_t0, y = ptoc_from_t0)) + 
-  geom_abline(aes(intercept = 0, slope = 1)) +
-  geom_abline(intercept = delta_toc_ptoc.reg$regression.results[3,2],
-              slope = delta_toc_ptoc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
-  geom_point( fill = "white", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(paste("Bottle ∆TOC, µmol C L"^-1)), y = expression(paste("Vial ∆TOC, µmol C L"^-1)), caption = "Solid line represents the 1:1 line.") +
-  custom_theme() +
-   annotate( geom = "text", label = expression(atop("y = 0.86x + 2.48", paste("r"^2,"= 0.84, ", italic("p "), "<< 0.01"))), x = 15, y = 0.2, size = 3) +
-  theme(plot.caption = element_text(face = "italic")) 
-
 ```
 
 

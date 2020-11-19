@@ -10,18 +10,10 @@ NAAMES remineralization bioassays were processed, QC’d, and analyzed.
 
 ``` r
 library(tidyverse) 
-library(rmarkdown)
-library(knitr)
 library(readxl)
-library(data.table) 
-library(scales)
 library(zoo)
 library(oce)
 library(patchwork)
-#rmarkdown tables
-library(stargazer)
-library(pander)
-library(growthcurver)
 #stat tests
 library(lmtest)
 library(lmodel2)
@@ -42,7 +34,7 @@ was used. Unfortunately, blanks were not taken on NAAMES
 3.
 
 ``` r
-bigelow <- read_csv("~/naames_bioav_ms/Input/N2-4_BactC_Processing.csv") %>% 
+bigelow <- read_csv("~/GITHUB/naames_bioav_ms/Input/master/N2-4_BactC_Processing.csv") %>% 
   select(-c(Treatment_Btl:Days)) %>% 
   rename(Filter = Rep) %>% 
   mutate(BlnkFiltrate = ifelse(Cruise == "AT34", "0.2 µm", "TFF"),
@@ -61,8 +53,6 @@ bigelow <- read_csv("~/naames_bioav_ms/Input/N2-4_BactC_Processing.csv") %>%
          Timepoint = ifelse(Treatment == "Niskin", 0, Timepoint)
          ) %>% 
   mutate_at(vars(BactN_µg, BactC_µg), round, 1)
-
-bigelow$Season <- factor(bigelow$Season, levels = levels)
 ```
 
 Here, we plot all of the bacterial POC data from all of the experiments
@@ -70,7 +60,7 @@ across all of the cruises, including blanks. We’ve cut off the max value
 to 25 µg C, but note there are samples with much greater
 values.
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-4-1.png" style="display: block; margin: auto;" />
+<img src="Bacterial-Carbon_files/figure-gfm/Bact POC plot-1.png" style="display: block; margin: auto;" />
 There is a large spread in the data points for the second filter of the
 non-blank samples on the early autumn cruise, with higher values
 suggesting more material slipped through the first filter onto the
@@ -112,7 +102,7 @@ t.test.data <- bigelow %>%
          Depth = facetlabel)
 ```
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-7-1.png" style="display: block; margin: auto;" />
+![](Bacterial-Carbon_files/figure-gfm/Blanks%20t-tests%20plots-1.png)<!-- -->
 
 There is a significant difference between the first (top) and second
 (bottom) filters of the blanks, suggesting that there was some material
@@ -282,7 +272,7 @@ timepoints.
 
 ``` r
 #initial cell abundance
-i.gf75 <- readRDS("~/naames_bioav_ms/Output/tidy_bacterial_abundance.rds") %>% 
+i.gf75 <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/tidy_N2-4_BactA_Remin_Master.rds") %>% 
   select(Season:cells) %>% 
   filter(Timepoint == 0, Bottle %in% c("GF75", "Niskin")) %>% 
   group_by(Cruise, Station, Depth) %>% 
@@ -295,7 +285,7 @@ i.gf75 <- readRDS("~/naames_bioav_ms/Output/tidy_bacterial_abundance.rds") %>%
   select(Season:Depth, i.gf75.cells, i.gf75.ret)
 
 #stationary cell abundance
-s.gf75 <- readRDS("~/naames_bioav_ms/Output/tidy_bacterial_abundance.rds") %>% 
+s.gf75 <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/tidy_N2-4_BactA_Remin_Master.rds") %>% 
   select(Season:cells) %>% 
   filter(!Timepoint == 0) %>% 
   arrange(Cruise, Station, Depth, Bottle, Timepoint) %>% 
@@ -397,13 +387,11 @@ fg_cell <- left_join(s.fg_cell, i.fg_cell)  %>%
          ccf.fukuda = 12.3,
          ccf.lee = 20) %>% 
   ungroup()
-
-fg_cell$Season <- factor(fg_cell$Season, levels = levels)
 ```
 
 ## Flag Retention of GF75 Filters
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-12-1.png" style="display: block; margin: auto;" />
+![](Bacterial-Carbon_files/figure-gfm/GF75%20retention%20plot-1.png)<!-- -->
 
     ## # A tibble: 6 x 3
     ## # Groups:   group [6]
@@ -472,7 +460,7 @@ fg_cell.qc <- fg_cell %>%
     ## 17 AT39   s.ccf.c2        21     8
     ## 18 AT39   s.ccf.c3        23     9
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-16-1.png" style="display: block; margin: auto;" />
+![](Bacterial-Carbon_files/figure-gfm/CCF%20plots%20with%20flags-1.png)<!-- -->
 
 The points are colored by the QC flag associated with the POC samples.
 ”Questionable” measures indicate below average (of all samples, not
@@ -496,7 +484,7 @@ grouped) cell retention on the POC filters. “ND” indicates no data.
     ## 10 AT38   i.cn.c1      14.2   6.3
     ## # … with 14 more rows
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-18-1.png" style="display: block; margin: auto;" />
+![](Bacterial-Carbon_files/figure-gfm/C:N%20ratio%20plots-1.png)<!-- -->
 
 The points on the line intersecting the max of the y-axis represent
 “Inf” values, where PON values are 0.
@@ -519,9 +507,9 @@ measurements.
 
 # Identify Outliers: Property-Property Plots
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-19-1.png" style="display: block; margin: auto;" />
+![](Bacterial-Carbon_files/figure-gfm/CCF%20property-property-1.png)<!-- -->
 
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-20-1.png" style="display: block; margin: auto;" />
+<img src="Bacterial-Carbon_files/figure-gfm/cell C property-property-1.png" style="display: block; margin: auto;" />
 
 Generally, samples with below average cell retentions have higher cell C
 content, but this seems to be less of an effect at stationary.
@@ -560,21 +548,54 @@ of detrital matieral.
 We will remove the CCF for the two outlier samples (intial condition,
 AT39 S1 and AT38 S1) from remaining analyses.
 
-## Save Data
-
 ``` r
 fg_cell.qc %>% 
+  select(Season:s.gf75.ret) %>% 
+  filter(Depth == 10, Treatment == "Control") %>% 
+  select(-c(Depth:Treatment, type)) %>% 
+  distinct() %>% 
+  mutate(i.gf75.ret = ifelse(Cruise == "AT39" & Station == 1, NA, i.gf75.ret),
+        s.gf75.ret = ifelse(Cruise == "AT39" & Station == 1, NA, s.gf75.ret),
+        i.gf75.ret = ifelse(Cruise == "AT38" & Station == 1, NA, i.gf75.ret),
+        s.gf75.ret = ifelse(Cruise == "AT38" & Station == 1, NA, s.gf75.ret),
+        i.gf75.ret = ifelse(Bottle == "B", NA, i.gf75.ret)) %>% 
+  pivot_longer(i.gf75.ret:s.gf75.ret, names_to = "names", values_to = "ret" ) %>% 
+  drop_na(ret) %>% 
+  mutate(ave_ret = mean(ret),
+         sd_re = sd(ret))
+```
+
+    ## # A tibble: 45 x 8
+    ##    Season      Cruise Station Bottle names        ret ave_ret  sd_re
+    ##    <chr>       <chr>  <chr>   <chr>  <chr>      <dbl>   <dbl>  <dbl>
+    ##  1 Late Spring AT34   1       A      i.gf75.ret  0.77   0.782 0.0940
+    ##  2 Late Spring AT34   1       A      s.gf75.ret  0.87   0.782 0.0940
+    ##  3 Late Spring AT34   1       B      s.gf75.ret  0.79   0.782 0.0940
+    ##  4 Late Spring AT34   2       A      i.gf75.ret  0.54   0.782 0.0940
+    ##  5 Late Spring AT34   3       A      i.gf75.ret  0.69   0.782 0.0940
+    ##  6 Late Spring AT34   3       A      s.gf75.ret  0.68   0.782 0.0940
+    ##  7 Late Spring AT34   3       B      s.gf75.ret  0.74   0.782 0.0940
+    ##  8 Late Spring AT34   4       A      i.gf75.ret  0.88   0.782 0.0940
+    ##  9 Late Spring AT34   4       A      s.gf75.ret  0.85   0.782 0.0940
+    ## 10 Late Spring AT34   4       B      s.gf75.ret  0.8    0.782 0.0940
+    ## # … with 35 more rows
+
+# Save Data
+
+``` r
+unfiltered.data <- fg_cell.qc %>% 
   mutate(i.ccf.c1 = ifelse(Cruise == "AT39" & Station == 1 & Depth == 10, NA, i.ccf.c1),
          i.ccf.c2 = ifelse(Cruise == "AT39" & Station == 1 & Depth == 10, NA, i.ccf.c2),
          i.ccf.c3 = ifelse(Cruise == "AT39" & Station == 1 & Depth == 10, NA, i.ccf.c3),
          i.ccf.c1 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c1),
          i.ccf.c2 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c2),
-         i.ccf.c3 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c3)) %>% 
-  saveRDS(., "~/naames_bioav_ms/Output/processed_bacterial_carbon.rds")
+         i.ccf.c3 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c3))
+  
+saveRDS(unfiltered.data, "~/GITHUB/naames_bioav_ms/Output/unfiltered/processed_bacterial_carbon.rds")
+
+filtered.data <- unfiltered.data %>% 
+  filter(Treatment == "Control", Depth == 10, !Station == "U") %>% 
+  select(Season:Bottle,s.timepoint, contains(c("poc.cf1", "poc.c1.um", "ccf.c1")), -facetlabel) 
+  
+saveRDS(filtered.data, "~/GITHUB/naames_bioav_ms/Output/filt_processed_bacterial_carbon.rds")
 ```
-
-# Side Experiment: Sampling Volume Effect on Bacterial Carbon
-
-<img src="Bacterial-Carbon_files/figure-gfm/unnamed-chunk-22-1.png" style="display: block; margin: auto;" />
-
-This test needs to be done again \#flattenthecurve
