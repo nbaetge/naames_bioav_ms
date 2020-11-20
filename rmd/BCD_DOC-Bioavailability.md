@@ -17,6 +17,7 @@ library(lmtest)
 library(lmodel2)
 library(rstatix)
 library(ggpubr)
+library(blandr)
 ```
 
 # Import Data
@@ -71,6 +72,17 @@ NPP, NCP and BCD are converted to: mmol C m<sup>-3</sup> d<sup>-1</sup>
 
 ## Bottle v. Vial Incubation Comparisons
 
+We will run the Bland-Altman method (aka Tukey mean-difference) for
+assessing agreement between two methods (in this case, vial and bottle
+measurements/doc star and filtered doc). The Bland-Altman plot is a
+scatter plot in which the difference between the paired measurements
+(A-B) is plotted against their mean value \[(A+B)/2\]. The graph
+provides two main pieces of information, namely the average of all the
+differences, which is also provided by the t test and which is often
+called the bias, and the 95% limits of agreement.
+
+We’ll also do a lmodel2 regression.
+
 ### DOC filtered v . DOC\*
 
 ``` r
@@ -80,14 +92,42 @@ vessel_comparisons <- bge %>%
   mutate(doc_star = ifelse(Hours < stationary.harvest, ptoc - boc_i.ccf, ptoc - boc_s.ccf),
          doc_star = ifelse(is.na(doc_star) & Hours < stationary.harvest, toc - boc_i.ccf, toc - boc_s.ccf),
          combined_doc = doc,
-         combined_doc = ifelse(is.na(combined_doc), pdoc, combined_doc)) 
+         combined_doc = ifelse(is.na(combined_doc), pdoc, combined_doc))  
+
 
 doc_doc.star.reg <- lmodel2(doc_star ~ doc, data = vessel_comparisons, nperm = 99) #filtered DOC (from bottles) v DOC star
 ```
 
     ## RMA was not requested: it will not be computed.
 
-![](BCD_DOC-Bioavailability_files/figure-gfm/doc%20star%20plot-1.png)<!-- -->
+``` r
+doc_doc.star.blandr <- blandr.statistics(vessel_comparisons$combined_doc, vessel_comparisons$doc_star, sig.level = 0.95)
+
+doc_doc.star.blandr$bias
+```
+
+    ## [1] 1.606
+
+``` r
+doc_doc.star.blandr$upperLOA
+```
+
+    ## [1] 4.123638
+
+``` r
+doc_doc.star.blandr$lowerLOA
+```
+
+    ## [1] -0.9116376
+
+``` r
+doc_doc.star.reg.plot + doc_doc.star.blandr.plot +
+  plot_annotation(tag_levels = "a") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 14))
+```
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/combine%20doc%20star%20plots-1.png)<!-- -->
 
 ### PDOC v DOC bottle
 
@@ -96,6 +136,42 @@ vessel_doc.reg <- lmodel2(pdoc ~ doc, data = vessel_comparisons, nperm = 99) #vi
 ```
 
     ## RMA was not requested: it will not be computed.
+
+``` r
+vessel_doc.blandr <- blandr.statistics(vessel_comparisons$doc, vessel_comparisons$pdoc, sig.level = 0.95)
+
+vessel_doc.blandr$bias
+```
+
+    ## [1] 0.3833333
+
+``` r
+vessel_doc.blandr$upperLOA
+```
+
+    ## [1] 2.578183
+
+``` r
+vessel_doc.blandr$lowerLOA
+```
+
+    ## [1] -1.811517
+
+``` r
+vl_btl_doc_blandr <- vessel_comparisons %>% 
+  drop_na(pdoc) %>% 
+  mutate(diff = doc - pdoc,
+         mean = (doc + pdoc) / 2) %>% 
+  ggplot(., aes(x = mean, y = diff, group = Bottle)) +
+  geom_hline(yintercept = 0, size = 1, linetype = 1) +
+    geom_hline(yintercept = vessel_doc.blandr$bias, size = 1, linetype = 2) +
+  geom_hline(yintercept = vessel_doc.blandr$upperLOA, size = 1, linetype = 3) +
+  geom_hline(yintercept = vessel_doc.blandr$lowerLOA, size = 1, linetype = 3) +
+  geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(y = expression(italic(paste("Difference: Bottle DOC - Vial DOC, µmol C L"^-1))), x = expression(italic(paste("Mean: (Bottle DOC + Vial DOC) / 2, µmol C L"^-1)))) +
+  custom_theme() +
+  guides(fill = F)
+```
 
 ``` r
 vl_btl_doc <- vessel_comparisons %>% 
@@ -122,6 +198,42 @@ vessel_cells.reg <- lmodel2(p_cells ~ cells, data = vessel_comparisons, nperm = 
     ## RMA was not requested: it will not be computed.
 
 ``` r
+vessel_cells.blandr <- blandr.statistics(vessel_comparisons$cells, vessel_comparisons$p_cells, sig.level = 0.95)
+
+vessel_cells.blandr$bias
+```
+
+    ## [1] 2417934
+
+``` r
+vessel_cells.blandr$upperLOA
+```
+
+    ## [1] 342965561
+
+``` r
+vessel_cells.blandr$lowerLOA
+```
+
+    ## [1] -338129693
+
+``` r
+vl_btl_cell_blandr <- vessel_comparisons %>% 
+  drop_na(p_cells) %>% 
+  mutate(diff = cells - p_cells,
+         mean = (cells + p_cells) / 2) %>% 
+  ggplot(., aes(x = mean, y = diff, group = Bottle)) +
+  geom_hline(yintercept = 0, size = 1, linetype = 1) +
+    geom_hline(yintercept = vessel_cells.blandr$bias, size = 1, linetype = 2) +
+  geom_hline(yintercept = vessel_cells.blandr$upperLOA, size = 1, linetype = 3) +
+  geom_hline(yintercept = vessel_cells.blandr$lowerLOA, size = 1, linetype = 3) +
+  geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(y = expression(italic(paste("Difference: Bottle Cells - Vial Cells, L"^-1))), x = expression(italic(paste("Mean: (Bottle Cells + Vial Cells) / 2, L"^-1)))) +
+  custom_theme() +
+  guides(fill = F)
+```
+
+``` r
 vl_btl_cell <- vessel_comparisons %>% 
   drop_na(p_cells) %>% 
   ggplot(aes(x = cells, y = p_cells)) + 
@@ -139,8 +251,8 @@ vl_btl_cell <- vessel_comparisons %>%
 ```
 
 ``` r
-vl_btl_cell + vl_btl_doc +
-  plot_annotation(tag_levels = "a", caption = "Solid line represents the identity line") &
+vl_btl_cell + vl_btl_cell_blandr + vl_btl_doc + vl_btl_doc_blandr +
+  plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
 ```

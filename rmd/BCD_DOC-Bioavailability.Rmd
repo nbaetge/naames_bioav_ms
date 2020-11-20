@@ -18,6 +18,7 @@ library(lmtest)
 library(lmodel2)
 library(rstatix)
 library(ggpubr)
+library(blandr)
 ```
 
 
@@ -109,9 +110,13 @@ NPP, NCP and BCD are converted to: mmol C m^-3^ d^-1^
 
 ## Bottle v. Vial Incubation Comparisons
 
+We will run the Bland-Altman method (aka Tukey mean-difference) for assessing agreement between two methods (in this case, vial and bottle measurements/doc star and filtered doc).  The Bland-Altman plot is a scatter plot in which the difference between the paired measurements (A-B) is plotted against their mean value [(A+B)/2]. The graph provides two main pieces of information, namely the average of all the differences, which is also provided by the t test and which is often called the bias, and the 95% limits of agreement. 
+
+We'll also do a lmodel2 regression.
+
 ### DOC filtered v . DOC*
 
-```{r doc star regression}
+```{r doc star stats}
 
 vessel_comparisons <- bge %>% 
   select(Season, Cruise, Station, Bottle, Hours, Days, stationary.harvest, cells, p_cells, ptoc,  toc, doc, pdoc, i.ccf, s.ccf, boc_i.ccf, boc_s.ccf) %>% 
@@ -119,21 +124,50 @@ vessel_comparisons <- bge %>%
   mutate(doc_star = ifelse(Hours < stationary.harvest, ptoc - boc_i.ccf, ptoc - boc_s.ccf),
          doc_star = ifelse(is.na(doc_star) & Hours < stationary.harvest, toc - boc_i.ccf, toc - boc_s.ccf),
          combined_doc = doc,
-         combined_doc = ifelse(is.na(combined_doc), pdoc, combined_doc)) 
+         combined_doc = ifelse(is.na(combined_doc), pdoc, combined_doc))  
+
 
 doc_doc.star.reg <- lmodel2(doc_star ~ doc, data = vessel_comparisons, nperm = 99) #filtered DOC (from bottles) v DOC star
 
+doc_doc.star.blandr <- blandr.statistics(vessel_comparisons$combined_doc, vessel_comparisons$doc_star, sig.level = 0.95)
+
+doc_doc.star.blandr$bias
+```
+```{r}
+doc_doc.star.blandr$upperLOA
+```
+```{r}
+doc_doc.star.blandr$lowerLOA
 ```
 
-```{r doc star plot, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 8, fig.width = 8}
-vessel_comparisons %>% 
+```{r doc star blandr plot, echo = FALSE, warning = FALSE, message = FALSE}
+doc_doc.star.blandr.plot <- vessel_comparisons %>% 
   drop_na(doc_star) %>% 
-  ggplot(aes(x = doc, y = doc_star)) + 
+  mutate(diff = combined_doc - doc_star,
+         mean = (combined_doc + doc_star) / 2) %>% 
+  ggplot(., aes(x = mean, y = diff)) +
+  geom_hline(yintercept = 0, size = 1, linetype = 1) +
+    geom_hline(yintercept = doc_doc.star.blandr$bias, size = 1, linetype = 2) +
+  geom_hline(yintercept = doc_doc.star.blandr$upperLOA, size = 1, linetype = 3) +
+  geom_hline(yintercept = doc_doc.star.blandr$lowerLOA, size = 1, linetype = 3) +
+   geom_point(aes(fill = factor(Season, levels = levels)), color = "black",  shape = 21, size = 4, alpha = 0.7) +
+  scale_fill_manual(values = custom.colors) +
+  labs(y = expression(italic(paste("Difference: DOC - DOC*, µmol C L"^-1))), x = expression(italic(paste("Mean: (DOC + DOC*) / 2, µmol C L"^-1)))) +
+  custom_theme() +
+  guides(fill = F)
+```
+
+
+```{r doc star lmodel2 plot, echo = FALSE, warning = FALSE, message = FALSE}
+
+doc_doc.star.reg.plot <- vessel_comparisons %>% 
+  drop_na(doc_star) %>% 
+  ggplot(aes(x = combined_doc, y = doc_star)) + 
   geom_abline(aes(intercept = 0, slope = 1)) +
   geom_abline(intercept = doc_doc.star.reg$regression.results[3,2],
               slope = doc_doc.star.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(y = expression(italic(paste("DOC*, µmol C L"^-1))), x = expression(italic(paste("DOC, µmol C L"^-1))),  caption = "Solid line represents the identity line") +
+  labs(y = expression(italic(paste("DOC*, µmol C L"^-1))), x = expression(italic(paste("DOC, µmol C L"^-1)))) +
   scale_fill_manual(values = custom.colors) +
   custom_theme() +
    annotate( geom = "text", label = expression(atop("y = 0.94x + 2.21", paste("r"^2,"= 0.95, ", italic("p "), "<< 0.01"))), x = 78, y = 51, size = 3) +
@@ -143,14 +177,50 @@ vessel_comparisons %>%
 
 ```
 
+```{r combine doc star plots, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+doc_doc.star.reg.plot + doc_doc.star.blandr.plot +
+  plot_annotation(tag_levels = "a") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 14))
+```
 
 ### PDOC  v DOC bottle
 
-```{r filtered doc regression}
+```{r filtered doc stats}
 vessel_doc.reg <- lmodel2(pdoc ~ doc, data = vessel_comparisons, nperm = 99) #vial v bottle DOC (both filtered)
+
+
+vessel_doc.blandr <- blandr.statistics(vessel_comparisons$doc, vessel_comparisons$pdoc, sig.level = 0.95)
+
+vessel_doc.blandr$bias
+
 ```
 
-```{r filtered doc plot}
+```{r}
+vessel_doc.blandr$upperLOA
+```
+
+```{r}
+vessel_doc.blandr$lowerLOA
+```
+
+```{r filtered doc blandr plot}
+vl_btl_doc_blandr <- vessel_comparisons %>% 
+  drop_na(pdoc) %>% 
+  mutate(diff = doc - pdoc,
+         mean = (doc + pdoc) / 2) %>% 
+  ggplot(., aes(x = mean, y = diff, group = Bottle)) +
+  geom_hline(yintercept = 0, size = 1, linetype = 1) +
+    geom_hline(yintercept = vessel_doc.blandr$bias, size = 1, linetype = 2) +
+  geom_hline(yintercept = vessel_doc.blandr$upperLOA, size = 1, linetype = 3) +
+  geom_hline(yintercept = vessel_doc.blandr$lowerLOA, size = 1, linetype = 3) +
+  geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(y = expression(italic(paste("Difference: Bottle DOC - Vial DOC, µmol C L"^-1))), x = expression(italic(paste("Mean: (Bottle DOC + Vial DOC) / 2, µmol C L"^-1)))) +
+  custom_theme() +
+  guides(fill = F)
+```
+
+```{r filtered doc lmodel2 plot}
 vl_btl_doc <- vessel_comparisons %>% 
   drop_na(pdoc) %>% 
   ggplot(aes(x = doc, y = pdoc, group = Bottle)) + 
@@ -170,6 +240,32 @@ vl_btl_doc <- vessel_comparisons %>%
 
 ```{r vessel cell regression}
 vessel_cells.reg <- lmodel2(p_cells ~ cells, data = vessel_comparisons, nperm = 99) #vial v bottle DOC (both filtered)
+
+vessel_cells.blandr <- blandr.statistics(vessel_comparisons$cells, vessel_comparisons$p_cells, sig.level = 0.95)
+
+vessel_cells.blandr$bias
+```
+```{r}
+vessel_cells.blandr$upperLOA
+```
+```{r}
+vessel_cells.blandr$lowerLOA
+```
+
+```{r filtered cell blandr plot}
+vl_btl_cell_blandr <- vessel_comparisons %>% 
+  drop_na(p_cells) %>% 
+  mutate(diff = cells - p_cells,
+         mean = (cells + p_cells) / 2) %>% 
+  ggplot(., aes(x = mean, y = diff, group = Bottle)) +
+  geom_hline(yintercept = 0, size = 1, linetype = 1) +
+    geom_hline(yintercept = vessel_cells.blandr$bias, size = 1, linetype = 2) +
+  geom_hline(yintercept = vessel_cells.blandr$upperLOA, size = 1, linetype = 3) +
+  geom_hline(yintercept = vessel_cells.blandr$lowerLOA, size = 1, linetype = 3) +
+  geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
+  labs(y = expression(italic(paste("Difference: Bottle Cells - Vial Cells, L"^-1))), x = expression(italic(paste("Mean: (Bottle Cells + Vial Cells) / 2, L"^-1)))) +
+  custom_theme() +
+  guides(fill = F)
 ```
 
 
@@ -192,9 +288,9 @@ vl_btl_cell <- vessel_comparisons %>%
 ```
 
 
-```{r combine regression plots, fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
-vl_btl_cell + vl_btl_doc +
-  plot_annotation(tag_levels = "a", caption = "Solid line represents the identity line") &
+```{r combine regression plots, fig.height=12, fig.width=16, message=FALSE, warning=FALSE}
+vl_btl_cell + vl_btl_cell_blandr + vl_btl_doc + vl_btl_doc_blandr +
+  plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
 ```
