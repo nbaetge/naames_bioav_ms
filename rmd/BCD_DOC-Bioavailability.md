@@ -286,28 +286,38 @@ C L<sup>-1</sup>
 
 ``` r
 bge.table.data <- bge %>%
+  left_join(., export_bioav %>% select(Season, Cruise, Station, degree_bin) %>% distinct()) %>% 
+  mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
   filter(Treatment == "Control") %>% 
-  select(Season, Cruise, Station, Bottle, stationary.harvest, remin.end) %>% 
+  select(Season, Cruise, Station, degree_bin, Bottle, stationary.harvest, remin.end) %>% 
   distinct() %>% 
   left_join(bge_summary, .) %>% 
-  select(Season, Cruise, Station, Bottle, stationary.harvest, remin.end, everything()) %>% 
+  select(Season, Cruise, Station, degree_bin, Bottle, stationary.harvest, remin.end, everything()) %>% 
   select(-n) %>% 
-  group_by(Season, Cruise, Station) %>% 
-  add_tally()
-```
-
-    ## Joining, by = c("Season", "Station", "Bottle")
-
-``` r
-bge.table <- bge.table.data %>% 
-  summarise_at(vars(stationary.harvest:del.doc.star, bge), list(mean = mean, sd = sd)) %>% 
-  left_join(., bge.table.data %>% select(Season, Cruise, Station, n, ave_bge_cruise:max_bge_cruise) %>% distinct() )
+  arrange(factor(Cruise, levels = c("AT39", "AT34", "AT38")), degree_bin) %>% 
+  group_by(Season, Cruise, Station, degree_bin) %>% 
+  add_tally() %>% 
+  ungroup()
 ```
 
     ## Joining, by = c("Season", "Cruise", "Station")
 
+    ## Joining, by = c("Season", "Station", "Bottle")
+
 ``` r
-write_excel_csv(bge.table, "~/GITHUB/naames_bioav_ms/Output/BGE_table_FINAL.csv")
+subset <- bge.table.data %>% 
+  select(Season:degree_bin, ave_del.poc_station:sd_del.doc.star_station, ave_bge_station, sd_bge_station) %>% distinct() %>% 
+  group_by(Season, Cruise, Station, degree_bin) %>% 
+  mutate(combined.deldoc = ifelse(!is.na(ave_del.doc_station) & !is.na(ave_del.doc.star_station), (ave_del.doc_station + ave_del.doc.star_station) / 2, NA),
+         sd_combined.deldoc = ifelse(!is.na(ave_del.doc_station) & !is.na(ave_del.doc.star_station), sqrt(mean(c((ave_del.doc_station - combined.deldoc)^2, (ave_del.doc.star_station - combined.deldoc)^2))), NA))
+
+bge.table.season <- subset %>% 
+  mutate(combined.deldoc = ifelse(is.na(combined.deldoc), ave_del.doc_station, combined.deldoc),
+         combined.deldoc = ifelse(is.na(combined.deldoc), ave_del.doc.star_station, combined.deldoc)) %>% 
+  group_by(Season) %>% 
+  summarise_at(vars(combined.deldoc, contains("ave")), list(mean = mean, sd = sd), na.rm = T) %>% 
+  arrange(factor(Season, levels = levels))
+
 
 max(bge.table.data$remin.end)
 ```
@@ -315,15 +325,27 @@ max(bge.table.data$remin.end)
     ## [1] 110
 
 ``` r
+min(bge.table.data$remin.end)
+```
+
+    ## [1] 8
+
+``` r
 bioav.table.data <- export_bioav %>% 
-  select(Cruise:Station, initial.doc:longterm.ddoc) %>% 
+  select(Cruise:Station, degree_bin, end.remin, stationary.harvest, initial.doc:longterm.ddoc) %>% 
   distinct() %>% 
-  group_by(Season, Cruise, Station)
+  group_by(Season, Cruise, Station, degree_bin)
 
 bioav.table <- bioav.table.data %>% 
-  summarise_at(vars(initial.doc:longterm.ddoc), list(mean = mean, sd = sd))
+  summarise_at(vars(initial.doc:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T) %>% 
+  arrange(factor(Season, levels = levels), degree_bin) %>% 
+  select(Season:degree_bin, contains(c("accm.doc", "shortterm.bioav.doc", "shortterm.ddoc", "longterm.del.doc",  "longterm.bioav.doc", "longterm.ddoc",  "persis") ))
 
-write_excel_csv(bioav.table, "~/GITHUB/naames_bioav_ms/Output/Bioavailability_table_FINAL.csv")
+bioav.table.summary <- bioav.table %>% 
+  ungroup() %>% 
+  group_by(Season) %>% 
+  summarise_at(vars(contains("mean")), list(season.ave = mean, sd.season = sd), na.rm = T) %>% 
+  arrange(factor(Season, levels = levels))
 ```
 
 # Box plots: NPP, BP, BA, µ
@@ -336,21 +358,28 @@ Convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup>
 
 ``` r
 bcd.data <- bcd %>% 
-  select(Season, Cruise:degree_bin, int.bcd_station, int.bp, int.NPP, bcd.npp_station) %>% 
+  select(Season, Cruise:degree_bin, int.bcd_station, int.bp, int.NPP, bp.npp, bcd.npp_station) %>% 
   rename(int.bcd = int.bcd_station,
          bcd.npp = bcd.npp_station) %>% 
   distinct() %>% 
-  mutate_at(vars(int.bcd, int.NPP), funs(./10^3)) %>% 
-  mutate_at(vars(bcd.npp), funs(./10^2)) %>% 
+  mutate_at(vars(int.bcd, int.bp, int.NPP), funs(./10^3)) %>% 
+  mutate_at(vars(bp.npp, bcd.npp), funs(./10^2)) %>% 
   mutate(degree_bin = as.character(degree_bin)) 
 
 bcd.summary <- bcd.data %>% 
-  group_by(Season, Cruise, degree_bin) %>% 
-  summarise_at(vars(int.bcd, int.bp, int.NPP, bcd.npp), list(mean = mean, sd = sd))
+  group_by(Season, Cruise, Station, degree_bin) %>% 
+  summarise_at(vars(int.bcd, int.bp, int.NPP, bp.npp, bcd.npp), list(mean = mean, sd = sd)) %>% 
+  arrange(factor(Season, levels = levels), degree_bin) %>% 
+  select(Season:degree_bin, contains(c("int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp")))
   
 bcd.cruise.summary <- bcd.data %>% 
   group_by(Season, Cruise) %>% 
-  summarise_at(vars(int.bcd, int.bp, int.NPP, bcd.npp), list(cruise_mean = mean, cruise_sd = sd))
+  summarise_at(vars(int.bcd, int.bp, int.NPP, bp.npp, bcd.npp), list(cruise_mean = mean, cruise_sd = sd, cruise_max = max, cruise_min = min)) %>% 
+  arrange(factor(Season, levels = levels)) %>% 
+  select(Season, contains(c("int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp")))
+
+bcd.overall.summary <- bcd.data %>% 
+  summarise_at(vars(int.bcd, int.bp, int.NPP, bp.npp, bcd.npp), list(overall_mean = mean, overall_sd = sd, max = max, min = min))
 
 bcd.npp.summary <- bcd.summary %>% 
   select(Season, Cruise, degree_bin, int.NPP_mean, int.bcd_mean) %>% 
@@ -364,17 +393,34 @@ bcd.npp.summary <- bcd.summary %>%
   pivot_longer(c(NPP, BCD), names_to = "rate", values_to = "sd"))
 ```
 
-    ## Joining, by = c("Season", "Cruise", "degree_bin", "rate")
+    ## Adding missing grouping variables: `Station`
+    ## Adding missing grouping variables: `Station`
+
+    ## Joining, by = c("Station", "Season", "Cruise", "degree_bin", "rate")
 
 ``` r
 bcd.npp_summary_table <- left_join(bcd.summary, bcd.cruise.summary)
 ```
 
-    ## Joining, by = c("Season", "Cruise")
+    ## Joining, by = "Season"
 
 ``` r
-write_excel_csv(bcd.npp_summary_table, "~/GITHUB/naames_bioav_ms/Output/BCD_NPP_table_FINAL.csv")
+field.doc_table <- export_bioav %>% 
+  select(Cruise, Season, accm.doc) %>% 
+  drop_na(accm.doc) %>% 
+  group_by(Cruise, Season) %>% 
+  summarise_at(vars(accm.doc), list(mean = mean, sd = sd))
+
+field.doc_table
 ```
+
+    ## # A tibble: 3 x 4
+    ## # Groups:   Cruise [3]
+    ##   Cruise Season        mean    sd
+    ##   <chr>  <chr>        <dbl> <dbl>
+    ## 1 AT34   Late Spring   6.51 3.42 
+    ## 2 AT38   Early Autumn 12.7  3.33 
+    ## 3 AT39   Early Spring  3.58 0.755
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/BCD%20and%20NPP%20bar%20plots-1.png)<!-- -->
 

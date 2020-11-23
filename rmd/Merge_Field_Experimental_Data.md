@@ -193,6 +193,7 @@ int_bcd <- bcd %>%
   mutate(int.NPP = Ez_NPP/Ez,
          mew_cruise = int.bp/int.bc_cruise,
          mew_station = int.bp/int.bc_station,
+         bp.npp = int.bp/int.NPP * 100,
          bcd.npp_cruise = int.bcd_cruise/int.NPP * 100,
          bcd.npp_station = int.bcd_station/int.NPP * 100) %>% 
   distinct() %>% 
@@ -255,8 +256,6 @@ export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bi
   mutate_at(vars(ave_int_delta_DOC_ez, sd_int_delta_DOC_ez, ave_NCP_mol_ez, sd_NCP_mol_ez), round, 2) %>% 
   select(-c(int_delta_DOC_ez, NCP_mol_ez)) %>% 
   distinct() %>% 
-  mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
-         degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
   ungroup() %>% 
   select(-Target_Z) %>% 
   distinct()
@@ -264,10 +263,12 @@ export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bi
 
 exp_doc <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>% 
   left_join(., export %>% select(Cruise, Station, degree_bin) %>% distinct()) %>% 
+  mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
   filter(Treatment == "Control") %>% 
-  select(Cruise, Station, degree_bin, Bottle, Hours, Days, stationary.harvest, interp_ptoc, sd_ptoc, interp_doc, sd_doc, interp_pdoc, sd_pdoc, boc_i.ccf, boc_s.ccf) %>% 
-  mutate(doc_star = ifelse(Hours < stationary.harvest, interp_ptoc - boc_i.ccf, interp_ptoc - boc_s.ccf),
+  select(Cruise, Station, degree_bin, Bottle, Hours, Days, stationary.harvest, interp_ptoc, sd_ptoc, interp_doc, sd_doc, interp_pdoc, sd_pdoc, boc_i.ccf, boc_s.ccf, del.doc, del.doc.star) %>% 
+  mutate(doc_star = ifelse(Hours < stationary.harvest, round(interp_ptoc - boc_i.ccf,1), round(interp_ptoc - boc_i.ccf,1)),
          combined_doc = ifelse(Cruise == "AT34", interp_doc, doc_star),
+         combined_doc = ifelse(is.na(combined_doc), interp_doc, combined_doc),
           sd_combined_doc = ifelse(Cruise == "AT34", sd_doc, sd_ptoc),
          sd_combined_doc = ifelse(is.na(sd_combined_doc), sd_pdoc, sd_combined_doc),
          combined_doc = ifelse(is.na(combined_doc) & Hours == 0, interp_ptoc, combined_doc),
@@ -275,16 +276,20 @@ exp_doc <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>%
   group_by(Cruise, Station, Bottle) %>% 
   mutate(end.remin = last(Hours),
          initial.doc = first(combined_doc),
-         longterm.del.doc = first(combined_doc) - last(combined_doc),
-         shortterm.del.doc = ifelse(Hours == stationary.harvest, first(combined_doc) - combined_doc, NA),
-         shortterm.del.doc = ifelse(shortterm.del.doc < 1.5, NA, shortterm.del.doc)) %>% 
+         longterm.del.doc = first(combined_doc) - last(na.omit(combined_doc)),
+         longterm.del.doc = ifelse(longterm.del.doc < 1.5, NA, longterm.del.doc),
+         shortterm.del.doc = ifelse(Cruise == "AT34", del.doc, del.doc.star), 
+         shortterm.del.doc = ifelse(is.na(shortterm.del.doc), del.doc, shortterm.del.doc)) %>% 
   fill(shortterm.del.doc, .direction = "downup") 
 
 export_bioav <- export %>% 
-  left_join(., exp_doc %>% 
+  full_join(., exp_doc %>% 
   select(Cruise, Station, Bottle, stationary.harvest, end.remin, initial.doc, longterm.del.doc,
          shortterm.del.doc) %>% 
   distinct()) %>% 
+  mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
+         degree_bin = ifelse(is.na(degree_bin), 39, degree_bin),
+         Season = ifelse(is.na(Season), "Early Spring", Season)) %>% 
   filter(!Cruise == "AT32") %>% 
   group_by(Cruise, Station) %>% 
   mutate(accm.doc = mean(initial.doc, na.rm = T) - redis_DOC_vol) %>% 

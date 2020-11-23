@@ -211,15 +211,15 @@ mutate(doc.star_i = ifelse(Hours == 0, round(ptoc - boc_i.ccf,1), NA),
 ######delta DOC####  
 mutate(del.doc = first(doc) - ifelse(Hours == stationary.harvest, interp_doc, NA),
        del.doc = ifelse(Cruise != "AT34", first(doc) - ifelse(Hours == stationary.harvest, interp_pdoc, NA), del.doc),
-       # del.doc = ifelse(Cruise != "AT34", NA, del.doc),
-       del.doc.star = doc.star_i - doc.star_s) %>%
+       del.doc = ifelse(del.doc < 1.5, NA, del.doc),
+       del.doc.star = doc.star_i - doc.star_s,
+       del.doc.star = ifelse(del.doc.star < 1.5, NA, del.doc.star),
+       del.poc = ifelse(!is.na(del.doc), del.poc, NA)) %>%
   fill(contains("del.doc"), .direction = "downup") %>% 
-  mutate(del.doc.flag = ifelse(del.doc >= 1.5, "Acceptable", "NR"),
-         del.doc.star.flag = ifelse(del.doc.star >= 1.5, "Acceptable", "NR")) %>% 
   ######BGE, points####  
-mutate(bge = ifelse(Cruise == "AT34" & del.doc.flag == "Acceptable", del.boc/(del.doc), NA),
-       bge = ifelse(Cruise != "AT34" & del.doc.star.flag == "Acceptable", del.boc/(del.doc.star), NA),
-       bge.poc = ifelse(del.doc.flag == "Acceptable", del.poc/(del.doc), NA)) %>% 
+mutate(bge = ifelse(Cruise == "AT34", del.boc/(del.doc), NA),
+       bge = ifelse(Cruise != "AT34", del.boc/(del.doc.star), NA),
+       bge.poc = del.poc/del.doc) %>% 
   mutate_at(vars(contains("bge")), round, 2) %>% 
   ungroup()
 ```

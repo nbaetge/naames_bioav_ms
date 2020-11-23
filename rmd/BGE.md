@@ -143,15 +143,15 @@ mutate(doc.star_i = ifelse(Hours == 0, round(ptoc - boc_i.ccf,1), NA),
 ######delta DOC####  
 mutate(del.doc = first(doc) - ifelse(Hours == stationary.harvest, interp_doc, NA),
        del.doc = ifelse(Cruise != "AT34", first(doc) - ifelse(Hours == stationary.harvest, interp_pdoc, NA), del.doc),
-       # del.doc = ifelse(Cruise != "AT34", NA, del.doc),
-       del.doc.star = doc.star_i - doc.star_s) %>%
+       del.doc = ifelse(del.doc < 1.5, NA, del.doc),
+       del.doc.star = doc.star_i - doc.star_s,
+       del.doc.star = ifelse(del.doc.star < 1.5, NA, del.doc.star),
+       del.poc = ifelse(!is.na(del.doc), del.poc, NA)) %>%
   fill(contains("del.doc"), .direction = "downup") %>% 
-  mutate(del.doc.flag = ifelse(del.doc >= 1.5, "Acceptable", "NR"),
-         del.doc.star.flag = ifelse(del.doc.star >= 1.5, "Acceptable", "NR")) %>% 
   ######BGE, points####  
-mutate(bge = ifelse(Cruise == "AT34" & del.doc.flag == "Acceptable", del.boc/(del.doc), NA),
-       bge = ifelse(Cruise != "AT34" & del.doc.star.flag == "Acceptable", del.boc/(del.doc.star), NA),
-       bge.poc = ifelse(del.doc.flag == "Acceptable", del.poc/(del.doc), NA)) %>% 
+mutate(bge = ifelse(Cruise == "AT34", del.boc/(del.doc), NA),
+       bge = ifelse(Cruise != "AT34", del.boc/(del.doc.star), NA),
+       bge.poc = del.poc/del.doc) %>% 
   mutate_at(vars(contains("bge")), round, 2) %>% 
   ungroup()
 ```
@@ -212,20 +212,20 @@ bge_summary.table <- bge_summary %>%
 bge_summary.table 
 ```
 
-    ## # A tibble: 23 x 31
+    ## # A tibble: 24 x 31
     ##    Season Station Bottle del.poc del.boc del.doc del.doc.star i.ccf calc    bge
     ##    <chr>  <chr>   <chr>    <dbl>   <dbl>   <dbl>        <dbl> <dbl> <chr> <dbl>
-    ##  1 Early… 2       A        1.95    2.5     NA            4.2     77 bge    0.6 
-    ##  2 Early… 2       B        2.05    2.70    NA            4.20    77 bge    0.64
-    ##  3 Early… 3       A        0.61    0.80    NA            2.90    60 bge    0.28
-    ##  4 Early… 3       B        1.21    1.60    NA            2.10    60 bge    0.76
-    ##  5 Early… 4       A        0.33    0.900   NA            1.9     59 bge    0.47
-    ##  6 Early… 5       A       -0.150   0.4     NA            1.7     37 bge    0.24
-    ##  7 Early… 6       A        0.72    0.7     NA            2.70    43 bge    0.26
-    ##  8 Early… 6       B        0.320   0.3     NA            2.40    43 bge    0.13
-    ##  9 Early… 1       A        0.98   NA        3.10        NA       NA bge.…  0.32
-    ## 10 Early… 3       B        0.74    0.9      2.90         0.2      7 bge.…  0.26
-    ## # … with 13 more rows, and 21 more variables: ave_bge <dbl>, sd_bge <dbl>,
+    ##  1 Early… 2       A        NA      2.5     NA            4.2     77 bge    0.6 
+    ##  2 Early… 2       B        NA      2.70    NA            4.20    77 bge    0.64
+    ##  3 Early… 3       A        NA      0.80    NA            2.90    60 bge    0.28
+    ##  4 Early… 3       B        NA      1.60    NA            2.10    60 bge    0.76
+    ##  5 Early… 4       A        NA      0.900   NA            1.9     59 bge    0.47
+    ##  6 Early… 5       A        NA      0.4     NA            1.7     37 bge    0.24
+    ##  7 Early… 6       A        NA      0.7     NA            2.70    43 bge    0.26
+    ##  8 Early… 6       B        NA      0.3     NA            2.40    43 bge    0.13
+    ##  9 Early… 1       A         0.98  NA        3.10        NA       NA bge.…  0.32
+    ## 10 Early… 3       B         0.74   0.9      2.90        NA        7 bge.…  0.26
+    ## # … with 14 more rows, and 21 more variables: ave_bge <dbl>, sd_bge <dbl>,
     ## #   ave_ccf_cruise <dbl>, sd_ccf_cruise <dbl>, ave_bge_cruise <dbl>,
     ## #   sd_bge_cruise <dbl>, min_bge_cruise <dbl>, max_bge_cruise <dbl>, n <dbl>,
     ## #   ave_bge_station <dbl>, sd_bge_station <dbl>, ave_del.poc_station <dbl>,
