@@ -23,6 +23,10 @@ library(blandr)
 # Import Data
 
 ``` r
+export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bioavMS.6.7.20.rds") %>% 
+  select(Season, Cruise, degree_bin, Station, int_delta_DOC_100) %>% 
+  distinct()
+
 export_bioav <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds") 
 
 doc_og <- read_rds("~/GITHUB/naames_bioav_ms/Input/master/DOC_Input") %>% 
@@ -54,7 +58,8 @@ bge_summary <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge_summary.r
 bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_BCD.rds") 
 
 lat44 <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_lat44_remins.rds") %>% 
-  drop_na(sd_combined_doc)
+  drop_na(sd_combined_doc) %>% 
+  mutate(station_line = ifelse(Cruise == "AT39" & Station == 4, "ab", "a"))
 ```
 
 Units for imported data frames are currently:
@@ -367,7 +372,7 @@ bcd.data <- bcd %>%
   mutate(degree_bin = as.character(degree_bin)) 
 
 bcd.summary <- bcd.data %>% 
-  group_by(Season, Cruise, Station, degree_bin) %>% 
+  group_by(Season, Cruise, degree_bin) %>% 
   summarise_at(vars(int.bcd, int.bp, int.NPP, bp.npp, bcd.npp), list(mean = mean, sd = sd)) %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
   select(Season:degree_bin, contains(c("int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp")))
@@ -393,10 +398,7 @@ bcd.npp.summary <- bcd.summary %>%
   pivot_longer(c(NPP, BCD), names_to = "rate", values_to = "sd"))
 ```
 
-    ## Adding missing grouping variables: `Station`
-    ## Adding missing grouping variables: `Station`
-
-    ## Joining, by = c("Station", "Season", "Cruise", "degree_bin", "rate")
+    ## Joining, by = c("Season", "Cruise", "degree_bin", "rate")
 
 ``` r
 bcd.npp_summary_table <- left_join(bcd.summary, bcd.cruise.summary)
