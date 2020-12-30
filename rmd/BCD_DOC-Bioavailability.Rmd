@@ -64,6 +64,10 @@ levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT
 
 ```{r Import processed data}
 
+export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bioavMS.6.7.20.rds") %>% 
+  select(Season, Cruise, degree_bin, Station, int_delta_DOC_100) %>% 
+  distinct()
+
 export_bioav <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds") 
 
 doc_og <- read_rds("~/GITHUB/naames_bioav_ms/Input/master/DOC_Input") %>% 
@@ -91,7 +95,8 @@ bge_summary <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge_summary.r
 bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_BCD.rds") 
 
 lat44 <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_lat44_remins.rds") %>% 
-  drop_na(sd_combined_doc)
+  drop_na(sd_combined_doc) %>% 
+  mutate(station_line = ifelse(Cruise == "AT39" & Station == 4, "ab", "a"))
 
 ```
 
@@ -333,10 +338,9 @@ doc_og %>%
 
 doc44a <- lat44 %>% 
   ggplot(aes(x = Days, y = norm.doc, group = interaction(Cruise, Station, Bottle))) + 
-  geom_hline(aes(yintercept = 0)) +
   geom_errorbar(aes(ymin = norm.doc - sd_combined_doc, ymax = norm.doc + sd_combined_doc, color = factor(Season, levels = levels)), width = 0.5) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
+  geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
  labs(x = expression(italic("")), y = expression(italic(paste("Seasonally Accumulated DOC, µmol C L"^-1)))) +
@@ -348,12 +352,11 @@ doc44b <- lat44 %>%
   mutate(ave_del.bioav.doc = mean(del.bioav.doc),
          sd_del.bioav.doc = sd(del.bioav.doc)) %>% 
   ungroup() %>% 
-  select(Season, Cruise, Station, Days, ave_del.bioav.doc, sd_del.bioav.doc) %>% distinct() %>% 
+  select(Season, Cruise, Station, Days, ave_del.bioav.doc, sd_del.bioav.doc, station_line) %>% distinct() %>% 
   ggplot(aes(x = Days, y = ave_del.bioav.doc , group = interaction(Cruise, Station))) + 
   geom_errorbar(aes(ymin = ave_del.bioav.doc - sd_del.bioav.doc, ymax = ave_del.bioav.doc + sd_del.bioav.doc, color = factor(Season, levels = levels)), width = 0.5) +
-  geom_hline(aes(yintercept = 0)) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
+  geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
  labs(x = expression(italic("")), y = expression(italic(paste("Seasonally Accumulated Bioavailable DOC")))) +
@@ -365,12 +368,11 @@ doc44c <- lat44 %>%
   mutate(ave_per.pers.doc = mean(per.pers.doc),
          sd_per.pers.doc = sd(per.pers.doc)) %>% 
   ungroup() %>% 
-  select(Season, Cruise, Station, Days, ave_per.pers.doc, sd_per.pers.doc) %>% distinct() %>% 
+  select(Season, Cruise, Station, Days, ave_per.pers.doc, sd_per.pers.doc, station_line) %>% distinct() %>% 
   ggplot(aes(x = Days, y = ave_per.pers.doc, group = interaction(Cruise, Station))) + 
   geom_errorbar(aes(ymin = ave_per.pers.doc - sd_per.pers.doc, ymax = ave_per.pers.doc + sd_per.pers.doc, color = factor(Season, levels = levels)), width = 0.5) +
-  geom_hline(aes(yintercept = 0)) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
+  geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
  labs(x = expression(italic("Days")), y = expression(italic(paste("% Seasonally Accumulated DOC Remaining")))) +
@@ -467,8 +469,9 @@ npp.boxplot <- bcd %>%
   rremove("x.text") +
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.signif",
-                     step.increase = 0.25) +
-  stat_compare_means(label.y = 7)
+                     step.increase = 0.11,
+                     tip.length = 0.01) +
+  stat_compare_means(label.y = 0)
 
 #bp
 bp.boxplot <- bcd %>% 
@@ -477,16 +480,16 @@ bp.boxplot <- bcd %>%
   distinct() %>% 
   ggboxplot(., x = "Season", y = "int.bp", 
             order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
-            xlab = F, 
+            xlab = F,
             ylab = expression(italic(paste("BP, mmol C m"^-3, "d"^-1))),
             add = "jitter",
             width = 0.5,
             ggtheme = custom_theme()) + 
-  rremove("x.text") +
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.signif",
-                     step.increase = 0.25) + 
-  stat_compare_means(label.y = 0.32) 
+                     step.increase = 0.12,
+                     tip.length = 0.01) + 
+  stat_compare_means(label.y = 0) 
 
 #ba
 ba.boxplot <- bcd %>% 
@@ -502,8 +505,9 @@ ba.boxplot <- bcd %>%
   rremove("x.text") +
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.signif",
-                     step.increase = 0.25) + 
-  stat_compare_means(label.y = 4.2*10^9) 
+                     step.increase = 0.12,
+                     tip.length = 0.01) + 
+  stat_compare_means(label.y = 0) 
 
 #µ
 mew.boxplot <- bcd %>% 
@@ -518,15 +522,16 @@ mew.boxplot <- bcd %>%
             ggtheme = custom_theme()) + 
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.signif",
-                     step.increase = 0.25) + 
-  stat_compare_means(label.y = 0.5) 
+                     step.increase = 0.12,
+                     tip.length = 0.01) + 
+  stat_compare_means(label.y = 0) 
 
 ```
 
 
-```{r patchwork rate & abundance plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 12, fig.width = 7, fig.align = "center"}
+```{r patchwork rate & abundance plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 7, fig.width = 12, fig.align = "center"}
 
-patchwork <- npp.boxplot / bp.boxplot / ba.boxplot / mew.boxplot 
+patchwork <- npp.boxplot / bp.boxplot | ba.boxplot / mew.boxplot
 
 patchwork +  plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
@@ -548,7 +553,7 @@ bcd.data <- bcd %>%
   mutate(degree_bin = as.character(degree_bin)) 
 
 bcd.summary <- bcd.data %>% 
-  group_by(Season, Cruise, Station, degree_bin) %>% 
+  group_by(Season, Cruise, degree_bin) %>% 
   summarise_at(vars(int.bcd, int.bp, int.NPP, bp.npp, bcd.npp), list(mean = mean, sd = sd)) %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
   select(Season:degree_bin, contains(c("int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp")))
@@ -591,6 +596,20 @@ field.doc_table
 
 ```{r BCD and NPP bar plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 12}
 
+doc_sa.bar <- export %>% 
+  mutate(degree_bin = as.character(degree_bin)) %>% 
+  group_by(Season, Cruise, degree_bin) %>% 
+  summarise_at(vars(int_delta_DOC_100), list(mean = mean, sd = sd)) %>% 
+  arrange(factor(Season, levels = levels), degree_bin) %>%
+  drop_na(mean) %>% 
+  ggplot(aes(x = degree_bin, y = mean, group = interaction(Season, degree_bin)))  +
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
+   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("")), y = expression(italic(paste("DOC"[SA],", mol C m"^-3))), colour = expression(italic(""))) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") 
+  
+
 bcd.bar <- bcd.summary %>% 
   ggplot(aes(x = degree_bin, y = int.bcd_mean, group = interaction(Season, degree_bin)))  +
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#377EB8") +
@@ -621,7 +640,7 @@ ratio.bar <- bcd.summary %>%
   theme(strip.background = element_blank(), strip.text = element_blank())
 
   
-bcd.bar / bcd.npp.bar / ratio.bar  +
+doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 ```
