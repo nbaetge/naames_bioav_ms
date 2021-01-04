@@ -65,7 +65,7 @@ levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT
 ```{r Import processed data}
 
 export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bioavMS.6.7.20.rds") %>% 
-  select(Season, Cruise, degree_bin, Station, int_delta_DOC_100) %>% 
+  select(Season, Cruise, degree_bin, Station, int_delta_DOC_100, NCP_mol_100, doc_ncp_100) %>% 
   distinct()
 
 export_bioav <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds") 
@@ -343,7 +343,7 @@ doc44a <- lat44 %>%
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("")), y = expression(italic(paste("Seasonally Accumulated DOC, µmol C L"^-1)))) +
+ labs(x = expression(italic("")), y = expression(italic(paste("DOC"[SA],", µmol C L"^-1)))) +
   custom_theme() +
   guides(color = F, linetype = F) 
   
@@ -359,7 +359,7 @@ doc44b <- lat44 %>%
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("")), y = expression(italic(paste("Seasonally Accumulated Bioavailable DOC")))) +
+ labs(x = expression(italic("")), y = expression(italic(paste("Bioavailable DOC"[SA],", µmol C L"^-1)))) +
   custom_theme() +
   guides(color = F, linetype = F, fill = F)
 
@@ -375,7 +375,7 @@ doc44c <- lat44 %>%
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("Days")), y = expression(italic(paste("% Seasonally Accumulated DOC Remaining")))) +
+ labs(x = expression(italic("Days")), y = expression(italic(paste("% DOC"[SA]," Remaining")))) +
   custom_theme() +
   guides(color = F, linetype = F, fill = F)
 
@@ -580,6 +580,12 @@ bcd.npp.summary <- bcd.summary %>%
 
 bcd.npp_summary_table <- left_join(bcd.summary, bcd.cruise.summary)
 
+export_bar <- export %>% 
+  mutate(degree_bin = as.character(degree_bin)) %>% 
+  group_by(Season, Cruise, degree_bin) %>% 
+  summarise_at(vars(int_delta_DOC_100, doc_ncp_100, NCP_mol_100), list(mean = mean, sd = sd)) %>% 
+  arrange(factor(Season, levels = levels), degree_bin)
+
   
 ```
 
@@ -596,19 +602,6 @@ field.doc_table
 
 ```{r BCD and NPP bar plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 12}
 
-doc_sa.bar <- export %>% 
-  mutate(degree_bin = as.character(degree_bin)) %>% 
-  group_by(Season, Cruise, degree_bin) %>% 
-  summarise_at(vars(int_delta_DOC_100), list(mean = mean, sd = sd)) %>% 
-  arrange(factor(Season, levels = levels), degree_bin) %>%
-  drop_na(mean) %>% 
-  ggplot(aes(x = degree_bin, y = mean, group = interaction(Season, degree_bin)))  +
-  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
-   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("")), y = expression(italic(paste("DOC"[SA],", mol C m"^-3))), colour = expression(italic(""))) +
-  custom_theme() +
-  facet_grid(~factor(Season, levels = levels), scales = "free") 
-  
 
 bcd.bar <- bcd.summary %>% 
   ggplot(aes(x = degree_bin, y = int.bcd_mean, group = interaction(Season, degree_bin)))  +
@@ -639,11 +632,22 @@ ratio.bar <- bcd.summary %>%
   facet_grid(~factor(Season, levels = levels), scales = "free") +
   theme(strip.background = element_blank(), strip.text = element_blank())
 
+
+doc_sa.bar <-  export_bar %>% 
+  ggplot(aes(x = degree_bin, y = int_delta_DOC_100_mean, group = interaction(Season, degree_bin)))  +
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
+   geom_errorbar(aes(ymin = int_delta_DOC_100_mean - int_delta_DOC_100_sd, ymax = int_delta_DOC_100_mean + int_delta_DOC_100_sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(italic("")), y = expression(italic(paste("DOC"[SA],", mol C m"^-3))), colour = expression(italic(""))) +
+  custom_theme() +
+  facet_grid(~factor(Season, levels = levels), scales = "free") 
+
   
 doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 ```
+
+
 
 # Regressions: Property-Property 
 

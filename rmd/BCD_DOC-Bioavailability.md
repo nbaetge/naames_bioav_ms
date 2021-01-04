@@ -24,7 +24,7 @@ library(blandr)
 
 ``` r
 export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bioavMS.6.7.20.rds") %>% 
-  select(Season, Cruise, degree_bin, Station, int_delta_DOC_100) %>% 
+  select(Season, Cruise, degree_bin, Station, int_delta_DOC_100, NCP_mol_100, doc_ncp_100) %>% 
   distinct()
 
 export_bioav <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds") 
@@ -405,6 +405,14 @@ bcd.npp_summary_table <- left_join(bcd.summary, bcd.cruise.summary)
 ```
 
     ## Joining, by = "Season"
+
+``` r
+export_bar <- export %>% 
+  mutate(degree_bin = as.character(degree_bin)) %>% 
+  group_by(Season, Cruise, degree_bin) %>% 
+  summarise_at(vars(int_delta_DOC_100, doc_ncp_100, NCP_mol_100), list(mean = mean, sd = sd)) %>% 
+  arrange(factor(Season, levels = levels), degree_bin)
+```
 
 ``` r
 field.doc_table <- export_bioav %>% 
