@@ -14,84 +14,8 @@ library(tidyverse)
 library(readxl)
 library(zoo)
 library(patchwork)
-#stat tests
-library(lmtest)
-library(lmodel2)
-library(rstatix)
-library(ggpubr)
 ```
 
-
-```{r Aesthetics, include = FALSE}
-custom_theme <- function() {
-  theme_test(base_size = 16) %+replace%
-    theme(legend.position = "top",
-          legend.title = element_blank(),
-          legend.spacing.x = unit(0.5,"cm"),
-          legend.background = element_rect(fill = "transparent",colour = NA),
-          legend.key = element_rect(fill = "transparent",colour = NA),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA),
-          strip.text.x = element_text(size = 14, color = "white", face = "bold.italic"),
-          strip.text.y = element_text(size = 14, color = "white", face = "bold.italic", angle = 270),
-          strip.background = element_rect(color = "black", fill = "#005a9c", size = 0.5, linetype = "solid")) 
-}
-
-custom_theme_linedraw <- function() {
-  theme_linedraw(base_size = 16) %+replace%
-    theme(legend.position = "top",
-          legend.title = element_blank(),
-          legend.spacing.x = unit(0.5,"cm"),
-          legend.background = element_rect(fill = "transparent",colour = NA),
-          legend.key = element_rect(fill = "transparent",colour = NA),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA),
-          strip.text.x = element_text(size = 14, color = "white", face = "bold.italic"),
-          strip.text.y = element_text(size = 14, color = "white", face = "bold.italic", angle = 270),
-          strip.background = element_rect(color = "black", fill = "#005a9c", size = 0.5, linetype = "solid")) 
-}
-
-custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "C" = "#4DAF4A", "D" = "#FF7F00", "E" = "#FDB927", "F" = "#552583", "G" = "#FDB927", "H" = "#552583",   "Control" = "#E41A1C", "TW12" = "#377EB8", "T. Weissflogii 12C Exudate" = "#377EB8", "TW13" = "#4DAF4A", "T. Weissflogii 13C Exudate" = "#4DAF4A", "MixDS" = "#377EB8", "Deep Comm., Surface DOM" = "#377EB8","MixSD" = "#4DAF4A", "Surface Comm., Deep DOM" = "#4DAF4A", "SynLys" = "#377EB8", "Synechococcus Lysate" = "#377EB8", "SynExd" = "#4DAF4A", "Synechococcus Exudate" = "#4DAF4A", "TWExd" = "#FF7F00", "T. Weissflogii Exudate" = "#FF7F00", "TW5" = "#377EB8", "TW10" = "#4DAF4A", "TW20" = "#FF7F00", "Parallel" = "#377EB8", "W" = "#552583", "Whole Seawater" = "#552583", "1.2" = "#4DAF4A", "1.2 µm Filtrate" = "#4DAF4A", "NV" = "#FF7F00", "1.2 µm Filtrate: TFF Filtrate (3:7)" = "#FF7F00", "Carbon" = "#E41A1C", "Nitrogen" = "#377EB8", "+5 µmol C/L Exudate" = "#FF7F00", "+10 µmol C/L Exudate" = "#FF7F00", "+20 µmol C/L Exudate" = "#FF7F00", "Filter 1" = "#E41A1C", "Filter 2" = "#377EB8", "10 m" = "#E41A1C", "200 m" = "#377EB8", "BCD" = "#377EB8" , "NPP" = "#4DAF4A" , "Cruise Specific BGE" = "#377EB8", "Global BGE" = "#4DAF4A") 
-
-custom.shapes <- c("Early Spring" = 21, "Late Spring" = 22,"Early Autumn" = 23)
-
-custom.lines <- c("GS/Sargasso" = "blank", "Subtropical" = "solid", "Temperate" = "longdash", "Subpolar" = "dotted" )
-
-
-levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT34", "AT38", "AT32","South", "North", "Early Spring", "Late Spring","Early Autumn",  "Summer", "Late Autumn", "Control", "Parallel", "SynLys", "SynExd", "TWExd", "MixSD", "MixDS", "TW12", "TW13", "TW5", "TW10", "TW20",  "Surface Comm., Deep DOM", "Deep Comm., Surface DOM", "Synechococcus Exudate", "Synechococcus Lysate", "T. Weissflogii Exudate", "T. Weissflogii 12C Exudate", "T. Weissflogii 13C Exudate", "+5 µmol C/L Exudate", "+10 µmol C/L Exudate","+20 µmol C/L Exudate", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "W", "Whole Seawater","1.2", "1.2 µm Filtrate","NV", "1.2 µm Filtrate: TFF Filtrate (3:7)")
-
-bge_lvls <- c("p2p, POC", 
-              "p2p, POC c1", 
-              "p2p, POC c2", 
-              "p2p, POC c3", 
-              "p2p, CCF c1", 
-              "ph2ph, CCF c1", 
-              "p2p, CCF c2", 
-              "ph2ph, CCF c2", 
-              "p2p, CCF c3", 
-              "ph2ph, CCF c3", 
-              "p2p, White CCF", 
-              "ph2ph, White CCF", 
-              "p2p, Fukuda CCF", 
-              "ph2ph, Fukuda CCF", 
-              "p2p, Lee CCF", 
-              "ph2ph, Lee CCF", 
-              "p2p, Dyn. White_Fukuda CCF", 
-              "ph2ph, Dyn. White_Fukuda CCF", 
-              "p2p, Dyn. White_Lee CCF", 
-              "ph2ph, Dyn. White_Lee CCF" )
-
-bge_lvls2 <- c("POC", 
-              "POC c1", 
-              "POC c2", 
-              "POC c3", 
-              "CCF c1", 
-              "CCF c2", 
-              "CCF c3",
-              "Fukuda CCF", 
-              "Lee CCF")
-
-```
 
 # Merge and Tidy Processed Data
 
@@ -99,17 +23,19 @@ bge_lvls2 <- c("POC",
 
 ba <- readRDS("~/GITHUB/naames_bioav_ms/Input/Bact_Abund_Input.rds") %>% 
   ungroup() %>% 
-  select(-Depth)
-
+  group_by(Cruise, Station, Treatment, Timepoint) %>% 
+  mutate(station_cells = mean(cells),
+         sd_station_cells = sd(cells)) %>% 
+  ungroup() %>% 
+  select(Season:Station, Bottle:sd_cells, station_cells, sd_station_cells, p_cells:sd_p_cells) 
+  
 oc <- readRDS("~/GITHUB/naames_bioav_ms/Output/filt_processed_doc.rds") %>% 
   select(-c(Depth, Days, key:facet_bottle, doc_from_last:pdoc_from_t0)) 
 
 bc <- readRDS("~/GITHUB/naames_bioav_ms/Output/filt_processed_bacterial_carbon.rds") %>% 
-  select(-c(Depth, i.poc.cf1, s.poc.cf1)) %>% 
+  select(-c(Depth, i.poc.cf1, s.poc.cf1, contains("ccf"), contains("cn"), contains("pon"))) %>% 
   rename(i.poc = i.poc.c1.um,
-         s.poc = s.poc.c1.um,
-         i.ccf = i.ccf.c1,
-         s.ccf = s.ccf.c1) # gf75 POC corrected by subtracting universal blank (average of 0.2 and TFF filtrate)
+         s.poc = s.poc.c1.um) # gf75 POC corrected by subtracting universal blank (average of 0.2 and TFF filtrate)
 
 
 merge <- full_join(ba, oc) %>% 
@@ -120,10 +46,14 @@ merge <- full_join(ba, oc) %>%
   select(Cruise:Treatment, Hours, Days, everything()) %>% 
   group_by(Cruise, Station, Treatment, Bottle) %>% 
   mutate(s.timepoint = ifelse(s.timepoint == Timepoint, Hours, NA)) %>% 
-  fill(s.timepoint, .direction = "downup") %>% 
+  fill(s.timepoint, .direction = "downup") %>%
+  ungroup() %>% 
+  group_by(Cruise, Station, Treatment) %>% 
+  fill(s.timepoint, .direction = "downup") %>%
+  ungroup() %>% 
   rename(stationary.harvest = s.timepoint) %>% 
   select(Season, Cruise:Treatment, stationary.harvest, Hours, Days, everything()) %>% 
-   select(-c(Timepoint, key)) 
+  select(-Timepoint) 
 
 ```
 
@@ -133,7 +63,7 @@ merge <- full_join(ba, oc) %>%
 
 ```{r Interpolation split}
 to_interpolate <- merge %>% 
-  select(Cruise, Station, Treatment, Bottle, Hours, cells, pdoc, doc, toc, ptoc) %>% 
+  select(Cruise, Station, Treatment, Bottle, Hours, pdoc, doc, toc, ptoc) %>% 
   group_by(Cruise, Station, Treatment, Bottle) # first we'll define the grouping of our dataframe
 
 list <- to_interpolate %>% 
@@ -152,12 +82,11 @@ names(list) <- keys$key
 ```{r Interpolation function, warning = FALSE}
 interp.func <- function(x) {
   y <- zoo(x, order.by = x$Hours)
-  interp_cells <- round(as.numeric(na.approx(y$cells, na.rm = F)))
   interp_toc <- round(as.numeric(na.approx(y$toc, na.rm = F)), 1)
   interp_ptoc <- round(as.numeric(na.approx(y$ptoc, na.rm = F)), 1)
   interp_doc <- round(as.numeric(na.approx(y$doc, na.rm = F)), 1)
   interp_pdoc <- round(as.numeric(na.approx(y$pdoc, na.rm = F)), 1)
-  z <- cbind(y, interp_cells,  interp_toc, interp_ptoc, interp_doc, interp_pdoc)
+  z <- cbind(y,  interp_toc, interp_ptoc, interp_doc, interp_pdoc)
   as_tibble(z)
 }
 ```
@@ -169,7 +98,9 @@ interpolated <- lapply(list, interp.func) %>%
   plyr::ldply(., as.data.frame) %>% 
   select(-.id) %>% 
   mutate_at(vars(Hours:interp_pdoc), as.numeric) %>% 
-  left_join(merge, .)
+  left_join(merge, .) %>% 
+  group_by(Cruise, Station, Bottle) %>% 
+  ungroup()
   
 ```
 
@@ -180,101 +111,89 @@ We need to readjust our initial bacterial carbon numbers before calculating othe
 
 We'll then calculate and define:
 
-- BOC (bacterial cell carbon) in µmol C L^-1^ by applying timepoint specific CCFs
-- DOC_star = TOC or PTOC - BOC
-- Bacterial growth efficiencies (BGE), only where ∆DOC is resolvable:
-  + ∆BC and ∆DOC from T0 to stationary
-  
+- doc.star = TOC or PTOC - POC (for N3 and 4)
+- toc.star = DOC + POC (for N2) 
+- Bacterial growth efficiencies (BGE), only where ∆DOC is resolvable (>= 2.0 µmol C L^-1^ change):
+  + ∆POC and ∆DOC (N2) or ∆DOC_star (N3) from T0 to stationary
+- cell_resp = ∆POC/∆TOC (N3 & 4) or TOC_star (N2)
   
 ```{r Calculate derived vars, message = F}
 calcs <- interpolated %>%
   mutate_at(vars(i.poc), funs(.*0.3)) %>% 
   group_by(Cruise, Station, Treatment, Bottle) %>% 
-######cell carbon based on CCFs####
-mutate(boc_i.ccf = ifelse(Hours == 0, round((interp_cells * i.ccf) / (12*10^9), 1), NA),
-       boc_s.ccf = ifelse(Hours == stationary.harvest, round((interp_cells * s.ccf) / (12*10^9), 1), NA)) %>% 
-######delta cell carbon####
-  group_by(Cruise, Station, Treatment, Bottle) %>% 
-  fill(contains("boc"), .direction = "updown") %>% 
-  ungroup() %>% 
-  group_by(Cruise, Station, Treatment) %>% 
-  fill(contains("boc_i"), .direction = "updown") %>% 
-  ungroup() %>% 
-  group_by(Cruise, Station, Treatment, Bottle) %>% 
-  mutate(del.poc = s.poc - i.poc,
-         # del.poc = ifelse(Cruise != "AT34", NA, del.poc),
-         del.boc = boc_s.ccf - boc_i.ccf) %>% 
-######DOC star######
-mutate(doc.star_i = ifelse(Hours == 0, round(ptoc - boc_i.ccf,1), NA),
-       doc.star_s = ifelse(Hours == stationary.harvest, round(interp_ptoc - boc_s.ccf,1), NA)) %>% 
-  fill(contains("star"), .direction = "updown") %>% 
-######delta DOC####  
-mutate(del.doc = first(doc) - ifelse(Hours == stationary.harvest, interp_doc, NA),
-       del.doc = ifelse(Cruise != "AT34", first(doc) - ifelse(Hours == stationary.harvest, interp_pdoc, NA), del.doc),
-       del.doc = ifelse(del.doc < 1.5, NA, del.doc),
-       del.doc.star = doc.star_i - doc.star_s,
-       del.doc.star = ifelse(del.doc.star < 1.5, NA, del.doc.star),
-       del.poc = ifelse(!is.na(del.doc), del.poc, NA)) %>%
-  fill(contains("del.doc"), .direction = "downup") %>% 
-  ######BGE, points####  
-mutate(bge = ifelse(Cruise == "AT34", del.boc/(del.doc), NA),
-       bge = ifelse(Cruise != "AT34", del.boc/(del.doc.star), NA),
-       bge.poc = del.poc/del.doc) %>% 
+######delta cells and poc ####
+  mutate(del.cells = ifelse(Hours == stationary.harvest, cells - first(cells), NA),
+         del.poc = round(s.poc - i.poc, 1)) %>% 
+  fill(c(del.cells, del.poc), .direction = "downup") %>% 
+#######toc and doc star###
+  mutate(toc.star_i = ifelse(Cruise == "AT34" & Hours == 0, round(doc + i.poc, 1), NA),
+         toc.star_s = ifelse(Cruise == "AT34" & Hours == stationary.harvest, round(interp_doc + s.poc, 1), NA),
+         doc.star_i = ifelse(Cruise != "AT34" & Hours == 0, round(ptoc - i.poc, 1), NA),
+         doc.star_s = ifelse(Cruise != "AT34" & Hours == stationary.harvest, round(interp_ptoc - s.poc, 1), NA)) %>% 
+  fill(contains("star"), .direction = "downup") %>% 
+######delta toc, toc.star, doc, doc.star####
+  mutate(del.toc = ifelse(Cruise != "AT34" & Hours == stationary.harvest, first(ptoc) - interp_ptoc, NA),
+         del.toc = ifelse(del.toc < 1.75, NA, del.toc),
+         
+         del.toc.star = toc.star_i - toc.star_s,
+         del.toc.star = ifelse(del.toc.star < 1.75, NA, del.toc.star),
+         
+         
+         del.doc = ifelse(Cruise == "AT34" & Hours == stationary.harvest, first(doc) - interp_doc, NA),
+         del.doc = ifelse(del.doc < 1.75, NA, del.doc),
+         
+         del.doc.star = doc.star_i - doc.star_s,
+         del.doc.star = ifelse(del.doc.star < 1.75, NA, del.doc.star),
+         del.doc.star = ifelse(del.toc < 1.75, NA, del.doc.star),
+         ) %>% 
+  fill(contains(c("del.toc", "del.doc")), .direction = "downup")  %>% 
+  ######BGE####  
+mutate(bge = ifelse(Cruise == "AT34", del.poc/del.doc, del.poc/del.doc.star),
+       bge = ifelse(Cruise == "AT34" & Station == 3, NA, bge)) %>% #N2S3 omitted because poc change and cell change from data well beyond stationary (in death phase)
   mutate_at(vars(contains("bge")), round, 2) %>% 
-  ungroup()
+  ungroup() %>% 
+  ######cell sp resp fmol c L-1####
+  mutate(cell_resp = ifelse(Cruise == "AT34", round((del.toc.star / del.cells) * 10^9, 1), round((del.toc / del.cells) * 10^9, 1)),
+         cell_resp = ifelse(Cruise == "AT34" & Station == 3, NA, cell_resp)) %>% 
+arrange(factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")))
+
 ```
 
 
-# Summary Data, Table, and Plots
+# Summary Data, Table
 
 ```{r Summary table}
 bge_summary <- calcs %>% 
-  select(Season:Treatment, i.poc, s.poc, i.ccf, boc_i.ccf:bge.poc) %>% 
+    filter(Treatment == "Control") %>% 
+  select(Season:Treatment, contains("del"), bge, cell_resp) %>% 
   distinct() 
 
-bge_summary.table <- bge_summary %>% 
-  filter(Treatment == "Control") %>% 
-  select(Season, Station, Bottle, del.poc, del.boc, del.doc, del.doc.star, bge, bge.poc, i.ccf) %>% 
-  pivot_longer(c(bge, bge.poc), names_to = "calc", values_to = "bge") %>% 
-  drop_na(bge) %>% 
-  mutate(ave_bge = mean(bge),
-         sd_bge = sd(bge)) %>% # global ave bge
-  group_by(Season) %>% # cruise average bges
-  mutate(ave_ccf_cruise = mean(i.ccf, na.rm = T),
-         sd_ccf_cruise = sd(i.ccf, na.rm = T),
-         ave_bge_cruise = mean(bge),
-         sd_bge_cruise = sd(bge),
-         min_bge_cruise = min(bge),
-         max_bge_cruise = max(bge)) %>% 
-  add_count() %>% 
-  ungroup() %>% 
-  group_by(Season, Station) %>% # station average bges
-  mutate(ave_bge_station = mean(bge),
-         sd_bge_station = sd(bge),
-         ave_del.poc_station = mean(del.poc, na.rm = T),
-         sd_del.poc_station = sd(del.poc, na.rm = T),
-         ave_del.boc_station = mean(del.boc, na.rm = T),
-         sd_del.boc_station = sd(del.boc, na.rm = T),
-         ave_del.doc_station = mean(del.doc, na.rm = T),
-         sd_del.doc_station = sd(del.doc, na.rm = T),
-         ave_del.doc.star_station = mean(del.doc.star, na.rm = T),
-         sd_del.doc.star_station = sd(del.doc.star, na.rm = T),
-         ave_ccf_station = mean(i.ccf, na.rm = T),
-         sd_ccf_station = sd(i.ccf, na.rm = T)) %>% 
-  ungroup() %>% 
-  arrange(Season) %>% 
-  mutate_at(vars(ave_bge:sd_del.doc.star_station), round, 2) 
+bge_cruise_means <- bge_summary %>% 
+ group_by(Cruise, Season) %>% 
+  summarise_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T) %>% 
+  arrange(factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")))
 
-bge_summary.table 
-  
+bge_station_means <- bge_summary %>% 
+ group_by(Cruise, Season, Station) %>% 
+  summarise_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T) %>% 
+  arrange(factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")))
+
 ```
-# Save Data
 
+# Save Data
 
 ```{r Save, message = F}
 
 saveRDS(calcs, "~/GITHUB/naames_bioav_ms/Output/processed_bge.rds")
 
-saveRDS(bge_summary.table,  "~/GITHUB/naames_bioav_ms/Output/processed_bge_summary.rds")
+saveRDS(bge_summary,  "~/GITHUB/naames_bioav_ms/Output/bge_summary.rds")
+
+saveRDS(bge_cruise_means,  "~/GITHUB/naames_bioav_ms/Output/bge_cruise_means.rds")
+
+saveRDS(bge_station_means,  "~/GITHUB/naames_bioav_ms/Output/bge_station_means.rds")
+
 
 ```
+
+
+

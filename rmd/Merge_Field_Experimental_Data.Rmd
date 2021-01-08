@@ -12,14 +12,10 @@ This document shows how processed **individual bottle** data from NAAMES reminer
 ```{r Packages, message = F, warning = F}
 library(tidyverse) 
 library(lubridate)
-library(patchwork)
 library(readxl)
+library(zoo)
 library(oce)
-#stat tests
-library(lmtest)
-library(lmodel2)
-library(rstatix)
-library(ggpubr)
+
 ```
 
 
@@ -152,9 +148,12 @@ We'll estimate BCD for each cast of each station of all the cruises using bacter
 BCD and specific growth rates will be integrated through the euphotic zone.
 
 ```{r Calculate, message = F}
-bge <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge_summary.rds") %>% 
-  select(Season, Station, contains("ave_bge"), contains("sd_bge"), contains("ccf")) %>% 
-  distinct()
+bge <- read_rds("~/GITHUB/naames_bioav_ms/Output/bge_summary.rds") %>% 
+  select(Season, Cruise, Station, contains("bge")) %>% 
+  distinct() %>% 
+  left_join(., read_rds("~/GITHUB/naames_bioav_ms/Output/bge_cruise_means.rds") %>% select(Cruise, bge_mean) %>% rename(cruise_bge = bge_mean)) %>% 
+  left_join(., read_rds("~/GITHUB/naames_bioav_ms/Output/bge_station_means.rds") %>% select(Cruise, Station, bge_mean) %>% rename(station_bge = bge_mean))
+  
 
 #calculate bcd and specific growth rates
 bcd <- interpolated.df %>% 
@@ -162,16 +161,9 @@ bcd <- interpolated.df %>%
   left_join(., bge) %>% 
   mutate(Spring_Autumn = ifelse(Season %in% c("Early Spring", "Late Spring"), "Spring", "Autumn")) %>% 
   group_by(Spring_Autumn) %>% 
-  fill(c(ave_bge, ave_bge_cruise, sd_bge, sd_bge_cruise, ave_ccf_cruise, sd_ccf_cruise), .direction = "downup") %>% 
+  fill(c(contains("bge")), .direction = "downup") %>% 
   ungroup() %>% 
-  group_by(Cruise) %>% 
-  mutate(ave_bge_station = ifelse(is.na(ave_bge_station), ave_bge_cruise, ave_bge_station),
-         ave_ccf_station = ifelse(is.na(ave_ccf_station), ave_ccf_cruise, ave_ccf_station)) %>% 
-  ungroup() %>% 
-  mutate(bcd_cruise = round(interp_bp/ave_bge_cruise),
-         bcd_station = round(interp_bp/ave_bge_station)) %>%  #units are  µmol C / m3 / d, bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
-  mutate(bc_cruise = interp_ba * (10^3) * ave_ccf_cruise * (1/10^15) * (1/12) * 10^6,
-         bc_station = interp_ba * (10^3) * ave_ccf_station * (1/10^15) * (1/12) * 10^6) # bact carbon in µmol C/m3
+  mutate(bcd = round(interp_bp/cruise_bge))  #units are  µmol C / m3 / d, bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
   
 ```
 
@@ -179,21 +171,15 @@ bcd <- interpolated.df %>%
 int_bcd <- bcd %>% 
   group_by(CampCN) %>% 
   filter(Depth <= Ez) %>% 
-  mutate(int.bcd_cruise = integrateTrapezoid(Depth, bcd_cruise, type = "A"),
-         int.bcd_station = integrateTrapezoid(Depth, bcd_station, type = "A"),
+  mutate(int.bcd = integrateTrapezoid(Depth, bcd, type = "A"),
          int.bp = integrateTrapezoid(Depth, interp_bp, type = "A"),
-         int.ba = integrateTrapezoid(Depth, interp_ba, type = "A"),
-         int.bc_cruise = integrateTrapezoid(Depth, bc_cruise, type = "A"),
-         int.bc_station = integrateTrapezoid(Depth, bc_station, type = "A")) %>% 
+         int.ba = integrateTrapezoid(Depth, interp_ba, type = "A")) %>% 
   mutate_at(vars(contains("int.bcd")), round) %>% 
   # depth normalize 
   mutate_at(vars(contains("int.")), funs(./Ez)) %>% 
   mutate(int.NPP = Ez_NPP/Ez,
-         mew_cruise = int.bp/int.bc_cruise,
-         mew_station = int.bp/int.bc_station,
          bp.npp = int.bp/int.NPP * 100,
-         bcd.npp_cruise = int.bcd_cruise/int.NPP * 100,
-         bcd.npp_station = int.bcd_station/int.NPP * 100) %>% 
+         bcd.npp = int.bcd/int.NPP * 100) %>% 
   distinct() %>% 
   ungroup()
 ```
@@ -237,22 +223,16 @@ exp_doc <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>%
   left_join(., export %>% select(Cruise, Station, degree_bin) %>% distinct()) %>% 
   mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
   filter(Treatment == "Control") %>% 
-  select(Cruise, Station, degree_bin, Bottle, Hours, Days, stationary.harvest, interp_ptoc, sd_ptoc, interp_doc, sd_doc, interp_pdoc, sd_pdoc, boc_i.ccf, boc_s.ccf, del.doc, del.doc.star) %>% 
-  mutate(doc_star = ifelse(Hours < stationary.harvest, round(interp_ptoc - boc_i.ccf,1), round(interp_ptoc - boc_i.ccf,1)),
+  select(Cruise, Station, degree_bin, Bottle, Hours, Days, stationary.harvest, interp_ptoc, sd_ptoc, interp_doc, sd_doc, i.poc, s.poc, contains("del.doc")) %>% 
+  mutate(doc_star = ifelse(Cruise != "AT34" & Hours < stationary.harvest, round(interp_ptoc - i.poc,1), round(interp_ptoc - s.poc,1)),
          combined_doc = ifelse(Cruise == "AT34", interp_doc, doc_star),
-         combined_doc = ifelse(is.na(combined_doc), interp_doc, combined_doc),
-          sd_combined_doc = ifelse(Cruise == "AT34", sd_doc, sd_ptoc),
-         sd_combined_doc = ifelse(is.na(sd_combined_doc), sd_pdoc, sd_combined_doc),
-         combined_doc = ifelse(is.na(combined_doc) & Hours == 0, interp_ptoc, combined_doc),
-         sd_combined_doc = ifelse(is.na(sd_combined_doc) & Hours == 0, sd_ptoc, sd_combined_doc))  %>%  
+          sd_combined_doc = ifelse(Cruise == "AT34", sd_doc, sd_ptoc))  %>%  
   group_by(Cruise, Station, Bottle) %>% 
   mutate(end.remin = last(Hours),
          initial.doc = first(combined_doc),
          longterm.del.doc = first(combined_doc) - last(na.omit(combined_doc)),
-         longterm.del.doc = ifelse(longterm.del.doc < 1.5, NA, longterm.del.doc),
-         shortterm.del.doc = ifelse(Cruise == "AT34", del.doc, del.doc.star), 
-         shortterm.del.doc = ifelse(is.na(shortterm.del.doc), del.doc, shortterm.del.doc)) %>% 
-  fill(shortterm.del.doc, .direction = "downup") 
+         longterm.del.doc = ifelse(longterm.del.doc < 2, NA, longterm.del.doc),
+         shortterm.del.doc = ifelse(Cruise == "AT34", del.doc, del.doc.star)) 
 
 export_bioav <- export %>% 
   full_join(., exp_doc %>% 

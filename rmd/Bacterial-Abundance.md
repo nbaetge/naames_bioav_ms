@@ -12,21 +12,7 @@ analyzed.
 ``` r
 library(tidyverse) 
 library(readxl)
-library(zoo)
-library(oce)
-library(patchwork)
-library(growthcurver)
-#stat tests
-library(lmtest)
-library(lmodel2)
-library(rstatix)
-library(ggpubr)
 ```
-
-Here, growth curves are fitted to the logistic equation using the
-GrowthCurver package. The timing of the onset of the stationary growth
-phase is determined from the model
-fit.
 
 # Import and Tidy Data
 
@@ -99,179 +85,19 @@ ba.df <- read_csv("~/GITHUB/naames_bioav_ms/Input/master/N2-4_BactA_Remin_Master
   drop_na(cells) %>% 
   select(-Treatment_Btl) %>% 
   select(Season, everything()) %>% 
-  arrange(Cruise, Station, Depth, Treatment, Bottle, Hours)
+  arrange(Cruise, Station, Depth, Treatment, Bottle, Hours) 
 
 saveRDS(ba.df, "~/GITHUB/naames_bioav_ms/Input/master/tidy_N2-4_BactA_Remin_Master.rds")
 ```
 
-# Inspect Growth Curves
+\#Save Data
 
-To be able to calculate derived variables, such as carbon per cell and
-BGE, we’ll need to inspect the growth curves and define the stationary
-phase for each experiment.
-
-We are using the growthcurver package to fit growth curve data to the
-standard form of the logistic equation and then return a data table with
-population-level information. Specifically, the model outputs we are
-really only interested in are:
-
-  - t\_mid, the time at which 1/2 carrying capacity is reached. We will
-    double this estimate to attain the time at which carrying capacity
-    is reached (stationary)
-  - sigma, a measure of the goodnesss of fit of the parameters of the
-    logistic equation for the data; it is the residual sum of squares
-    from the nonlinear regression model. Smaller sigma values indicate a
-    better fit of the logistic curve to the data than larger values.
-  - df, degrees of freedom
-
-<!-- end list -->
+only look at data that is relevant to MS, including treatments with
+parallel/bottle comparisons
 
 ``` r
-gc_input <- ba.df %>% 
-  filter(!Treatment %in% c("Niskin","GF75", "Volume", "Parallel", "TFF-Ret")) %>% 
-  group_by(Cruise, Station, Depth, Treatment, Bottle) %>% 
-  #calculate the running delta of nat log cells for each exp
-  mutate(lncells = round(log(cells), 2),
-         delta_lncells = lncells - lncells[which.min(Hours)],
-         delta_lncells = ifelse(delta_lncells < 0, 0, delta_lncells))  %>% 
-  filter(Treatment %in% c("Control", "TW5", "TW10", "TW20"), Depth == 10, !Station == "U") #only look at data that is relevant to MS, including treatments with parallel/bottle comparisons
-```
+ba <- ba.df %>% 
+  filter(Treatment %in% c("Control", "TW5", "TW10", "TW20"), Depth == 10, !Station == "U") 
 
-``` r
-bactabund <- read_rds("~/GITHUB/naames_bioav_ms/Input/Bact_Abund_Input.rds")
-
-gc_input_keys <- bactabund %>% 
-  group_keys() %>% 
-  mutate(key = paste(Cruise, ", S", Station, ", Z =", Depth, ",", Treatment, ",", Bottle))
-gc_input_header <- gc_input_keys$key
-
-gc_input_list <- bactabund %>% 
-  group_split()
-names(gc_input_list) <- gc_input_header
-```
-
-``` r
-gcplot.func <- function(x){
-  gc_fit <- SummarizeGrowth(x$Hours, x$delta_lncells) 
-}
-gcplot.list <- lapply(gc_input_list, gcplot.func)
-```
-
-For the sake of keeping the length of this document as short as
-possible, the growth curve model plots are not included here. However,
-they are included below in the section “Re-evaluate Growth Curves”.
-
-# Re-evaluate Growth Curves
-
-To improve the model fits and thus, the timing estimates of the
-stationary transition for each experiment, we need to evaluate each
-growth curve, manually filtering out death/secondary growth phases and
-poorly replicated samples that skew the model results.
-
-``` r
-eval_gc_input <- gc_input %>% 
-  mutate(key = paste(Cruise, Station, Depth, Treatment, Bottle, Timepoint, sep = ".")) %>% 
-  select(Season:Treatment, key, everything()) %>% 
-  filter(!Hours >= 300) %>% 
-  filter(!key %in% c("AT34.1.10.Control.A.1","AT34.1.10.Control.B.1", "AT34.1.200.Control.C.3", "AT34.1.200.Control.D.3","AT34.2.10.Control.A.4", "AT34.2.10.Control.A.9", "AT34.2.10.Control.A.10", "AT34.2.10.Control.A.11","AT34.2.10.Control.A.4", "AT34.2.10.Control.B.7", "AT34.2.10.Control.B.9", "AT34.2.10.Control.A.11", "AT34.2.10.TW12.C.5",
-  "AT34.2.10.TW13.E.2", "AT34.2.10.TW13.F.3", "AT34.2.200.Control.G.2", "AT34.2.200.Control.G.5", "AT34.2.200.Control.G.6", "AT34.2.200.Control.G.7", "AT34.2.200.Control.H.5", "AT34.2.200.Control.H.6", "AT34.2.200.Control.H.7", "AT34.2.200.TW12.I.2", "AT34.2.200.TW12.J.2", "AT34.2.200.TW13.K.2", "AT34.3.10.Control.A.8", "AT34.3.10.Control.A.9", "AT34.3.10.Control.A.10", "AT34.3.10.Control.B.8", "AT34.3.10.Control.B.9", "AT34.3.10.Control.B.10", "AT34.3.200.Control.C.4", "AT34.3.200.Control.C.6", "AT34.3.200.Control.C.9", "AT34.3.200.Control.D.7", "AT34.4.200.Control.C.5", "AT34.4.200.Control.C.6", "AT34.4.200.Control.C.7", "AT34.4.200.Control.D.5", "AT34.4.200.Control.D.6", "AT34.4.200.Control.D.7", "AT34.5.10.Control.A.5", "AT34.5.10.Control.B.5", "AT34.U.10.Control.A.5", "AT34.U.10.Control.B.8", "AT34.U.10.Control.B.1", "AT38.1.10.Control.A.1", "AT38.1.10.Control.B.7", "AT38.1.10.MixSD.G.6", "AT38.1.10.SynExd.I.8", "AT38.1.10.SynExd.I.9", "AT38.1.10.SynExd.I.10", "AT38.1.10.SynExd.J.8", "AT38.1.10.SynExd.J.9", "AT38.1.10.SynExd.J.10", "AT38.1.10.SynLys.M.9", "AT38.1.10.SynLys.M.10", "AT38.1.10.SynLys.N.9", "AT38.1.10.SynLys.N.10", "AT38.1.200.Control.F.5", "AT38.1.200.Control.F.6", "AT38.1.200.Control.E.5", "AT38.1.200.Control.E.6", "AT38.1.200.MixDS.C.5", "AT38.1.200.MixDS.C.8", "AT38.1.200.MixDS.D.5", "AT38.1.200.MixDS.D.6", "AT38.4.10.Control.A.7", "AT38.4.10.Control.B.7", "AT38.4.10.Control.B.8", "AT38.5.10.Control.A.9", "AT38.5.10.Control.A.10", "AT38.5.10.Control.A.11", "AT38.5.10.Control.B.7"))
-
-eval_gc_input_keys <- eval_gc_input %>% 
-  group_keys() %>% 
-  mutate(key = paste(Cruise, ", S", Station, ", Z =", Depth, ",", Treatment, ",", Bottle)) 
-eval_gc_input_header <- eval_gc_input_keys$key
-
-eval_gc_input_list <- eval_gc_input %>% 
-  group_split()
-names(eval_gc_input_list) <- eval_gc_input_header
-
-eval_gcplot.list <- lapply(eval_gc_input_list, gcplot.func)
-```
-
-We’ve omitted 88 of the 768 (~11%) of the observations to improve the
-model fit. 47% of those omitted observations were taken after 300 hours,
-which for many experiments constituted the death phase.
-
-``` r
-filt_input <- eval_gc_input %>% 
-  select(Season:Treatment, Hours, Hours:sd_p_cells)
-
-saveRDS(eval_gc_input,"~/GITHUB/naames_bioav_ms/Input/Bact_Abund_Input.rds")
-```
-
-# Wrangle GrowthCurver Data
-
-We’ll add the model output data to the original dataframe, but first
-we’ll tidy the model output and look at the distribution of the model
-fits.
-
-We’ll determine thresholds for sigma (smaller sigma values indicate a
-better fit) and df for omission of model fit data.
-
-``` r
-gcdata.func <- function(y){
-  gc.fit <- SummarizeGrowth(y$Hours, y$delta_lncells)
-  gcdata.df <- as.data.frame(unlist(gc.fit$vals), stringsAsFactors = FALSE)
-}
-
-gcdata <- eval_gc_input_list %>% 
-  lapply(., gcdata.func) %>% 
-  #save the list as a data frame %>% 
-  data.frame(.) %>% 
-  t(.) %>% 
-  as_tibble(.) %>% 
-  mutate_at(., vars(k:auc_e), as.numeric) %>% 
-  mutate_at(vars(sigma, t_mid), round, 2) %>% 
-  #calculate time to stationary for each curve
-  mutate(stationary = round(t_mid*2)) %>% 
-  mutate(key = eval_gc_input_header) %>% 
-  ungroup() 
-```
-
-![](Bacterial-Abundance_files/figure-gfm/GC%20sigma-1.png)<!-- -->
-
-![](Bacterial-Abundance_files/figure-gfm/df-1.png)<!-- -->
-
-Based on these two histograms, we’ll omit model fit data where sigma \>
-0.21 and df \< 4. In these experiments, we cannot reliably distinguish
-the onset of stationary.
-
-``` r
-gcmerge.df <- eval_gc_input %>% 
-  mutate(key = paste(Cruise, ", S", Station, ", Z =", Depth, ",", Treatment, ",", Bottle)) %>% 
-  full_join(., gcdata %>% filter(!sigma > 0.21 | !df < 4)) %>% 
-  ungroup() 
-```
-
-# Add Stationary Timepoint
-
-We’ll add a row to each experiment that includes the stationary
-timepoint.
-
-``` r
-gcmerge.list <- gcmerge.df %>% 
-  #Split the dataframe into lists
-  split(.,  .$key)
-
-#add row to each list element
-newrow.func <- function(morty){
-  morty[nrow(morty) + 1,] <- NA
-  rick <- morty %>% 
-    fill(Season:Bottle, Treatment, key, stationary)
-  rick
-}
-
-#apply function to list
-gcstat.list <- lapply(gcmerge.list, newrow.func)
-
-gcstat.df <- plyr::ldply(gcstat.list, data.frame) %>% 
-  select(Season:Hours, stationary, cells:auc_e) %>%
-  mutate(Hours = ifelse(is.na(Hours), stationary, Hours)) %>%  
-  select(Season:Treatment, Hours:sd_p_cells, r:r_p) # r is the specific growth rate, r_se is the standard error, r_p is the p-value (see ?gcvalues)
-```
-
-# Save Data
-
-``` r
-saveRDS(gcstat.df, "~/GITHUB/naames_bioav_ms/Output/filt_processed_growthcurver.rds")
+saveRDS(ba, "~/GITHUB/naames_bioav_ms/Input/Bact_Abund_Input.rds")
 ```

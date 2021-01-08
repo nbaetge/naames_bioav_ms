@@ -873,7 +873,7 @@ saveRDS(unfiltered.data, "~/GITHUB/naames_bioav_ms/Output/unfiltered/processed_b
 
 filtered.data <- unfiltered.data %>% 
   filter(Treatment == "Control", Depth == 10, !Station == "U") %>% 
-  select(Season:Bottle,s.timepoint, contains(c("poc.cf1", "poc.c1.um", "ccf.c1")), -facetlabel) 
+  select(Season:Bottle,s.timepoint, contains(c("poc.cf1", "poc.c1.um", "ccf.c1", "pon.cf1", "pon.c1.um", "ccf.c1", "cn.c1")), -facetlabel) 
   
 saveRDS(filtered.data, "~/GITHUB/naames_bioav_ms/Output/filt_processed_bacterial_carbon.rds")
 ```
