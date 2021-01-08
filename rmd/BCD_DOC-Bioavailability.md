@@ -47,14 +47,46 @@ doc_og <- read_rds("~/GITHUB/naames_bioav_ms/Input/master/DOC_Input") %>%
 
 ``` r
 bge <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>% 
+  mutate(doc_star = ifelse(Cruise != "AT34" & Hours < stationary.harvest, round(interp_ptoc - i.poc,1), round(interp_ptoc - s.poc,1)),
+         combined_doc = ifelse(Cruise == "AT34", interp_doc, doc_star),
+          sd_combined_doc = ifelse(Cruise == "AT34", sd_doc, sd_ptoc)) %>% 
   group_by(Cruise, Station, Treatment, Bottle) %>% 
   mutate(remin.end = last(Days),
          stationary.harvest = stationary.harvest/24) %>%
-  ungroup()
+  ungroup() %>% 
+  group_by(Cruise, Station, Treatment, Hours) %>% 
+  mutate(trt_combined_doc = ifelse(!is.na(sd_combined_doc), round(mean(combined_doc, na.rm = T), 1), NA),
+         sd_trt_combined_doc = ifelse(!is.na(sd_combined_doc), round(sd(combined_doc, na.rm = T), 1), NA)) %>% 
+  ungroup() %>% 
+  group_by(Season, Station, Treatment) %>% 
+  mutate(norm_doc =  round(trt_combined_doc - first(trt_combined_doc), 1),
+         sd_norm_doc = ifelse(Hours != 0,  sd_trt_combined_doc, NA),
+         norm_cells = station_cells - first(station_cells),
+         sd_norm_cells = ifelse(Hours != 0, sd_station_cells, NA)) %>% 
+  ungroup() %>% 
+  select(Season:stationary.harvest, remin.end, Hours:sd_station_cells, norm_cells, sd_norm_cells, everything()) %>% 
+  left_join(., export_bioav %>% select(Season, Cruise, Station, degree_bin) %>% distinct()) %>% 
+  mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
+  select(Season:Station, degree_bin, everything())
+```
 
-bge_summary <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge_summary.rds") %>% 
-  ungroup()
+    ## Joining, by = c("Season", "Cruise", "Station")
 
+``` r
+bge_summary <- read_rds("~/GITHUB/naames_bioav_ms/Output/bge_summary.rds") %>% 
+  left_join(., read_rds("~/GITHUB/naames_bioav_ms/Output/bge_cruise_means.rds") %>% select(Season, Cruise, bge_mean) %>% rename(cruise_bge = bge_mean)) %>% 
+  left_join(., read_rds("~/GITHUB/naames_bioav_ms/Output/bge_station_means.rds") %>% select(Season, Cruise, Station, bge_mean) %>% rename(station_bge = bge_mean)) %>% 
+  left_join(., export_bioav %>% select(Season, Cruise, Station, degree_bin) %>% distinct()) %>% 
+  mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
+  select(Season:Station, degree_bin, everything())
+```
+
+    ## Joining, by = c("Season", "Cruise")
+
+    ## Joining, by = c("Season", "Cruise", "Station")
+    ## Joining, by = c("Season", "Cruise", "Station")
+
+``` r
 bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_BCD.rds") 
 
 lat44 <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_lat44_remins.rds") %>% 
@@ -67,15 +99,13 @@ Units for imported data frames are currently:
   - BP, µmol C m<sup>-3</sup> d<sup>-1</sup>
   - BCD, µmol C m<sup>-3</sup> d<sup>-1</sup>
   - BA, cells m<sup>-3</sup>
-  - BC, µmol C m<sup>-3</sup>
-  - mew, d<sup>-1</sup>
   - NPP, µmol C m<sup>-3</sup> d<sup>-1</sup>
   - ∆DOC and NCP (from export MS, integrated to Ez), mol C
     m<sup>-2</sup>
 
 NPP, NCP and BCD are converted to: mmol C m<sup>-3</sup> d<sup>-1</sup>
 
-## Bottle v. Vial Incubation Comparisons
+# Bottle v. Vial Incubation Comparisons
 
 We will run the Bland-Altman method (aka Tukey mean-difference) for
 assessing agreement between two methods (in this case, vial and bottle
@@ -92,38 +122,36 @@ We’ll also do a lmodel2 regression.
 
 ``` r
 vessel_comparisons <- bge %>% 
-  select(Season, Cruise, Station, Bottle, Hours, Days, stationary.harvest, cells, p_cells, ptoc,  toc, doc, pdoc, i.ccf, s.ccf, boc_i.ccf, boc_s.ccf) %>% 
-  group_by(Cruise, Station, Bottle) %>% 
-  mutate(doc_star = ifelse(Hours < stationary.harvest, ptoc - boc_i.ccf, ptoc - boc_s.ccf),
-         doc_star = ifelse(is.na(doc_star) & Hours < stationary.harvest, toc - boc_i.ccf, toc - boc_s.ccf),
-         combined_doc = doc,
-         combined_doc = ifelse(is.na(combined_doc), pdoc, combined_doc))  
+  select(Season, Cruise, Station, Bottle, Hours, Days,  cells, p_cells, ptoc,  toc, doc, pdoc, doc_star) 
 
+doc_doc.star <- vessel_comparisons %>% 
+  drop_na(doc) %>% 
+  drop_na(doc_star)
 
-doc_doc.star.reg <- lmodel2(doc_star ~ doc, data = vessel_comparisons, nperm = 99) #filtered DOC (from bottles) v DOC star
+doc_doc.star.reg <- lmodel2(doc_star ~ doc, data = doc_doc.star, nperm = 99) #filtered DOC (from bottles) v DOC star
 ```
 
     ## RMA was not requested: it will not be computed.
 
 ``` r
-doc_doc.star.blandr <- blandr.statistics(vessel_comparisons$combined_doc, vessel_comparisons$doc_star, sig.level = 0.95)
+doc_doc.star.blandr <- blandr.statistics(doc_doc.star$doc, doc_doc.star$doc_star, sig.level = 0.95)
 
 doc_doc.star.blandr$bias
 ```
 
-    ## [1] 1.606
+    ## [1] 2.128571
 
 ``` r
 doc_doc.star.blandr$upperLOA
 ```
 
-    ## [1] 4.123638
+    ## [1] 6.747419
 
 ``` r
 doc_doc.star.blandr$lowerLOA
 ```
 
-    ## [1] -0.9116376
+    ## [1] -2.490276
 
 ``` r
 doc_doc.star.reg.plot + doc_doc.star.blandr.plot +
@@ -137,6 +165,9 @@ doc_doc.star.reg.plot + doc_doc.star.blandr.plot +
 ### PDOC v DOC bottle
 
 ``` r
+vessel_doc <- vessel_comparisons %>% 
+  drop_na(pdoc)
+
 vessel_doc.reg <- lmodel2(pdoc ~ doc, data = vessel_comparisons, nperm = 99) #vial v bottle DOC (both filtered)
 ```
 
@@ -163,8 +194,7 @@ vessel_doc.blandr$lowerLOA
     ## [1] -1.811517
 
 ``` r
-vl_btl_doc_blandr <- vessel_comparisons %>% 
-  drop_na(pdoc) %>% 
+vl_btl_doc_blandr <- vessel_doc %>% 
   mutate(diff = doc - pdoc,
          mean = (doc + pdoc) / 2) %>% 
   ggplot(., aes(x = mean, y = diff, group = Bottle)) +
@@ -174,20 +204,21 @@ vl_btl_doc_blandr <- vessel_comparisons %>%
   geom_hline(yintercept = vessel_doc.blandr$lowerLOA, size = 1, linetype = 3) +
   geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
   labs(y = expression(italic(paste("Difference: Bottle DOC - Vial DOC, µmol C L"^-1))), x = expression(italic(paste("Mean: (Bottle DOC + Vial DOC) / 2, µmol C L"^-1)))) +
-  custom_theme() +
+  theme_classic2(base_size = 16) +
+  theme(legend.title = element_blank()) +
   guides(fill = F)
 ```
 
 ``` r
-vl_btl_doc <- vessel_comparisons %>% 
-  drop_na(pdoc) %>% 
+vl_btl_doc <- vessel_doc %>% 
   ggplot(aes(x = doc, y = pdoc, group = Bottle)) + 
   geom_abline(aes(intercept = 0, slope = 1)) +
   geom_abline(intercept = vessel_doc.reg$regression.results[3,2],
               slope = vessel_doc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
   labs(x = expression(italic(paste("Bottle DOC, µmol C L"^-1))), y = expression(italic(paste("Vial DOC, µmol C L"^-1))), fill = "Early Spring Station") +
-  custom_theme() +
+  theme_classic2(base_size = 16) +
+  theme(legend.title = element_blank()) +
    annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
   xlim(50, 85) +
   ylim(50, 85) +
@@ -234,8 +265,7 @@ vl_btl_cell_blandr <- vessel_comparisons %>%
   geom_hline(yintercept = vessel_cells.blandr$lowerLOA, size = 1, linetype = 3) +
   geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
   labs(y = expression(italic(paste("Difference: Bottle Cells - Vial Cells, L"^-1))), x = expression(italic(paste("Mean: (Bottle Cells + Vial Cells) / 2, L"^-1)))) +
-  custom_theme() +
-  guides(fill = F)
+  theme_classic2(base_size = 16) 
 ```
 
 ``` r
@@ -247,8 +277,9 @@ vl_btl_cell <- vessel_comparisons %>%
               slope = vessel_cells.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
  geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
   labs(x = expression(italic(paste("Bottle Cells L"^-1))), y = expression(italic(paste("Vial Cells L"^-1))), fill = "NAAMES 4 Station") +
-  theme_test(base_size = 16) +
-  theme(legend.position = "top") +
+  guides(fill = F) +
+  theme_classic2(base_size = 16) +
+  theme(legend.title = element_blank()) +
   annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
   #theme(plot.caption = element_text(face = "italic")) +
   ylim(4.5*10^8, 3.0*10^9) +
@@ -280,60 +311,110 @@ unique(doc_og$per_increase)
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/N2%20remin%20plot-1.png)<!-- -->
 
+# Curves
+
+## Cells
+
+``` r
+ba_curves <- bge %>% 
+  filter(Treatment == "Control") %>% 
+  drop_na(norm_cells) %>% 
+  # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
+  ggplot(aes(x = Days, y = norm_cells, group = interaction(Season, Station))) +
+  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.4) +
+  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.5) +
+  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.5) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+ labs(x = expression(italic("Days")), y = expression(italic(paste("∆ Cells, L"^-1)))) +
+  theme_classic2(base_size = 16) +
+  theme(legend.title = element_blank()) +
+  guides(color = F, linetype = F, fill = F)
+```
+
+## DOC
+
+``` r
+doc_curves <-  bge %>% 
+  filter(Treatment == "Control") %>% 
+  drop_na(sd_combined_doc) %>% 
+  # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
+  ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
+  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.4) +
+  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.5) +
+  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.5) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+ labs(x = expression(italic("Days")), y = expression(italic(paste("∆ DOC, µmol C L"^-1)))) +
+  theme_classic2(base_size = 16) +
+  theme(legend.title = element_blank()) +
+  guides(color = F, linetype = F)
+```
+
+``` r
+ba_curves | doc_curves + 
+  plot_layout(guides = "collect", tag_level = "new") &
+  theme(plot.tag = element_text(size = 14)) 
+```
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+
+# BGE
+
+``` r
+my_comparisons <- list( c("Early Spring", "Late Spring"), c("Early Spring", "Early Autumn"), c("Early Spring", "Late Autumn"), c("Late Spring", "Early Autumn"), c("Late Spring", "Late Autumn"), c("Early Autumn", "Late Autumn"))
+
+bge <- bge_summary %>% 
+  drop_na(bge) %>% 
+  ggboxplot(., x = "Season", y = "bge", 
+            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
+            xlab = F,
+            ylab = expression(italic("BGE")),
+            add = "jitter",
+            add.params = list(shape = 21, fill = "Station"), 
+            outlier.shape = NA,
+            width = 0.5,
+            ggtheme = theme_classic2(base_size = 16)) + 
+  stat_compare_means(comparisons = my_comparisons, 
+                     label = "p.signif",
+                     step.increase = 0.12,
+                     tip.length = 0.01) + 
+  stat_compare_means(label.y = 0.1)  + 
+  rremove("legend")
+```
+
+``` r
+resp <- bge_summary %>% 
+  drop_na(cell_resp) %>% 
+  ggboxplot(., x = "Season", y = "cell_resp", 
+            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
+            xlab = F,
+            ylab = expression(italic("Cell Specific Respiration, fmol C L"^-1)),
+            add = "jitter",
+            add.params = list(shape = 21, fill = "Station"), 
+            outlier.shape = NA,
+            width = 0.5,
+            ggtheme = theme_classic2(base_size = 16)) + 
+  stat_compare_means(comparisons = my_comparisons, 
+                     label = "p.signif",
+                     step.increase = 0.12,
+                     tip.length = 0.01) + 
+  stat_compare_means(label.y = 0.1) 
+```
+
+``` r
+bge | resp + 
+  plot_layout(guides = "collect", tag_level = "new") &
+  theme(plot.tag = element_text(size = 14)) 
+```
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+
 # Experiments at 44˚N
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/Remin%20plots-1.png)<!-- -->
 
-# Tables: Remin Experiments
-
-Seasonally accumulated DOC is expressed as mmol C m<sup>-3</sup> or µmol
-C L<sup>-1</sup>
-
-``` r
-bge.table.data <- bge %>%
-  left_join(., export_bioav %>% select(Season, Cruise, Station, degree_bin) %>% distinct()) %>% 
-  mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
-  filter(Treatment == "Control") %>% 
-  select(Season, Cruise, Station, degree_bin, Bottle, stationary.harvest, remin.end) %>% 
-  distinct() %>% 
-  left_join(bge_summary, .) %>% 
-  select(Season, Cruise, Station, degree_bin, Bottle, stationary.harvest, remin.end, everything()) %>% 
-  select(-n) %>% 
-  arrange(factor(Cruise, levels = c("AT39", "AT34", "AT38")), degree_bin) %>% 
-  group_by(Season, Cruise, Station, degree_bin) %>% 
-  add_tally() %>% 
-  ungroup()
-```
-
-    ## Joining, by = c("Season", "Cruise", "Station")
-
-    ## Joining, by = c("Season", "Station", "Bottle")
-
-``` r
-subset <- bge.table.data %>% 
-  select(Season:degree_bin, ave_del.poc_station:sd_del.doc.star_station, ave_bge_station, sd_bge_station) %>% distinct() %>% 
-  group_by(Season, Cruise, Station, degree_bin) %>% 
-  mutate(combined.deldoc = ifelse(!is.na(ave_del.doc_station) & !is.na(ave_del.doc.star_station), (ave_del.doc_station + ave_del.doc.star_station) / 2, NA),
-         sd_combined.deldoc = ifelse(!is.na(ave_del.doc_station) & !is.na(ave_del.doc.star_station), sqrt(mean(c((ave_del.doc_station - combined.deldoc)^2, (ave_del.doc.star_station - combined.deldoc)^2))), NA))
-
-bge.table.season <- subset %>% 
-  mutate(combined.deldoc = ifelse(is.na(combined.deldoc), ave_del.doc_station, combined.deldoc),
-         combined.deldoc = ifelse(is.na(combined.deldoc), ave_del.doc.star_station, combined.deldoc)) %>% 
-  group_by(Season) %>% 
-  summarise_at(vars(combined.deldoc, contains("ave")), list(mean = mean, sd = sd), na.rm = T) %>% 
-  arrange(factor(Season, levels = levels))
-
-
-max(bge.table.data$remin.end)
-```
-
-    ## [1] 110
-
-``` r
-min(bge.table.data$remin.end)
-```
-
-    ## [1] 8
+# Bioavailability Tables
 
 ``` r
 bioav.table.data <- export_bioav %>% 
@@ -363,9 +444,7 @@ Convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup>
 
 ``` r
 bcd.data <- bcd %>% 
-  select(Season, Cruise:degree_bin, int.bcd_station, int.bp, int.NPP, bp.npp, bcd.npp_station) %>% 
-  rename(int.bcd = int.bcd_station,
-         bcd.npp = bcd.npp_station) %>% 
+  select(Season, Cruise:degree_bin, int.bcd, int.bp, int.NPP, bp.npp, bcd.npp) %>% 
   distinct() %>% 
   mutate_at(vars(int.bcd, int.bp, int.NPP), funs(./10^3)) %>% 
   mutate_at(vars(bp.npp, bcd.npp), funs(./10^2)) %>% 
@@ -429,8 +508,8 @@ field.doc_table
     ##   Cruise Season        mean    sd
     ##   <chr>  <chr>        <dbl> <dbl>
     ## 1 AT34   Late Spring   6.51 3.42 
-    ## 2 AT38   Early Autumn 12.7  3.33 
-    ## 3 AT39   Early Spring  3.58 0.755
+    ## 2 AT38   Early Autumn 13.2  3.29 
+    ## 3 AT39   Early Spring  3.58 0.760
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/BCD%20and%20NPP%20bar%20plots-1.png)<!-- -->
 
@@ -456,14 +535,14 @@ y = alpha \* (e^beta \* x) + theta
 
     ## $alpha
     ## (Intercept) 
-    ##     0.22086 
+    ##   0.2805044 
     ## 
     ## $beta
     ##    int.NPP 
-    ## -0.3066193 
+    ## -0.3326912 
     ## 
     ## $theta
-    ## [1] 0.05297107
+    ## [1] 0.03992136
 
 ``` r
 model <- nls(bcd.npp ~ alpha * exp(beta * int.NPP) + theta , data = bcd.data, start = start)
@@ -478,16 +557,16 @@ summary(model)
     ## 
     ## Parameters:
     ##        Estimate Std. Error t value Pr(>|t|)    
-    ## alpha   2.15650    1.63651   1.318  0.19725    
-    ## beta  -15.81365    5.73445  -2.758  0.00967 ** 
-    ## theta   0.21637    0.02043  10.591    8e-12 ***
+    ## alpha   1.85123    0.73288   2.526 0.016862 *  
+    ## beta  -10.22769    2.73787  -3.736 0.000757 ***
+    ## theta   0.21708    0.02325   9.338  1.6e-10 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 0.09965 on 31 degrees of freedom
+    ## Residual standard error: 0.1083 on 31 degrees of freedom
     ## 
     ## Number of iterations to convergence: 11 
-    ## Achieved convergence tolerance: 6.218e-07
+    ## Achieved convergence tolerance: 2.493e-06
 
 ## Plots
 

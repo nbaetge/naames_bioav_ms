@@ -365,7 +365,7 @@ ba_curves <- bge %>%
 ```
 ## DOC
 
-```{r incubation delta cells, message=FALSE, warning=FALSE}
+```{r incubation delta doc, message=FALSE, warning=FALSE}
 doc_curves <-  bge %>% 
   filter(Treatment == "Control") %>% 
   drop_na(sd_combined_doc) %>% 
