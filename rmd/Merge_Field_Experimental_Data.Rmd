@@ -163,7 +163,8 @@ bcd <- interpolated.df %>%
   group_by(Spring_Autumn) %>% 
   fill(c(contains("bge")), .direction = "downup") %>% 
   ungroup() %>% 
-  mutate(bcd = round(interp_bp/cruise_bge))  #units are  µmol C / m3 / d, bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
+  mutate(bcd = round(interp_bp/cruise_bge),
+         bcd_global = round(interp_bp/0.26))  #units are  µmol C / m3 / d, bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
   
 ```
 
@@ -172,6 +173,7 @@ int_bcd <- bcd %>%
   group_by(CampCN) %>% 
   filter(Depth <= Ez) %>% 
   mutate(int.bcd = integrateTrapezoid(Depth, bcd, type = "A"),
+         int.bcd_global = integrateTrapezoid(Depth, bcd_global, type = "A"),
          int.bp = integrateTrapezoid(Depth, interp_bp, type = "A"),
          int.ba = integrateTrapezoid(Depth, interp_ba, type = "A")) %>% 
   mutate_at(vars(contains("int.bcd")), round) %>% 
@@ -179,7 +181,8 @@ int_bcd <- bcd %>%
   mutate_at(vars(contains("int.")), funs(./Ez)) %>% 
   mutate(int.NPP = Ez_NPP/Ez,
          bp.npp = int.bp/int.NPP * 100,
-         bcd.npp = int.bcd/int.NPP * 100) %>% 
+         bcd.npp = int.bcd/int.NPP * 100,
+         bcd.npp_global = int.bcd_global/int.NPP * 100) %>% 
   distinct() %>% 
   ungroup()
 ```

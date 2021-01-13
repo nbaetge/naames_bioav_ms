@@ -321,9 +321,9 @@ ba_curves <- bge %>%
   drop_na(norm_cells) %>% 
   # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_cells, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.4) +
-  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.5) +
-  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.5) +
+  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.5) +
+  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.7) +
+  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
  labs(x = expression(italic("Days")), y = expression(italic(paste("∆ Cells, L"^-1)))) +
@@ -340,9 +340,9 @@ doc_curves <-  bge %>%
   drop_na(sd_combined_doc) %>% 
   # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.4) +
-  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.5) +
-  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.5) +
+  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.5) +
+  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.7) +
+  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
  labs(x = expression(italic("Days")), y = expression(italic(paste("∆ DOC, µmol C L"^-1)))) +
@@ -352,9 +352,10 @@ doc_curves <-  bge %>%
 ```
 
 ``` r
-ba_curves | doc_curves + 
-  plot_layout(guides = "collect", tag_level = "new") &
-  theme(plot.tag = element_text(size = 14)) 
+ba_curves + doc_curves + 
+   plot_annotation(tag_levels = "a") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 14))
 ```
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
@@ -371,7 +372,7 @@ bge <- bge_summary %>%
             xlab = F,
             ylab = expression(italic("BGE")),
             add = "jitter",
-            add.params = list(shape = 21, fill = "Station"), 
+            add.params = list(shape = 21, size = 4, fill = "Station"), 
             outlier.shape = NA,
             width = 0.5,
             ggtheme = theme_classic2(base_size = 16)) + 
@@ -391,7 +392,7 @@ resp <- bge_summary %>%
             xlab = F,
             ylab = expression(italic("Cell Specific Respiration, fmol C L"^-1)),
             add = "jitter",
-            add.params = list(shape = 21, fill = "Station"), 
+            add.params = list(shape = 21, size = 4, fill = "Station"), 
             outlier.shape = NA,
             width = 0.5,
             ggtheme = theme_classic2(base_size = 16)) + 
@@ -403,9 +404,10 @@ resp <- bge_summary %>%
 ```
 
 ``` r
-bge | resp + 
-  plot_layout(guides = "collect", tag_level = "new") &
-  theme(plot.tag = element_text(size = 14)) 
+bge + resp  + 
+   plot_annotation(tag_levels = "a") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 14))
 ```
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
@@ -414,27 +416,53 @@ bge | resp +
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/Remin%20plots-1.png)<!-- -->
 
-# Bioavailability Tables
+# Bioavailability & BGE Tables
 
 ``` r
+bge.table.data <- bge_summary %>% 
+  group_by(Cruise, Season, Station, degree_bin) %>% 
+  summarize_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  arrange(factor(Season, levels = levels), degree_bin)
+
+bge.table.data2 <- bge_summary %>% 
+  group_by(Cruise, Season) %>% 
+  summarize_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  arrange(factor(Season, levels = levels))
+
 bioav.table.data <- export_bioav %>% 
   select(Cruise:Station, degree_bin, end.remin, stationary.harvest, initial.doc:longterm.ddoc) %>% 
-  distinct() %>% 
-  group_by(Season, Cruise, Station, degree_bin)
+  mutate(shortterm.del.doc = ifelse(shortterm.del.doc < 2, NA, shortterm.del.doc),
+         shortterm.bioav.doc = ifelse(is.na(shortterm.del.doc), NA, shortterm.bioav.doc),
+         shortterm.ddoc = ifelse(is.na(shortterm.del.doc), NA, shortterm.ddoc),
+         
+         longterm.del.doc = ifelse(end.remin < 10, NA, longterm.del.doc),
+          longterm.bioav.doc = ifelse(is.na( longterm.del.doc), NA,  longterm.bioav.doc),
+          longterm.ddoc = ifelse(is.na( longterm.del.doc), NA,longterm.ddoc),
+         
+         
+         persis.doc = ifelse(persis.doc < 2, NA, persis.doc),
+         
+         percent_persis.doc = ifelse(is.na(persis.doc), NA, percent_persis.doc)) 
 
-bioav.table <- bioav.table.data %>% 
-  summarise_at(vars(initial.doc:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T) %>% 
+station_bioav <- bioav.table.data %>% 
+ group_by(Cruise, Season, Station, degree_bin) %>% 
+  summarize_at(vars(initial.doc:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
-  select(Season:degree_bin, contains(c("accm.doc", "shortterm.bioav.doc", "shortterm.ddoc", "longterm.del.doc",  "longterm.bioav.doc", "longterm.ddoc",  "persis") ))
+  ungroup()
 
-bioav.table.summary <- bioav.table %>% 
-  ungroup() %>% 
-  group_by(Season) %>% 
-  summarise_at(vars(contains("mean")), list(season.ave = mean, sd.season = sd), na.rm = T) %>% 
-  arrange(factor(Season, levels = levels))
+cruise_bioav <- bioav.table.data %>% 
+ group_by(Cruise, Season) %>% 
+  summarize_at(vars(initial.doc:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  arrange(factor(Season, levels = levels)) %>% 
+  ungroup() 
+
+time <- export_bioav %>% 
+  select(Season, Cruise, degree_bin, Station, Bottle, stationary.harvest, end.remin) %>% 
+  arrange(factor(Season, levels = levels), degree_bin) %>% 
+  ungroup()
 ```
 
-# Box plots: NPP, BP, BA, µ
+# Box plots: NPP, BP, BA
 
 <img src="BCD_DOC-Bioavailability_files/figure-gfm/patchwork rate & abundance plots-1.png" style="display: block; margin: auto;" />
 
@@ -444,43 +472,48 @@ Convert BCD and NPP to mmol C m<sup>-3</sup> d<sup>-1</sup>
 
 ``` r
 bcd.data <- bcd %>% 
-  select(Season, Cruise:degree_bin, int.bcd, int.bp, int.NPP, bp.npp, bcd.npp) %>% 
+  select(Season, Cruise:degree_bin, Station, int.bcd, int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp, bcd.npp_global) %>% 
   distinct() %>% 
-  mutate_at(vars(int.bcd, int.bp, int.NPP), funs(./10^3)) %>% 
-  mutate_at(vars(bp.npp, bcd.npp), funs(./10^2)) %>% 
+  mutate_at(vars(int.bcd, int.bcd_global, int.bp, int.NPP), funs(./10^3)) %>% 
+  mutate_at(vars(bp.npp, bcd.npp, bcd.npp_global), funs(./10^2)) %>% 
   mutate(degree_bin = as.character(degree_bin)) 
 
 bcd.summary <- bcd.data %>% 
-  group_by(Season, Cruise, degree_bin) %>% 
-  summarise_at(vars(int.bcd, int.bp, int.NPP, bp.npp, bcd.npp), list(mean = mean, sd = sd)) %>% 
+  group_by(Season, Cruise, Station, degree_bin) %>% 
+  summarise_at(vars(int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp_global), list(mean = mean, sd = sd)) %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
   select(Season:degree_bin, contains(c("int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp")))
   
 bcd.cruise.summary <- bcd.data %>% 
   group_by(Season, Cruise) %>% 
-  summarise_at(vars(int.bcd, int.bp, int.NPP, bp.npp, bcd.npp), list(cruise_mean = mean, cruise_sd = sd, cruise_max = max, cruise_min = min)) %>% 
+  summarise_at(vars(int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp_global), list(cruise_mean = mean, cruise_sd = sd, cruise_max = max, cruise_min = min)) %>% 
   arrange(factor(Season, levels = levels)) %>% 
   select(Season, contains(c("int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp")))
 
 bcd.overall.summary <- bcd.data %>% 
-  summarise_at(vars(int.bcd, int.bp, int.NPP, bp.npp, bcd.npp), list(overall_mean = mean, overall_sd = sd, max = max, min = min))
+  summarise_at(vars(int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp_global), list(overall_mean = mean, overall_sd = sd, max = max, min = min))
 
 bcd.npp.summary <- bcd.summary %>% 
-  select(Season, Cruise, degree_bin, int.NPP_mean, int.bcd_mean) %>% 
+  select(Season, Cruise,  degree_bin, int.NPP_mean, int.bcd_global_mean) %>% 
   rename(NPP = int.NPP_mean,
-         BCD = int.bcd_mean) %>% 
+         BCD = int.bcd_global_mean) %>% 
   pivot_longer(c(NPP, BCD), names_to = "rate", values_to = "ave") %>% 
   left_join(., bcd.summary %>% 
-  select(Season, Cruise, degree_bin, int.NPP_sd, int.bcd_sd) %>% 
+  select(Season, Cruise, degree_bin,  int.NPP_sd, int.bcd_global_sd) %>% 
     rename(NPP = int.NPP_sd,
-         BCD = int.bcd_sd) %>% 
+         BCD = int.bcd_global_sd) %>% 
   pivot_longer(c(NPP, BCD), names_to = "rate", values_to = "sd"))
 ```
 
-    ## Joining, by = c("Season", "Cruise", "degree_bin", "rate")
+    ## Adding missing grouping variables: `Station`
+    ## Adding missing grouping variables: `Station`
+
+    ## Joining, by = c("Station", "Season", "Cruise", "degree_bin", "rate")
 
 ``` r
-bcd.npp_summary_table <- left_join(bcd.summary, bcd.cruise.summary)
+bcd.npp_summary_table <- left_join(bcd.summary, bcd.cruise.summary) %>% 
+  mutate_at(vars(contains(c("int.NPP", "int.bp", "int.bcd"))), round, 3) %>% 
+  mutate_at(vars(contains(c("bp.npp", "bcd.npp"))), round, 2)
 ```
 
     ## Joining, by = "Season"
@@ -524,7 +557,7 @@ field.doc_table
 ### exponential model using lm function
 
 ``` r
-reg2 <- lm(log(bcd.npp) ~ int.NPP, data = bcd.data)
+reg2 <- lm(log(bcd.npp_global) ~ int.NPP, data = bcd.data)
 
 reg2.df <- data.frame(x = bcd.data$int.NPP, y = exp(fitted(reg2)))
 ```
@@ -535,17 +568,17 @@ y = alpha \* (e^beta \* x) + theta
 
     ## $alpha
     ## (Intercept) 
-    ##   0.2805044 
+    ##    0.312114 
     ## 
     ## $beta
     ##    int.NPP 
-    ## -0.3326912 
+    ## -0.4936019 
     ## 
     ## $theta
-    ## [1] 0.03992136
+    ## [1] 0.04601972
 
 ``` r
-model <- nls(bcd.npp ~ alpha * exp(beta * int.NPP) + theta , data = bcd.data, start = start)
+model <- nls(bcd.npp_global ~ alpha * exp(beta * int.NPP) + theta , data = bcd.data, start = start)
 
 model.df <- data.frame(x = bcd.data$int.NPP, y = predict(model, list(x = bcd.data$int.NPP)) )
 
@@ -553,20 +586,20 @@ summary(model)
 ```
 
     ## 
-    ## Formula: bcd.npp ~ alpha * exp(beta * int.NPP) + theta
+    ## Formula: bcd.npp_global ~ alpha * exp(beta * int.NPP) + theta
     ## 
     ## Parameters:
-    ##        Estimate Std. Error t value Pr(>|t|)    
-    ## alpha   1.85123    0.73288   2.526 0.016862 *  
-    ## beta  -10.22769    2.73787  -3.736 0.000757 ***
-    ## theta   0.21708    0.02325   9.338  1.6e-10 ***
+    ##       Estimate Std. Error t value Pr(>|t|)    
+    ## alpha  1.94713    0.54626   3.564   0.0012 ** 
+    ## beta  -8.89252    1.90546  -4.667 5.57e-05 ***
+    ## theta  0.20132    0.02245   8.969 4.03e-10 ***
     ## ---
     ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
     ## 
-    ## Residual standard error: 0.1083 on 31 degrees of freedom
+    ## Residual standard error: 0.1012 on 31 degrees of freedom
     ## 
     ## Number of iterations to convergence: 11 
-    ## Achieved convergence tolerance: 2.493e-06
+    ## Achieved convergence tolerance: 3.152e-06
 
 ## Plots
 
