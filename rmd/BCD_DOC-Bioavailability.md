@@ -203,7 +203,8 @@ vl_btl_doc_blandr <- vessel_doc %>%
   geom_hline(yintercept = vessel_doc.blandr$upperLOA, size = 1, linetype = 3) +
   geom_hline(yintercept = vessel_doc.blandr$lowerLOA, size = 1, linetype = 3) +
   geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(y = expression(italic(paste("Difference: Bottle DOC - Vial DOC, µmol C L"^-1))), x = expression(italic(paste("Mean: (Bottle DOC + Vial DOC) / 2, µmol C L"^-1)))) +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(y = expression(paste("Difference: Bottle DOC - Vial DOC, µmol C L"^-1)), x = expression(paste("Mean: (Bottle DOC + Vial DOC) / 2, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(fill = F)
@@ -216,10 +217,11 @@ vl_btl_doc <- vessel_doc %>%
   geom_abline(intercept = vessel_doc.reg$regression.results[3,2],
               slope = vessel_doc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(italic(paste("Bottle DOC, µmol C L"^-1))), y = expression(italic(paste("Vial DOC, µmol C L"^-1))), fill = "Early Spring Station") +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(x = expression(paste("Bottle DOC, µmol C L"^-1)), y = expression(paste("Vial DOC, µmol C L"^-1)), fill = "Early Spring Station") +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
-   annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
+   annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", ("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
   xlim(50, 85) +
   ylim(50, 85) +
   guides(fill = F)
@@ -264,7 +266,8 @@ vl_btl_cell_blandr <- vessel_comparisons %>%
   geom_hline(yintercept = vessel_cells.blandr$upperLOA, size = 1, linetype = 3) +
   geom_hline(yintercept = vessel_cells.blandr$lowerLOA, size = 1, linetype = 3) +
   geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(y = expression(italic(paste("Difference: Bottle Cells - Vial Cells, L"^-1))), x = expression(italic(paste("Mean: (Bottle Cells + Vial Cells) / 2, L"^-1)))) +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(y = expression(paste("Difference: Bottle Cells - Vial Cells, L"^-1)), x = expression(paste("Mean: (Bottle Cells + Vial Cells) / 2, L"^-1))) +
   theme_classic2(base_size = 16) 
 ```
 
@@ -276,12 +279,13 @@ vl_btl_cell <- vessel_comparisons %>%
   geom_abline(intercept = vessel_cells.reg$regression.results[3,2],
               slope = vessel_cells.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
  geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(italic(paste("Bottle Cells L"^-1))), y = expression(italic(paste("Vial Cells L"^-1))), fill = "NAAMES 4 Station") +
+  labs(x = expression(paste("Bottle Cells L"^-1)), y = expression(paste("Vial Cells L"^-1)), fill = "NAAMES 4 Station") +
   guides(fill = F) +
   theme_classic2(base_size = 16) +
+  scale_fill_brewer(palette = "Dark2") +
   theme(legend.title = element_blank()) +
-  annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
-  #theme(plot.caption = element_text(face = "italic")) +
+  annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", ("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
+  #theme(plot.caption = element_text(face = "")) +
   ylim(4.5*10^8, 3.0*10^9) +
   xlim(4.5*10^8, 3.0*10^9)
 ```
@@ -319,17 +323,18 @@ unique(doc_og$per_increase)
 ba_curves <- bge %>% 
   filter(Treatment == "Control") %>% 
   drop_na(norm_cells) %>% 
+  select(Season, Station, Days, norm_cells, sd_norm_cells) %>% 
+  distinct() %>% 
   # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_cells, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.5) +
-  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.7) +
-  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("Days")), y = expression(italic(paste("∆ Cells, L"^-1)))) +
+  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = Station), width = 0.3, alpha = 0.5) +
+  geom_line(aes(color = Station), alpha = 0.7) +
+  geom_point(aes(fill = Station), size = 3, shape = 21, alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+ labs(x = expression(""), y = expression(paste("∆ Cells, L"^-1)), fill = "Station") +
   theme_classic2(base_size = 16) +
-  theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F, fill = F)
+  guides(color = F, linetype = F) + facet_grid(~factor(Season, levels = levels))
 ```
 
 ## DOC
@@ -338,79 +343,158 @@ ba_curves <- bge %>%
 doc_curves <-  bge %>% 
   filter(Treatment == "Control") %>% 
   drop_na(sd_combined_doc) %>% 
+  select(Season, Station, Days, norm_doc, sd_norm_doc) %>% 
+  distinct() %>% 
   # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.5) +
-  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.7) +
-  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("Days")), y = expression(italic(paste("∆ DOC, µmol C L"^-1)))) +
+  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = Station), width = 1, alpha = 0.5) +
+  geom_line(aes(color = Station), alpha = 0.7) +
+  geom_point(aes(fill = Station), size = 3, shape = 21, alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+ labs(x = expression("Days"), y = expression(paste("∆ DOC, µmol C L"^-1)), fill = "") +
   theme_classic2(base_size = 16) +
-  theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F)
+  theme(strip.background.x = element_blank(),
+        strip.text.x = element_blank()) +
+  guides(color = F, fill = F) +
+  facet_grid(~factor(Season, levels = levels))
 ```
 
 ``` r
-ba_curves + doc_curves + 
+ba_curves / doc_curves + 
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
 ```
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+\# Delta Stats
+
+stats for ∆POC and ∆DOC
+
+``` r
+delta_stats <- bge_summary %>% 
+  select(Cruise, degree_bin,  del.poc, del.doc, del.doc.star) %>% 
+  mutate(del.doc = ifelse(is.na(del.doc), del.doc.star, del.doc)) %>% 
+  select(-del.doc.star)
+
+longterm_delta_stats <- export_bioav %>% 
+  select(Cruise, degree_bin, longterm.del.doc) %>% 
+  drop_na(longterm.del.doc) %>% 
+  mutate(season = ifelse(Cruise == "AT38", "Autumn", "Spring"))
+```
+
+``` r
+# delta_stats %>% 
+  # kruskal_test(del.poc ~ Cruise)
+
+compare_means(del.poc ~ Cruise, delta_stats, method = "kruskal.test")
+```
+
+    ## # A tibble: 1 x 6
+    ##   .y.         p p.adj p.format p.signif method        
+    ##   <chr>   <dbl> <dbl> <chr>    <chr>    <chr>         
+    ## 1 del.poc 0.443  0.44 0.44     ns       Kruskal-Wallis
+
+``` r
+# delta_stats %>%
+#   kruskal_test(del.doc ~ Cruise)
+
+compare_means(del.doc ~ Cruise, delta_stats, method = "kruskal.test")
+```
+
+    ## # A tibble: 1 x 6
+    ##   .y.         p p.adj p.format p.signif method        
+    ##   <chr>   <dbl> <dbl> <chr>    <chr>    <chr>         
+    ## 1 del.doc 0.132  0.13 0.13     ns       Kruskal-Wallis
+
+``` r
+delta_stats %>%
+  group_by(Cruise) %>% 
+  kruskal_test(del.doc ~ degree_bin)
+```
+
+    ## # A tibble: 3 x 7
+    ##   Cruise .y.         n statistic    df     p method        
+    ## * <chr>  <chr>   <int>     <dbl> <int> <dbl> <chr>         
+    ## 1 AT34   del.doc    10      1.5      3 0.682 Kruskal-Wallis
+    ## 2 AT38   del.doc    12      3.32     2 0.191 Kruskal-Wallis
+    ## 3 AT39   del.doc    12      1.5      1 0.221 Kruskal-Wallis
+
+``` r
+compare_means(longterm.del.doc ~ Cruise, longterm_delta_stats, method = "kruskal.test")
+```
+
+    ## # A tibble: 1 x 6
+    ##   .y.                    p  p.adj p.format p.signif method        
+    ##   <chr>              <dbl>  <dbl> <chr>    <chr>    <chr>         
+    ## 1 longterm.del.doc 0.00167 0.0017 0.0017   **       Kruskal-Wallis
+
+``` r
+compare_means(longterm.del.doc ~ Cruise, longterm_delta_stats)
+```
+
+    ## # A tibble: 3 x 8
+    ##   .y.              group1 group2       p  p.adj p.format p.signif method  
+    ##   <chr>            <chr>  <chr>    <dbl>  <dbl> <chr>    <chr>    <chr>   
+    ## 1 longterm.del.doc AT34   AT38   0.00130 0.0039 0.0013   **       Wilcoxon
+    ## 2 longterm.del.doc AT34   AT39   0.120   0.12   0.1198   ns       Wilcoxon
+    ## 3 longterm.del.doc AT38   AT39   0.0165  0.033  0.0165   *        Wilcoxon
+
+``` r
+longterm_delta_stats %>% 
+  group_by(Cruise) %>% 
+  kruskal_test(longterm.del.doc ~ degree_bin)
+```
+
+    ## # A tibble: 3 x 7
+    ##   Cruise .y.                  n statistic    df      p method        
+    ## * <chr>  <chr>            <int>     <dbl> <int>  <dbl> <chr>         
+    ## 1 AT34   longterm.del.doc     7      5.14     4 0.273  Kruskal-Wallis
+    ## 2 AT38   longterm.del.doc    12      9.22     5 0.101  Kruskal-Wallis
+    ## 3 AT39   longterm.del.doc    12      4.15     1 0.0415 Kruskal-Wallis
+
+``` r
+longterm_delta_stats %>% 
+  group_by(season) %>% 
+  summarize_at(vars(longterm.del.doc), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  mutate(foldchange = first(mean)/last(mean))
+```
+
+    ## # A tibble: 2 x 4
+    ##   season  mean    sd foldchange
+    ##   <chr>  <dbl> <dbl>      <dbl>
+    ## 1 Autumn  5.78  1.35       1.54
+    ## 2 Spring  3.76  1.24       1.54
+
+``` r
+longterm_delta_stats %>% 
+  summarize_at(vars(longterm.del.doc), list(mean = mean, sd = sd), na.rm = T) %>% 
+  mutate(cv = sd/mean)
+```
+
+    ## # A tibble: 1 x 3
+    ##    mean    sd    cv
+    ##   <dbl> <dbl> <dbl>
+    ## 1  4.54  1.61 0.355
 
 # BGE
 
 ``` r
-my_comparisons <- list( c("Early Spring", "Late Spring"), c("Early Spring", "Early Autumn"), c("Early Spring", "Late Autumn"), c("Late Spring", "Early Autumn"), c("Late Spring", "Late Autumn"), c("Early Autumn", "Late Autumn"))
-
-bge <- bge_summary %>% 
+bge_box <- bge_summary %>% 
   drop_na(bge) %>% 
-  ggboxplot(., x = "Season", y = "bge", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
-            xlab = F,
-            ylab = expression(italic("BGE")),
-            add = "jitter",
-            add.params = list(shape = 21, size = 4, fill = "Station"), 
-            outlier.shape = NA,
-            width = 0.5,
-            ggtheme = theme_classic2(base_size = 16)) + 
-  stat_compare_means(comparisons = my_comparisons, 
-                     label = "p.signif",
-                     step.increase = 0.12,
-                     tip.length = 0.01) + 
-  stat_compare_means(label.y = 0.1)  + 
-  rremove("legend")
+  ggplot(aes(x = factor(Season, levels = levels), y = bge)) +
+  geom_boxplot(width = 0.3) +
+  geom_point(aes(fill = Station), shape = 21, size = 3, alpha = 0.7) +
+  theme_classic2(base_size = 16) +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(x = "", y = "BGE") + 
+  stat_compare_means()  
+  
+  bge_box
 ```
 
-``` r
-resp <- bge_summary %>% 
-  drop_na(cell_resp) %>% 
-  ggboxplot(., x = "Season", y = "cell_resp", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
-            xlab = F,
-            ylab = expression(italic("Cell Specific Respiration, fmol C L"^-1)),
-            add = "jitter",
-            add.params = list(shape = 21, size = 4, fill = "Station"), 
-            outlier.shape = NA,
-            width = 0.5,
-            ggtheme = theme_classic2(base_size = 16)) + 
-  stat_compare_means(comparisons = my_comparisons, 
-                     label = "p.signif",
-                     step.increase = 0.12,
-                     tip.length = 0.01) + 
-  stat_compare_means(label.y = 0.1) 
-```
-
-``` r
-bge + resp  + 
-   plot_annotation(tag_levels = "a") &
-  plot_layout(guides = "collect") +
-  theme(plot.tag = element_text(size = 14))
-```
-
-![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
 
 # Experiments at 44˚N
 
@@ -547,6 +631,13 @@ field.doc_table
 ![](BCD_DOC-Bioavailability_files/figure-gfm/BCD%20and%20NPP%20bar%20plots-1.png)<!-- -->
 
 # Regressions: Property-Property
+
+``` r
+summary(bcd.data$int.NPP)
+```
+
+    ##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+    ##  0.1142  0.2328  0.6400  0.7681  0.9524  3.3406
 
 ## BCD v NPP
 

@@ -23,22 +23,9 @@ library(blandr)
 
 
 ```{r Aesthetics, include = FALSE}
-custom_theme <- function() {
-  theme_test(base_size = 16) %+replace%
-    theme(legend.position = "top",
-          #legend.title = element_blank(),
-          legend.spacing.x = unit(0.5,"cm"),
-          legend.background = element_rect(fill = "transparent",colour = NA),
-          legend.key = element_rect(fill = "transparent",colour = NA),
-          panel.background = element_rect(fill = "transparent",colour = NA),
-          plot.background = element_rect(fill = "transparent",colour = NA),
-          strip.text.x = element_text(size = 14, color = "white", face = "bold.italic"),
-          strip.text.y = element_text(size = 14, color = "white", face = "bold.italic", angle = 270),
-          strip.background = element_rect(color = "black", fill = "#005a9c", size = 0.5, linetype = "solid")) 
-}
-
-
 custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "A" = "#E41A1C", "B" = "#377EB8", "BCD" = "#377EB8" , "NPP" = "#4DAF4A" ) 
+
+matlab.colors <- c("#A50026", "#D73027", "#F46D43", "#FDAE61",  "#ABD9E9", "#74ADD1", "#4575B4", "#313695")
 
 custom.shapes <- c("Early Spring" = 21, "Late Spring" = 22,"Early Autumn" = 23)
 
@@ -162,7 +149,7 @@ doc_doc.star.blandr.plot <- vessel_comparisons %>%
   geom_hline(yintercept = doc_doc.star.blandr$lowerLOA, size = 1, linetype = 3) +
    geom_point(aes(fill = factor(Season, levels = levels)), color = "black",  shape = 21, size = 4, alpha = 0.7) +
   scale_fill_manual(values = custom.colors) +
-  labs(y = expression(italic(paste("Difference: DOC - DOC*, µmol C L"^-1))), x = expression(italic(paste("Mean: (DOC + DOC*) / 2, µmol C L"^-1)))) +
+  labs(y = expression(paste("Difference: DOC - DOC*, µmol C L"^-1)), x = expression(paste("Mean: (DOC + DOC*) / 2, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) 
 ```
@@ -177,12 +164,12 @@ doc_doc.star.reg.plot <- vessel_comparisons %>%
   geom_abline(intercept = doc_doc.star.reg$regression.results[3,2],
               slope = doc_doc.star.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(y = expression(italic(paste("DOC*, µmol C L"^-1))), x = expression(italic(paste("DOC, µmol C L"^-1)))) +
+  labs(y = expression(paste("DOC*, µmol C L"^-1)), x = expression(paste("DOC, µmol C L"^-1))) +
   scale_fill_manual(values = custom.colors) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(fill = F) +
-   annotate( geom = "text", label = expression(atop("y = 0.90x + 4.35", paste("r"^2,"= 0.83, ", italic("p "), "<< 0.01"))), x = 78, y = 51, size = 3) +
+   annotate( geom = "text", label = expression(atop("y = 0.90x + 4.35", paste("r"^2,"= 0.83, ", ("p "), "<< 0.01"))), x = 78, y = 51, size = 3) +
   xlim(50, 80) +
   ylim(50, 80)
 
@@ -229,7 +216,8 @@ vl_btl_doc_blandr <- vessel_doc %>%
   geom_hline(yintercept = vessel_doc.blandr$upperLOA, size = 1, linetype = 3) +
   geom_hline(yintercept = vessel_doc.blandr$lowerLOA, size = 1, linetype = 3) +
   geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(y = expression(italic(paste("Difference: Bottle DOC - Vial DOC, µmol C L"^-1))), x = expression(italic(paste("Mean: (Bottle DOC + Vial DOC) / 2, µmol C L"^-1)))) +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(y = expression(paste("Difference: Bottle DOC - Vial DOC, µmol C L"^-1)), x = expression(paste("Mean: (Bottle DOC + Vial DOC) / 2, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(fill = F)
@@ -242,10 +230,11 @@ vl_btl_doc <- vessel_doc %>%
   geom_abline(intercept = vessel_doc.reg$regression.results[3,2],
               slope = vessel_doc.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(italic(paste("Bottle DOC, µmol C L"^-1))), y = expression(italic(paste("Vial DOC, µmol C L"^-1))), fill = "Early Spring Station") +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(x = expression(paste("Bottle DOC, µmol C L"^-1)), y = expression(paste("Vial DOC, µmol C L"^-1)), fill = "Early Spring Station") +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
-   annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
+   annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", ("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
   xlim(50, 85) +
   ylim(50, 85) +
   guides(fill = F)
@@ -278,7 +267,8 @@ vl_btl_cell_blandr <- vessel_comparisons %>%
   geom_hline(yintercept = vessel_cells.blandr$upperLOA, size = 1, linetype = 3) +
   geom_hline(yintercept = vessel_cells.blandr$lowerLOA, size = 1, linetype = 3) +
   geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(y = expression(italic(paste("Difference: Bottle Cells - Vial Cells, L"^-1))), x = expression(italic(paste("Mean: (Bottle Cells + Vial Cells) / 2, L"^-1)))) +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(y = expression(paste("Difference: Bottle Cells - Vial Cells, L"^-1)), x = expression(paste("Mean: (Bottle Cells + Vial Cells) / 2, L"^-1))) +
   theme_classic2(base_size = 16) 
 ```
 
@@ -291,12 +281,13 @@ vl_btl_cell <- vessel_comparisons %>%
   geom_abline(intercept = vessel_cells.reg$regression.results[3,2],
               slope = vessel_cells.reg$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
  geom_point(aes(fill = Station), color = "black", shape = 21, size = 4, alpha = 0.7 ) +
-  labs(x = expression(italic(paste("Bottle Cells L"^-1))), y = expression(italic(paste("Vial Cells L"^-1))), fill = "NAAMES 4 Station") +
+  labs(x = expression(paste("Bottle Cells L"^-1)), y = expression(paste("Vial Cells L"^-1)), fill = "NAAMES 4 Station") +
   guides(fill = F) +
   theme_classic2(base_size = 16) +
+  scale_fill_brewer(palette = "Dark2") +
   theme(legend.title = element_blank()) +
-  annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
-  #theme(plot.caption = element_text(face = "italic")) +
+  annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", ("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
+  #theme(plot.caption = element_text(face = "")) +
   ylim(4.5*10^8, 3.0*10^9) +
   xlim(4.5*10^8, 3.0*10^9)
 
@@ -329,12 +320,12 @@ doc_og %>%
   geom_label(aes(x = 26, y = 52, label = "Cruise End"), size = 3) +
   geom_vline(aes(xintercept = 7), linetype = 2) +
   geom_label(aes(x = 7, y = 52, label = "Large Volume Collection"), size = 3) +
-  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd, color = factor(Season, levels = levels)), width = 0.5) +
+  geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd, color = factor(Season, levels = levels)), width = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("Days")), y = expression(italic(paste("DOC, µmol C L"^-1)))) +
+ labs(x = expression("Days"), y = expression(paste("DOC, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(color = F, fill = F) 
@@ -351,17 +342,18 @@ doc_og %>%
 ba_curves <- bge %>% 
   filter(Treatment == "Control") %>% 
   drop_na(norm_cells) %>% 
+  select(Season, Station, Days, norm_cells, sd_norm_cells) %>% 
+  distinct() %>% 
   # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_cells, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.5) +
-  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.7) +
-  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("Days")), y = expression(italic(paste("∆ Cells, L"^-1)))) +
+  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = Station), width = 0.3, alpha = 0.5) +
+  geom_line(aes(color = Station), alpha = 0.7) +
+  geom_point(aes(fill = Station), size = 3, shape = 21, alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+ labs(x = expression(""), y = expression(paste("∆ Cells, L"^-1)), fill = "Station") +
   theme_classic2(base_size = 16) +
-  theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F, fill = F)
+  guides(color = F, linetype = F) + facet_grid(~factor(Season, levels = levels))
 ```
 ## DOC
 
@@ -369,80 +361,114 @@ ba_curves <- bge %>%
 doc_curves <-  bge %>% 
   filter(Treatment == "Control") %>% 
   drop_na(sd_combined_doc) %>% 
+  select(Season, Station, Days, norm_doc, sd_norm_doc) %>% 
+  distinct() %>% 
   # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(Season, levels = levels)), width = 0.3, alpha = 0.5) +
-  geom_line(aes(color = factor(Season, levels = levels), linetype = Station), alpha = 0.7) +
-  geom_point(aes(fill = factor(Season, levels = levels)), shape = 21, alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("Days")), y = expression(italic(paste("∆ DOC, µmol C L"^-1)))) +
+  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = Station), width = 1, alpha = 0.5) +
+  geom_line(aes(color = Station), alpha = 0.7) +
+  geom_point(aes(fill = Station), size = 3, shape = 21, alpha = 0.7) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_fill_brewer(palette = "Dark2") +
+ labs(x = expression("Days"), y = expression(paste("∆ DOC, µmol C L"^-1)), fill = "") +
   theme_classic2(base_size = 16) +
-  theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F)
+  theme(strip.background.x = element_blank(),
+        strip.text.x = element_blank()) +
+  guides(color = F, fill = F) +
+  facet_grid(~factor(Season, levels = levels))
 ```
 
 
-```{r fig.height=6, fig.width=13, message=FALSE, warning=FALSE}
-ba_curves + doc_curves + 
+```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+ba_curves / doc_curves + 
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
 ```
+# Delta Stats
+
+stats for ∆POC and ∆DOC
+
+```{r}
+delta_stats <- bge_summary %>% 
+  select(Cruise, degree_bin,  del.poc, del.doc, del.doc.star) %>% 
+  mutate(del.doc = ifelse(is.na(del.doc), del.doc.star, del.doc)) %>% 
+  select(-del.doc.star)
+
+longterm_delta_stats <- export_bioav %>% 
+  select(Cruise, degree_bin, longterm.del.doc) %>% 
+  drop_na(longterm.del.doc) %>% 
+  mutate(season = ifelse(Cruise == "AT38", "Autumn", "Spring"))
+
+```
+
+```{r}
+# delta_stats %>% 
+  # kruskal_test(del.poc ~ Cruise)
+
+compare_means(del.poc ~ Cruise, delta_stats, method = "kruskal.test")
+
+```
+
+```{r}
+# delta_stats %>%
+#   kruskal_test(del.doc ~ Cruise)
+
+compare_means(del.doc ~ Cruise, delta_stats, method = "kruskal.test")
+```
+
+
+```{r}
+delta_stats %>%
+  group_by(Cruise) %>% 
+  kruskal_test(del.doc ~ degree_bin)
+
+```
+
+
+```{r}
+compare_means(longterm.del.doc ~ Cruise, longterm_delta_stats, method = "kruskal.test")
+```
+
+```{r}
+compare_means(longterm.del.doc ~ Cruise, longterm_delta_stats)
+```
+```{r}
+longterm_delta_stats %>% 
+  group_by(Cruise) %>% 
+  kruskal_test(longterm.del.doc ~ degree_bin)
+  
+```
+
+```{r}
+longterm_delta_stats %>% 
+  group_by(season) %>% 
+  summarize_at(vars(longterm.del.doc), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  mutate(foldchange = first(mean)/last(mean))
+```
+```{r}
+longterm_delta_stats %>% 
+  summarize_at(vars(longterm.del.doc), list(mean = mean, sd = sd), na.rm = T) %>% 
+  mutate(cv = sd/mean)
+```
+
+
 
 # BGE
 
-```{r message=FALSE, warning=FALSE}
-my_comparisons <- list( c("Early Spring", "Late Spring"), c("Early Spring", "Early Autumn"), c("Early Spring", "Late Autumn"), c("Late Spring", "Early Autumn"), c("Late Spring", "Late Autumn"), c("Early Autumn", "Late Autumn"))
-
-bge <- bge_summary %>% 
+```{r fig.height=4, fig.width=7, message=FALSE}
+bge_box <- bge_summary %>% 
   drop_na(bge) %>% 
-  ggboxplot(., x = "Season", y = "bge", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
-            xlab = F,
-            ylab = expression(italic("BGE")),
-            add = "jitter",
-            add.params = list(shape = 21, size = 4, fill = "Station"), 
-            outlier.shape = NA,
-            width = 0.5,
-            ggtheme = theme_classic2(base_size = 16)) + 
-  stat_compare_means(comparisons = my_comparisons, 
-                     label = "p.signif",
-                     step.increase = 0.12,
-                     tip.length = 0.01) + 
-  stat_compare_means(label.y = 0.1)  + 
-  rremove("legend")
+  ggplot(aes(x = factor(Season, levels = levels), y = bge)) +
+  geom_boxplot(width = 0.3) +
+  geom_point(aes(fill = Station), shape = 21, size = 3, alpha = 0.7) +
+  theme_classic2(base_size = 16) +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(x = "", y = "BGE") + 
+  stat_compare_means()  
   
+  bge_box
 ```
-
-```{r message=FALSE, warning=FALSE}
-resp <- bge_summary %>% 
-  drop_na(cell_resp) %>% 
-  ggboxplot(., x = "Season", y = "cell_resp", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
-            xlab = F,
-            ylab = expression(italic("Cell Specific Respiration, fmol C L"^-1)),
-            add = "jitter",
-            add.params = list(shape = 21, size = 4, fill = "Station"), 
-            outlier.shape = NA,
-            width = 0.5,
-            ggtheme = theme_classic2(base_size = 16)) + 
-  stat_compare_means(comparisons = my_comparisons, 
-                     label = "p.signif",
-                     step.increase = 0.12,
-                     tip.length = 0.01) + 
-  stat_compare_means(label.y = 0.1) 
-  
-
-```
-
-```{r fig.height=6, fig.width=13, message=FALSE, warning=FALSE}
-bge + resp  + 
-   plot_annotation(tag_levels = "a") &
-  plot_layout(guides = "collect") +
-  theme(plot.tag = element_text(size = 14))
-```
-
 
 # Experiments at 44˚N
 
@@ -450,12 +476,12 @@ bge + resp  +
 
 doc44a <- lat44 %>% 
   ggplot(aes(x = Days, y = norm.doc, group = interaction(Cruise, Station, Bottle))) + 
-  geom_errorbar(aes(ymin = norm.doc - sd_combined_doc, ymax = norm.doc + sd_combined_doc, color = factor(Season, levels = levels)), width = 0.5) +
+  geom_errorbar(aes(ymin = norm.doc - sd_combined_doc, ymax = norm.doc + sd_combined_doc, color = factor(Season, levels = levels)), width = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("")), y = expression(italic(paste("DOC"[SA],", µmol C L"^-1)))) +
+ labs(x = expression(""), y = expression(paste("DOC"[SA],", µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(color = F, linetype = F) 
@@ -467,12 +493,12 @@ doc44b <- lat44 %>%
   ungroup() %>% 
   select(Season, Cruise, Station, Days, ave_del.bioav.doc, sd_del.bioav.doc, station_line) %>% distinct() %>% 
   ggplot(aes(x = Days, y = ave_del.bioav.doc , group = interaction(Cruise, Station))) + 
-  geom_errorbar(aes(ymin = ave_del.bioav.doc - sd_del.bioav.doc, ymax = ave_del.bioav.doc + sd_del.bioav.doc, color = factor(Season, levels = levels)), width = 0.5) +
+  geom_errorbar(aes(ymin = ave_del.bioav.doc - sd_del.bioav.doc, ymax = ave_del.bioav.doc + sd_del.bioav.doc, color = factor(Season, levels = levels)), width = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("")), y = expression(italic(paste("Bioavailable DOC"[SA],", µmol C L"^-1)))) +
+ labs(x = expression(""), y = expression(paste("Bioavailable DOC"[SA],", µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(color = F, linetype = F, fill = F)
@@ -484,12 +510,12 @@ doc44c <- lat44 %>%
   ungroup() %>% 
   select(Season, Cruise, Station, Days, ave_per.pers.doc, sd_per.pers.doc, station_line) %>% distinct() %>% 
   ggplot(aes(x = Days, y = ave_per.pers.doc, group = interaction(Cruise, Station))) + 
-  geom_errorbar(aes(ymin = ave_per.pers.doc - sd_per.pers.doc, ymax = ave_per.pers.doc + sd_per.pers.doc, color = factor(Season, levels = levels)), width = 0.5) +
+  geom_errorbar(aes(ymin = ave_per.pers.doc - sd_per.pers.doc, ymax = ave_per.pers.doc + sd_per.pers.doc, color = factor(Season, levels = levels)), width = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression(italic("Days")), y = expression(italic(paste("% DOC"[SA]," Remaining")))) +
+ labs(x = expression("Days"), y = expression(paste("% DOC"[SA]," Remaining"))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(color = F, linetype = F, fill = F)
@@ -563,7 +589,7 @@ npp.boxplot <- bcd %>%
   ggboxplot(., x = "Season", y = "int.NPP", 
             order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
             xlab = F, 
-            ylab = expression(italic(paste("NPP, mmol C m"^-3, "d"^-1))),
+            ylab = expression(paste("NPP, mmol C m"^-3, "d"^-1)),
             add = "jitter",
             add.params = list(size = 2, shape = 21, fill = "white"),
             outlier.shape = NA,
@@ -584,7 +610,7 @@ bp.boxplot <- bcd %>%
   ggboxplot(., x = "Season", y = "int.bp", 
             order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
             xlab = F,
-            ylab = expression(italic(paste("BP, mmol C m"^-3, "d"^-1))),
+            ylab = expression(paste("BP, mmol C m"^-3, "d"^-1)),
             add = "jitter",
             add.params = list(size = 2, shape = 21, fill = "white"),
             outlier.shape = NA,
@@ -604,7 +630,7 @@ ba.boxplot <- bcd %>%
   ggboxplot(., x = "Season", y = "int.ba", 
             order = c("Early Spring", "Late Spring", "Early Autumn", "Late Autumn"),
             xlab = F, 
-            ylab = expression(italic(paste("BA, cells m"^-3))),
+            ylab = expression(paste("BA, cells m"^-3)),
             add = "jitter",
             add.params = list(size = 2, shape = 21, fill = "white"),
             outlier.shape = NA,
@@ -615,6 +641,7 @@ ba.boxplot <- bcd %>%
                      step.increase = 0.12,
                      tip.length = 0.01) + 
   stat_compare_means(label.y = 0) 
+
 
 ```
 
@@ -691,22 +718,22 @@ field.doc_table
 
 ```{r BCD and NPP bar plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 12}
 
-
 bcd.bar <- bcd.summary %>% 
   ggplot(aes(x = degree_bin, y = int.bcd_global_mean, group = interaction(Season, Station, degree_bin)))  +
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#377EB8") +
    geom_errorbar(aes(ymin = int.bcd_global_mean - int.bcd_global_sd, ymax = int.bcd_global_mean + int.bcd_global_sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("")), y = expression(italic(paste("BCD, mmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
-  custom_theme() +
+  labs(x = expression(""), y = expression(paste("BCD, mmol C m"^-3, "d"^-1)), colour = expression("")) +
+  theme_classic2() +
+   theme(strip.background = element_blank(), strip.text = element_blank()) +
   facet_grid(~factor(Season, levels = levels), scales = "free") 
 
 bcd.npp.bar <- bcd.npp.summary  %>% 
   ggplot(aes(x = degree_bin, fill = factor(rate, levels = c("NPP", "BCD")), y =  ave, group = interaction(Season, Station, degree_bin)))  + 
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1) +
   geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("")), y = expression(italic(paste("mmol C m"^-3, "d"^-1))), colour = expression(italic(""))) +
+  labs(x = expression(""), y = expression(paste("mmol C m"^-3, "d"^-1)), colour = expression("")) +
   scale_fill_manual(values = custom.colors) +
-  custom_theme() +
+  theme_classic2() +
   facet_grid(~factor(Season, levels = levels), scales = "free") +
   theme(strip.background = element_blank(), strip.text = element_blank()) +
   theme(legend.position = "right",
@@ -716,8 +743,8 @@ ratio.bar <- bcd.summary %>%
   ggplot(aes(x = degree_bin, y = bcd.npp_global_mean, group = interaction(Season, Station, degree_bin)))  +
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1,  fill = "#999999") +
   geom_errorbar(aes(ymin = bcd.npp_global_mean - bcd.npp_global_sd, ymax = bcd.npp_global_mean + bcd.npp_global_sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("Latitude, ˚N")), y = expression(italic(paste("BCD:NPP"))), colour = expression(italic(""))) +
-  custom_theme() +
+  labs(x = expression("Latitude, ˚N"), y = expression(paste("BCD:NPP")), colour = expression("")) +
+  theme_classic2() +
   facet_grid(~factor(Season, levels = levels), scales = "free") +
   theme(strip.background = element_blank(), strip.text = element_blank())
 
@@ -726,8 +753,8 @@ doc_sa.bar <-  export_bar %>%
   ggplot(aes(x = degree_bin, y = int_delta_DOC_100_mean, group = interaction(Season, degree_bin)))  +
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
    geom_errorbar(aes(ymin = int_delta_DOC_100_mean - int_delta_DOC_100_sd, ymax = int_delta_DOC_100_mean + int_delta_DOC_100_sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(italic("")), y = expression(italic(paste("DOC"[SA],", mol C m"^-3))), colour = expression(italic(""))) +
-  custom_theme() +
+  labs(x = expression(""), y = expression(paste("DOC"[SA],", mol C m"^-3)), colour = expression("")) +
+  theme_classic2() +
   facet_grid(~factor(Season, levels = levels), scales = "free") 
 
   
@@ -739,6 +766,11 @@ doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
 
 
 # Regressions: Property-Property 
+
+```{r}
+summary(bcd.data$int.NPP)
+```
+
 
 ## BCD v NPP
 
@@ -797,13 +829,13 @@ reg1.plot <- bcd.data %>%
   geom_abline(intercept = reg1$confidence.intervals[3,3],
               slope = reg1$confidence.intervals[3,5],colour = "grey", linetype = 3, size = 1) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 0.7) +
-  labs(x = expression(italic(paste(""))), y = expression(italic(paste("BCD, mmol C m"^-3, "d"^-1)))) +
+  labs(x = expression(paste("")), y = expression(paste("BCD, mmol C m"^-3, "d"^-1))) +
   scale_fill_manual(values = custom.colors) +
   scale_color_manual(values = custom.colors) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(color = F) +
-  annotate( geom = "text", label = expression(atop("y = 0.19x + 0.03", paste("r"^2," = 0.68, ", italic("p "), "<< 0.01"))), x = 2.7, y = 0.08, size = 6) 
+  annotate( geom = "text", label = expression(atop("y = 0.19x + 0.03", paste("r"^2," = 0.68, ", ("p "), "<< 0.01"))), x = 2.7, y = 0.08, size = 6) 
   
 
 reg2.plot <- bcd.data %>% 
@@ -812,7 +844,7 @@ reg2.plot <- bcd.data %>%
   #             slope = reg2$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
   geom_line(data = model.df, aes(x,y), size = 1, linetype = 2 ) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 0.7) +
-  labs(x = expression(italic(paste("NPP, mmol C m"^-3, "d"^-1))), y = expression(italic(paste("BCD:NPP")))) +
+  labs(x = expression(paste("NPP, mmol C m"^-3, "d"^-1)), y = expression(paste("BCD:NPP"))) +
   scale_fill_manual(values = custom.colors) +
   scale_color_manual(values = custom.colors) +
   theme_classic2(base_size = 16) +
