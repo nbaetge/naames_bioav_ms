@@ -169,7 +169,7 @@ doc_doc.star.reg.plot <- vessel_comparisons %>%
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(fill = F) +
-   annotate( geom = "text", label = expression(atop("y = 0.90x + 4.35", paste("r"^2,"= 0.83, ", ("p "), "<< 0.01"))), x = 78, y = 51, size = 3) +
+   annotate( geom = "text", label = expression(atop("y = 0.90x + 4.35", paste("r"^2,"= 0.83, ", italic("p "), "<< 0.01"))), x = 78, y = 51, size = 3) +
   xlim(50, 80) +
   ylim(50, 80)
 
@@ -234,7 +234,7 @@ vl_btl_doc <- vessel_doc %>%
   labs(x = expression(paste("Bottle DOC, µmol C L"^-1)), y = expression(paste("Vial DOC, µmol C L"^-1)), fill = "Early Spring Station") +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
-   annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", ("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
+   annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
   xlim(50, 85) +
   ylim(50, 85) +
   guides(fill = F)
@@ -286,7 +286,7 @@ vl_btl_cell <- vessel_comparisons %>%
   theme_classic2(base_size = 16) +
   scale_fill_brewer(palette = "Dark2") +
   theme(legend.title = element_blank()) +
-  annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", ("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
+  annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
   #theme(plot.caption = element_text(face = "")) +
   ylim(4.5*10^8, 3.0*10^9) +
   xlim(4.5*10^8, 3.0*10^9)
@@ -472,19 +472,21 @@ bge_box <- bge_summary %>%
 
 # Experiments at 44˚N
 
-```{r Remin plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 16, fig.width = 8}
+```{r Remin plots, echo=FALSE, fig.height=7, fig.width=16, message=FALSE, warning=FALSE}
 
 doc44a <- lat44 %>% 
   ggplot(aes(x = Days, y = norm.doc, group = interaction(Cruise, Station, Bottle))) + 
+  geom_hline(aes(yintercept = 0)) +
   geom_errorbar(aes(ymin = norm.doc - sd_combined_doc, ymax = norm.doc + sd_combined_doc, color = factor(Season, levels = levels)), width = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression(""), y = expression(paste("DOC"[SA],", µmol C L"^-1))) +
+ labs(x = expression("Days"), y = expression(paste("DOC"[SA],", µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F) 
+  guides(color = F, linetype = F, fill = F) +
+  annotate("text", x = 50, y = -1.75, label = expression(bold("Background DOC Determined \nat Time of Deep Mixing")), size = 5)
   
 doc44b <- lat44 %>% 
   group_by(Cruise, Station, Hours) %>% 
@@ -493,35 +495,21 @@ doc44b <- lat44 %>%
   ungroup() %>% 
   select(Season, Cruise, Station, Days, ave_del.bioav.doc, sd_del.bioav.doc, station_line) %>% distinct() %>% 
   ggplot(aes(x = Days, y = ave_del.bioav.doc , group = interaction(Cruise, Station))) + 
+  geom_hline(aes(yintercept = 0)) +
   geom_errorbar(aes(ymin = ave_del.bioav.doc - sd_del.bioav.doc, ymax = ave_del.bioav.doc + sd_del.bioav.doc, color = factor(Season, levels = levels)), width = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression(""), y = expression(paste("Bioavailable DOC"[SA],", µmol C L"^-1))) +
+ labs(x = expression("Days"), y = expression(paste("Bioavailable DOC"[SA],", µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F, fill = F)
-
-doc44c <- lat44 %>% 
-  group_by(Cruise, Station, Hours) %>% 
-  mutate(ave_per.pers.doc = mean(per.pers.doc),
-         sd_per.pers.doc = sd(per.pers.doc)) %>% 
-  ungroup() %>% 
-  select(Season, Cruise, Station, Days, ave_per.pers.doc, sd_per.pers.doc, station_line) %>% distinct() %>% 
-  ggplot(aes(x = Days, y = ave_per.pers.doc, group = interaction(Cruise, Station))) + 
-  geom_errorbar(aes(ymin = ave_per.pers.doc - sd_per.pers.doc, ymax = ave_per.pers.doc + sd_per.pers.doc, color = factor(Season, levels = levels)), width = 1) +
-  geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
-  geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
- labs(x = expression("Days"), y = expression(paste("% DOC"[SA]," Remaining"))) +
-  theme_classic2(base_size = 16) +
-  theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F, fill = F)
+  guides(color = F, linetype = F) +
+  annotate("text", x = 50, y = -1.25, label = expression(bold(paste("Background DOC Determined \nat Time of Deep Mixing & Persistent DOC"[SA]))), size = 5)
 
 
-doc44a / doc44b / doc44c + 
+
+doc44a + doc44b  + 
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
   
@@ -835,7 +823,7 @@ reg1.plot <- bcd.data %>%
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(color = F) +
-  annotate( geom = "text", label = expression(atop("y = 0.19x + 0.03", paste("r"^2," = 0.68, ", ("p "), "<< 0.01"))), x = 2.7, y = 0.08, size = 6) 
+  annotate( geom = "text", label = expression(atop("y = 0.19x + 0.03", paste("r"^2," = 0.68, ", italic("p "), "<< 0.01"))), x = 2.7, y = 0.08, size = 6) 
   
 
 reg2.plot <- bcd.data %>% 

@@ -221,7 +221,7 @@ vl_btl_doc <- vessel_doc %>%
   labs(x = expression(paste("Bottle DOC, µmol C L"^-1)), y = expression(paste("Vial DOC, µmol C L"^-1)), fill = "Early Spring Station") +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
-   annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", ("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
+   annotate( geom = "text", label = expression(atop("y = 1.02x - 1.44", paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 80, y = 51, size = 3) +
   xlim(50, 85) +
   ylim(50, 85) +
   guides(fill = F)
@@ -284,7 +284,7 @@ vl_btl_cell <- vessel_comparisons %>%
   theme_classic2(base_size = 16) +
   scale_fill_brewer(palette = "Dark2") +
   theme(legend.title = element_blank()) +
-  annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", ("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
+  annotate( geom = "text", label = expression(atop("y = 1.07x - 8.72 * 10"^7, paste("r"^2,"= 0.96, ", italic("p "), "<< 0.01"))), x = 2.6E9, y = 5.0E8, size = 3) +
   #theme(plot.caption = element_text(face = "")) +
   ylim(4.5*10^8, 3.0*10^9) +
   xlim(4.5*10^8, 3.0*10^9)
