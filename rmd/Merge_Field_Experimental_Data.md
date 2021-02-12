@@ -165,7 +165,8 @@ bcd <- interpolated.df %>%
   group_by(Spring_Autumn) %>% 
   fill(c(contains("bge")), .direction = "downup") %>% 
   ungroup() %>% 
-  mutate(bcd = round(interp_bp/cruise_bge))  #units are  µmol C / m3 / d, bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
+  mutate(bcd = round(interp_bp/cruise_bge),
+         bcd_global = round(interp_bp/0.26))  #units are  µmol C / m3 / d, bp in nmol C / L / d is equivalent to  µmol C / m3 / d 
 ```
 
 ``` r
@@ -173,6 +174,7 @@ int_bcd <- bcd %>%
   group_by(CampCN) %>% 
   filter(Depth <= Ez) %>% 
   mutate(int.bcd = integrateTrapezoid(Depth, bcd, type = "A"),
+         int.bcd_global = integrateTrapezoid(Depth, bcd_global, type = "A"),
          int.bp = integrateTrapezoid(Depth, interp_bp, type = "A"),
          int.ba = integrateTrapezoid(Depth, interp_ba, type = "A")) %>% 
   mutate_at(vars(contains("int.bcd")), round) %>% 
@@ -180,7 +182,8 @@ int_bcd <- bcd %>%
   mutate_at(vars(contains("int.")), funs(./Ez)) %>% 
   mutate(int.NPP = Ez_NPP/Ez,
          bp.npp = int.bp/int.NPP * 100,
-         bcd.npp = int.bcd/int.NPP * 100) %>% 
+         bcd.npp = int.bcd/int.NPP * 100,
+         bcd.npp_global = int.bcd_global/int.NPP * 100) %>% 
   distinct() %>% 
   ungroup()
 ```
@@ -229,6 +232,11 @@ export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bi
   select(Cruise, Season, degree_bin,  Subregion, Station, ave_Ez, sd_Ez, Target_Z,  redis_DOC_vol, int_delta_DOC_ez, int_delta_DOC_100, NCP_mol_ez, NCP_mol_100) %>% 
   distinct() %>% 
   mutate_at(vars(redis_DOC_vol), round, 1) %>% 
+  mutate(redis_DOC_vol = ifelse(degree_bin == 44, 55.9, redis_DOC_vol),
+         redis_DOC_vol = ifelse(degree_bin == 42, 55.4, redis_DOC_vol),
+         redis_DOC_vol = ifelse(degree_bin == 39, 55.5, redis_DOC_vol),
+         redis_DOC_vol = ifelse(degree_bin == 51, 52, redis_DOC_vol),
+         ) %>%  #following Baetge et al., 2020 use the redistribution of early autumn
   mutate_at(vars(int_delta_DOC_ez, NCP_mol_ez, int_delta_DOC_100, NCP_mol_100), round, 2) %>%
   mutate_at(vars(Station), as.character) %>% 
   drop_na(int_delta_DOC_100) %>% 
@@ -266,7 +274,7 @@ export_bioav <- export %>%
   select(Cruise, Station, Bottle, stationary.harvest, end.remin, initial.doc, longterm.del.doc,
          shortterm.del.doc) %>% 
   distinct()) %>% 
-  mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
+  mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.5, redis_DOC_vol),
          degree_bin = ifelse(is.na(degree_bin), 39, degree_bin),
          Season = ifelse(is.na(Season), "Early Spring", Season)) %>% 
   filter(!Cruise == "AT32") %>% 

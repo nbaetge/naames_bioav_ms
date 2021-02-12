@@ -205,6 +205,11 @@ export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bi
   select(Cruise, Season, degree_bin,  Subregion, Station, ave_Ez, sd_Ez, Target_Z,  redis_DOC_vol, int_delta_DOC_ez, int_delta_DOC_100, NCP_mol_ez, NCP_mol_100) %>% 
   distinct() %>% 
   mutate_at(vars(redis_DOC_vol), round, 1) %>% 
+  mutate(redis_DOC_vol = ifelse(degree_bin == 44, 55.9, redis_DOC_vol),
+         redis_DOC_vol = ifelse(degree_bin == 42, 55.4, redis_DOC_vol),
+         redis_DOC_vol = ifelse(degree_bin == 39, 55.5, redis_DOC_vol),
+         redis_DOC_vol = ifelse(degree_bin == 51, 52, redis_DOC_vol),
+         ) %>%  #following Baetge et al., 2020 use the redistribution of early autumn
   mutate_at(vars(int_delta_DOC_ez, NCP_mol_ez, int_delta_DOC_100, NCP_mol_100), round, 2) %>%
   mutate_at(vars(Station), as.character) %>% 
   drop_na(int_delta_DOC_100) %>% 
@@ -242,7 +247,7 @@ export_bioav <- export %>%
   select(Cruise, Station, Bottle, stationary.harvest, end.remin, initial.doc, longterm.del.doc,
          shortterm.del.doc) %>% 
   distinct()) %>% 
-  mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.0, redis_DOC_vol),
+  mutate(redis_DOC_vol = ifelse(Station %in% c("S2RD", "S2RF"), 55.5, redis_DOC_vol),
          degree_bin = ifelse(is.na(degree_bin), 39, degree_bin),
          Season = ifelse(is.na(Season), "Early Spring", Season)) %>% 
   filter(!Cruise == "AT32") %>% 

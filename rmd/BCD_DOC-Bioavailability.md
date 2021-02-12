@@ -25,7 +25,8 @@ library(blandr)
 ``` r
 export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bioavMS.6.7.20.rds") %>% 
   select(Season, Cruise, degree_bin, Station, int_delta_DOC_100, NCP_mol_100, doc_ncp_100) %>% 
-  distinct()
+  distinct() %>% 
+  mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season))
 
 export_bioav <- readRDS("~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds") 
 
@@ -40,7 +41,7 @@ doc_og <- read_rds("~/GITHUB/naames_bioav_ms/Input/master/DOC_Input") %>%
   summarise_at(vars(doc), list(mean = mean, sd = sd)) %>%
   ungroup() %>% 
   mutate(increase = 56.2 - 53.4,
-         per_increase = increase / 53.4 * 100)
+         per_increase = increase / 53.4 * 100) 
 ```
 
     ## Joining, by = c("Season", "Cruise", "Station", "Bottle")
@@ -67,7 +68,8 @@ bge <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>%
   select(Season:stationary.harvest, remin.end, Hours:sd_station_cells, norm_cells, sd_norm_cells, everything()) %>% 
   left_join(., export_bioav %>% select(Season, Cruise, Station, degree_bin) %>% distinct()) %>% 
   mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
-  select(Season:Station, degree_bin, everything())
+  select(Season:Station, degree_bin, everything()) %>% 
+  mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season))
 ```
 
     ## Joining, by = c("Season", "Cruise", "Station")
@@ -78,7 +80,9 @@ bge_summary <- read_rds("~/GITHUB/naames_bioav_ms/Output/bge_summary.rds") %>%
   left_join(., read_rds("~/GITHUB/naames_bioav_ms/Output/bge_station_means.rds") %>% select(Season, Cruise, Station, bge_mean) %>% rename(station_bge = bge_mean)) %>% 
   left_join(., export_bioav %>% select(Season, Cruise, Station, degree_bin) %>% distinct()) %>% 
   mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
-  select(Season:Station, degree_bin, everything())
+  select(Season:Station, degree_bin, everything()) %>% 
+  mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season)) %>% 
+  mutate(ccf = (del.poc * (12 * 10^9)/del.cells))
 ```
 
     ## Joining, by = c("Season", "Cruise")
@@ -87,11 +91,13 @@ bge_summary <- read_rds("~/GITHUB/naames_bioav_ms/Output/bge_summary.rds") %>%
     ## Joining, by = c("Season", "Cruise", "Station")
 
 ``` r
-bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_BCD.rds") 
+bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_BCD.rds") %>% 
+  mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season))
 
 lat44 <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_lat44_remins.rds") %>% 
   drop_na(sd_combined_doc) %>% 
-  mutate(station_line = ifelse(Cruise == "AT39" & Station == 4, "ab", "a"))
+  mutate(station_line = ifelse(Cruise == "AT39" & Station == 4, "ab", "a")) %>% 
+  mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season))
 ```
 
 Units for imported data frames are currently:
@@ -122,7 +128,7 @@ We’ll also do a lmodel2 regression.
 
 ``` r
 vessel_comparisons <- bge %>% 
-  select(Season, Cruise, Station, Bottle, Hours, Days,  cells, p_cells, ptoc,  toc, doc, pdoc, doc_star) 
+  select(Season, Cruise, Station, degree_bin, Bottle, Hours, Days,  cells, p_cells, ptoc,  toc, doc, pdoc, doc_star) 
 
 doc_doc.star <- vessel_comparisons %>% 
   drop_na(doc) %>% 
@@ -323,16 +329,16 @@ unique(doc_og$per_increase)
 ba_curves <- bge %>% 
   filter(Treatment == "Control") %>% 
   drop_na(norm_cells) %>% 
-  select(Season, Station, Days, norm_cells, sd_norm_cells) %>% 
+  select(Season, Station, degree_bin, Days, norm_cells, sd_norm_cells) %>% 
   distinct() %>% 
   # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_cells, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = Station), width = 0.3, alpha = 0.5) +
-  geom_line(aes(color = Station), alpha = 0.7) +
-  geom_point(aes(fill = Station), size = 3, shape = 21, alpha = 0.7) +
-  scale_color_brewer(palette = "Dark2") +
-  scale_fill_brewer(palette = "Dark2") +
- labs(x = expression(""), y = expression(paste("∆ Cells, L"^-1)), fill = "Station") +
+  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = factor(degree_bin)), width = 0.3, alpha = 0.5) +
+  geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
+  geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
+  scale_color_brewer(palette = "RdBu") +
+  scale_fill_brewer(palette = "RdBu") +
+ labs(x = expression(""), y = expression(paste("Bacterial Abundance, Cells L"^-1)), fill = "Latitude, ˚N") +
   theme_classic2(base_size = 16) +
   guides(color = F, linetype = F) + facet_grid(~factor(Season, levels = levels))
 ```
@@ -343,16 +349,38 @@ ba_curves <- bge %>%
 doc_curves <-  bge %>% 
   filter(Treatment == "Control") %>% 
   drop_na(sd_combined_doc) %>% 
-  select(Season, Station, Days, norm_doc, sd_norm_doc) %>% 
+  select(Season, Station, degree_bin, Days, norm_doc, sd_norm_doc) %>% 
   distinct() %>% 
-  # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
+  # filter(!Cruise == "AT34" | !S,tation == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = Station), width = 1, alpha = 0.5) +
-  geom_line(aes(color = Station), alpha = 0.7) +
-  geom_point(aes(fill = Station), size = 3, shape = 21, alpha = 0.7) +
-  scale_color_brewer(palette = "Dark2") +
-  scale_fill_brewer(palette = "Dark2") +
- labs(x = expression("Days"), y = expression(paste("∆ DOC, µmol C L"^-1)), fill = "") +
+  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 1, alpha = 0.5) +
+  geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
+  geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
+  scale_color_brewer(palette = "RdBu") +
+  scale_fill_brewer(palette = "RdBu") +
+ # labs(x = expression("Days"), y = expression(paste("DOC"^"(*)",", µmol C L"^-1)), fill = "") +
+  labs(x = expression("Days"), y = expression(paste("DOC(*), µmol C L"^-1)), fill = "") +
+  theme_classic2(base_size = 16) +
+  theme(strip.background.x = element_blank(),
+        strip.text.x = element_blank()) +
+  guides(color = F, fill = F) +
+  facet_grid(~factor(Season, levels = levels))
+```
+
+``` r
+doc_curves2 <-  bge %>% 
+  filter(Treatment == "Control", Days <= 20) %>% 
+  drop_na(sd_combined_doc) %>% 
+  select(Season, Station, degree_bin, Days, norm_doc, sd_norm_doc) %>% 
+  distinct() %>% 
+  # filter(!Cruise == "AT34" | !S,tation == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
+  ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
+  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 1, alpha = 0.5) +
+  geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
+  geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
+  scale_color_brewer(palette = "RdBu") +
+  scale_fill_brewer(palette = "RdBu") +
+ labs(x = expression("Days"), y = expression(paste("DOC, µmol C L"^-1)), fill = "") +
   theme_classic2(base_size = 16) +
   theme(strip.background.x = element_blank(),
         strip.text.x = element_blank()) +
@@ -368,7 +396,17 @@ ba_curves / doc_curves +
 ```
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
-\# Delta Stats
+
+``` r
+ba_curves / doc_curves2 + 
+   plot_annotation(tag_levels = "a") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 14))
+```
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+
+# Delta Stats
 
 stats for ∆POC and ∆DOC
 
@@ -478,6 +516,21 @@ longterm_delta_stats %>%
     ##   <dbl> <dbl> <dbl>
     ## 1  4.54  1.61 0.355
 
+\#CCFs
+
+``` r
+bge_summary %>% 
+  group_by(Cruise) %>% 
+  summarize_at(vars(ccf), list(mean = mean, sd = sd), na.rm = T)
+```
+
+    ## # A tibble: 3 x 3
+    ##   Cruise  mean    sd
+    ##   <chr>  <dbl> <dbl>
+    ## 1 AT34    29.4 63.1 
+    ## 2 AT38    18.8 17.4 
+    ## 3 AT39    20.5  8.25
+
 # BGE
 
 ``` r
@@ -485,16 +538,17 @@ bge_box <- bge_summary %>%
   drop_na(bge) %>% 
   ggplot(aes(x = factor(Season, levels = levels), y = bge)) +
   geom_boxplot(width = 0.3) +
-  geom_point(aes(fill = Station), shape = 21, size = 3, alpha = 0.7) +
+  geom_point(aes(fill = factor(degree_bin)), shape = 21, size = 3, alpha = 0.7) +
   theme_classic2(base_size = 16) +
-  scale_fill_brewer(palette = "Dark2") +
-  labs(x = "", y = "BGE") + 
+  # scale_fill_brewer(palette = "Dark2") +
+  scale_fill_manual(values = matlab.colors) +
+  labs(x = "", y = "BGE", fill = "Latitude, ˚N") + 
   stat_compare_means()  
   
   bge_box
 ```
 
-![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-19-1.png)<!-- -->
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 # Experiments at 44˚N
 
@@ -514,7 +568,7 @@ bge.table.data2 <- bge_summary %>%
   arrange(factor(Season, levels = levels))
 
 bioav.table.data <- export_bioav %>% 
-  select(Cruise:Station, degree_bin, end.remin, stationary.harvest, initial.doc:longterm.ddoc) %>% 
+  select(Cruise:Station, degree_bin, end.remin, stationary.harvest, redis_DOC_vol, initial.doc:longterm.ddoc) %>% 
   mutate(shortterm.del.doc = ifelse(shortterm.del.doc < 2, NA, shortterm.del.doc),
          shortterm.bioav.doc = ifelse(is.na(shortterm.del.doc), NA, shortterm.bioav.doc),
          shortterm.ddoc = ifelse(is.na(shortterm.del.doc), NA, shortterm.ddoc),
@@ -530,13 +584,13 @@ bioav.table.data <- export_bioav %>%
 
 station_bioav <- bioav.table.data %>% 
  group_by(Cruise, Season, Station, degree_bin) %>% 
-  summarize_at(vars(initial.doc:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  summarize_at(vars(redis_DOC_vol:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
   ungroup()
 
 cruise_bioav <- bioav.table.data %>% 
  group_by(Cruise, Season) %>% 
-  summarize_at(vars(initial.doc:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  summarize_at(vars(redis_DOC_vol:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels)) %>% 
   ungroup() 
 
@@ -597,7 +651,7 @@ bcd.npp.summary <- bcd.summary %>%
 ``` r
 bcd.npp_summary_table <- left_join(bcd.summary, bcd.cruise.summary) %>% 
   mutate_at(vars(contains(c("int.NPP", "int.bp", "int.bcd"))), round, 3) %>% 
-  mutate_at(vars(contains(c("bp.npp", "bcd.npp"))), round, 2)
+  mutate_at(vars(contains(c("bp.npp", "bcd.npp"))), round, 2) 
 ```
 
     ## Joining, by = "Season"
@@ -624,11 +678,13 @@ field.doc_table
     ## # Groups:   Cruise [3]
     ##   Cruise Season        mean    sd
     ##   <chr>  <chr>        <dbl> <dbl>
-    ## 1 AT34   Late Spring   6.51 3.42 
-    ## 2 AT38   Early Autumn 13.2  3.29 
-    ## 3 AT39   Early Spring  3.58 0.760
+    ## 1 AT34   Late Spring   6.13  2.83
+    ## 2 AT38   Early Autumn 13.1   3.34
+    ## 3 AT39   Early Spring  2.8   1.37
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/BCD%20and%20NPP%20bar%20plots-1.png)<!-- -->
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/BCD%20and%20NPP%20bar%20plots2-1.png)<!-- -->
 
 # Regressions: Property-Property
 
@@ -695,3 +751,30 @@ summary(model)
 ## Plots
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/BCD%20and%20NPP%20regression%20plots-1.png)<!-- -->
+
+``` r
+compare_means(bcd.npp_global_mean ~ Cruise, bcd.summary, method = "kruskal.test")
+```
+
+    ## Adding missing grouping variables: `Season`, `Station`
+
+    ## # A tibble: 1 x 6
+    ##   .y.                       p  p.adj p.format p.signif method        
+    ##   <chr>                 <dbl>  <dbl> <chr>    <chr>    <chr>         
+    ## 1 bcd.npp_global_mean 0.00411 0.0041 0.0041   **       Kruskal-Wallis
+
+``` r
+compare_means(bcd.npp_global_mean ~ Season, bcd.summary)
+```
+
+    ## Adding missing grouping variables: `Cruise`, `Station`
+
+    ## # A tibble: 6 x 8
+    ##   .y.             group1      group2           p p.adj p.format p.signif method 
+    ##   <chr>           <chr>       <chr>        <dbl> <dbl> <chr>    <chr>    <chr>  
+    ## 1 bcd.npp_global… Early Spri… Late Spri… 0.762   0.76  0.7619   ns       Wilcox…
+    ## 2 bcd.npp_global… Early Spri… Early Aut… 0.0667  0.2   0.0667   ns       Wilcox…
+    ## 3 bcd.npp_global… Early Spri… Early Win… 0.00952 0.048 0.0095   **       Wilcox…
+    ## 4 bcd.npp_global… Late Spring Early Aut… 0.132   0.26  0.1320   ns       Wilcox…
+    ## 5 bcd.npp_global… Late Spring Early Win… 0.00216 0.013 0.0022   **       Wilcox…
+    ## 6 bcd.npp_global… Early Autu… Early Win… 0.0411  0.16  0.0411   *        Wilcox…

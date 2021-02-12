@@ -148,27 +148,27 @@ t.test.data <- bigelow %>%
 t.test.data %>% 
  filter(Type == "Blank") %>% 
   ggboxplot(x = "Filter", y = "BactC_µg", add = "jitter", width = 0.3, title = "POC: Blanks", xlab = expression(italic("Filter")), ylab = expression(italic("POC, µg"))) +
-  stat_compare_means(label.y = 10, method = "t.test") +
+  stat_compare_means(label.y = 10) +
   
    t.test.data %>% 
   filter(Type == "Blank", Filtrate == "0.2 µm") %>% 
   ggboxplot(x = "Filter", y = "BactC_µg", add = "jitter", width = 0.3, title = "POC: 0.2 µm Filtrate Blank ", xlab = expression(italic("Filter")), ylab = expression(italic(""))) +
-  stat_compare_means(label.y = 6, method = "t.test") +
+  stat_compare_means(label.y = 6) +
   
   t.test.data %>% 
   filter(Type == "Blank", Filtrate == "TFF") %>% 
   ggboxplot(x = "Filter", y = "BactC_µg", add = "jitter", width = 0.3, title = "POC: TFF Filtrate Blank ", xlab = expression(italic("Filter")), ylab = expression(italic(""))) +
-  stat_compare_means(label.y = 11, method = "t.test") +
+  stat_compare_means(label.y = 11) +
 
 t.test.data %>% 
   filter(Type == "Blank", Filter == 1) %>% 
   ggboxplot(x = "Filtrate", y = "BactC_µg", add = "jitter", width = 0.3, title = "POC: Blank Filter 1", xlab = expression(italic("Filtrate")), ylab = expression(italic("POC, µg"))) +
-  stat_compare_means(label.y = 10, method = "t.test") +
+  stat_compare_means(label.y = 10) +
 
 t.test.data %>% 
   filter(Type == "Blank", Filter == 2) %>% 
   ggboxplot(x = "Filtrate", y = "BactC_µg", add = "jitter", width = 0.3, title = "POC: Blank Filter 2", xlab = expression(italic("Filtrate")), ylab = expression(italic(""))) +
-  stat_compare_means(label.y = 7, method = "t.test") 
+  stat_compare_means(label.y = 7) 
   
 
 ```
@@ -195,6 +195,7 @@ corrfactor <- blank.data %>%
   filter(Filter == 2) %>% 
   select(Season, BlnkFiltrate, BactC_µg, BactN_µg) %>% 
   mutate(global_c_ug = mean(BactC_µg, na.rm = T),
+         sd_global_c_ug = sd(BactC_µg, na.rm = T),
          global_n_ug = mean(BactN_µg, na.rm = T),) %>% 
   group_by(BlnkFiltrate) %>% 
   mutate(filtrate_c_ug = mean(BactC_µg, na.rm = T),
@@ -222,6 +223,13 @@ corrfactor <- blank.data %>%
 corrfactor
   
 ```
+
+```{r}
+sample_filt2 <- t.test.data %>% 
+  filter(Type == "Non-blank", Filter == 2, Filtrate == "Control") %>% 
+  summarize_at(vars(BactC_µg), list(mean = mean, sd = sd), na.rm = T) 
+```
+
 
 # Perform Corrections
 
