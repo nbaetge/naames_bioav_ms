@@ -375,7 +375,7 @@ doc_curves2 <-  bge %>%
   distinct() %>% 
   # filter(!Cruise == "AT34" | !S,tation == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 1, alpha = 0.5) +
+  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 0.5, alpha = 0.3) +
   geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
   geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
   scale_color_brewer(palette = "RdBu") +
@@ -550,9 +550,22 @@ bge_box <- bge_summary %>%
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
+``` r
+ba_curves / doc_curves2 + bge_box +
+   plot_annotation(tag_levels = "a") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 20))
+```
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+
 # Experiments at 44˚N
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/Remin%20plots-1.png)<!-- -->
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/Remin%20plots%20initial-1.png)<!-- -->
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/Remin%20plots2-1.png)<!-- -->
 
 # Bioavailability & BGE Tables
 
@@ -778,3 +791,9 @@ compare_means(bcd.npp_global_mean ~ Season, bcd.summary)
     ## 4 bcd.npp_global… Late Spring Early Aut… 0.132   0.26  0.1320   ns       Wilcox…
     ## 5 bcd.npp_global… Late Spring Early Win… 0.00216 0.013 0.0022   **       Wilcox…
     ## 6 bcd.npp_global… Early Autu… Early Win… 0.0411  0.16  0.0411   *        Wilcox…
+
+## bp/bcd profile
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->

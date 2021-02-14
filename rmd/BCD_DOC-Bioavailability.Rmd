@@ -23,7 +23,7 @@ library(blandr)
 
 
 ```{r Aesthetics, include = FALSE}
-custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "Early Winter" = "#FF7F00" ,"A" = "#E41A1C", "B" = "#377EB8", "BCD" = "#377EB8" , "NPP" = "#4DAF4A" ) 
+custom.colors <- c("AT39" = "#377EB8", "AT34" = "#4DAF4A", "AT38" = "#E41A1C", "AT32" = "#FF7F00", "Temperate" = "#A6CEE3", "Subpolar" = "#377EB8", "Subtropical" = "#FB9A99", "GS/Sargasso" = "#E41A1C", "Early Spring" = "#377EB8", "Late Spring" = "#4DAF4A","Early Autumn" = "#E41A1C", "Summer" = "#E41A1C", "Late Autumn" = "#FF7F00", "Early Winter" = "#FF7F00" ,"A" = "#E41A1C", "B" = "#377EB8", "BCD" = "#377EB8" , "NPP" = "#4DAF4A", "BP" = "#E41A1C") 
 
 matlab.colors <- c("#A50026", "#D73027", "#F46D43", "#FDAE61",  "#ABD9E9", "#74ADD1", "#4575B4", "#313695")
 
@@ -394,7 +394,7 @@ doc_curves2 <-  bge %>%
   distinct() %>% 
   # filter(!Cruise == "AT34" | !S,tation == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
   ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 1, alpha = 0.5) +
+  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 0.5, alpha = 0.3) +
   geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
   geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
   scale_color_brewer(palette = "RdBu") +
@@ -516,6 +516,14 @@ bge_box <- bge_summary %>%
   bge_box
 ```
 
+```{r fig.height=12, fig.width=13, message=FALSE, warning=FALSE}
+ba_curves / doc_curves2 + bge_box +
+   plot_annotation(tag_levels = "a") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 20))
+```
+
+
 # Experiments at 44˚N
 
 ```{r Remin plots, echo=FALSE, fig.height=7, fig.width=16, message=FALSE, warning=FALSE}
@@ -531,7 +539,23 @@ doc44a <- lat44 %>%
  labs(x = expression("Days"), y = expression(paste("∆DOC, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F, fill = F) +
+  guides(color = F, linetype = F) +
+  annotate("text", x = 50, y = -3, label = expression(bold("Annual DOC Minimum \nduring Deep Mixing")), size = 5)
+
+doc44a_i <- lat44 %>% 
+  filter(Days == 0) %>% 
+  ggplot(aes(x = Days, y = norm.doc, group = interaction(Cruise, Station, Bottle))) + 
+  geom_hline(aes(yintercept = 0)) +
+  geom_errorbar(aes(ymin = norm.doc - sd_combined_doc, ymax = norm.doc + sd_combined_doc, color = factor(Season, levels = levels)), width = 1) +
+  geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+ labs(x = expression("Days"), y = expression(paste("∆DOC, µmol C L"^-1))) +
+  theme_classic2(base_size = 16) +
+  theme(legend.title = element_blank()) +
+  xlim(0, 106) +
+  guides(color = F, linetype = F) +
   annotate("text", x = 50, y = -3, label = expression(bold("Annual DOC Minimum \nduring Deep Mixing")), size = 5)
   
 doc44b <- lat44 %>% 
@@ -550,15 +574,24 @@ doc44b <- lat44 %>%
  labs(x = expression("Days"), y = expression(paste("BDOC, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F) +
+  guides(color = F, linetype = F, fill = F) +
   annotate("text", x = 50, y = -1.5, label = expression(bold(paste("Annual DOC Minimum \nduring Deep Mixing & Persistent ∆DOC"))), size = 5)
 
 
 
 doc44a + doc44b  + 
-  plot_annotation(tag_levels = "a") &
+  plot_annotation(tag_levels = "a")  +
+  plot_layout(guides = "collect") &
   theme(plot.tag = element_text(size = 14))
   
+```
+
+```{r Remin plots initial, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
+doc44a_i
+```
+
+```{r Remin plots2, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
+doc44a
 ```
 
 # Bioavailability & BGE Tables
@@ -918,4 +951,51 @@ compare_means(bcd.npp_global_mean ~ Cruise, bcd.summary, method = "kruskal.test"
 compare_means(bcd.npp_global_mean ~ Season, bcd.summary)
 ```
 
+
+## bp/bcd profile
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 5}
+profile.data <- bcd %>% 
+  select(Cruise, Season, Station, CampCN, degree_bin, Depth, bp, bcd_global) %>% 
+  filter(CampCN == 120) %>% 
+  drop_na(bp) %>% 
+  select(Depth, bp:bcd_global) %>% 
+  rename(BP = bp,
+         BCD = bcd_global) %>% 
+  pivot_longer(cols = c(BP, BCD), names_to = "rate", values_to = "value") 
+
+
+profile <- profile.data %>% 
+  ggplot(aes(x = Depth, y = value)) +
+  geom_line(aes(color = factor(rate, levels = c("BP", "BCD"))), size = 0.7) +
+  geom_point(aes(fill = factor(rate, levels = c("BP", "BCD"))), size = 3, shape = 21, color = "black", stroke = 1) + 
+  labs(x = "Depth, m", y = expression(paste("BP or BCD, nmol C L"^-1,"d"^-1)), colour = "", fill = "") +
+  scale_x_reverse() +
+  scale_fill_manual(values = custom.colors) +
+  scale_color_manual(values = custom.colors) +
+  ylim(0, 605) +
+  coord_flip() +
+  guides(colour = F) +
+  theme_classic2(base_size = 16)
+
+profile
+```
+
+```{r echo = FALSE, warning = FALSE, message = FALSE, fig.height = 6, fig.width = 5}
+profile2 <- profile.data %>% 
+  filter(rate == "BP") %>% 
+  ggplot(aes(x = Depth, y = value)) +
+  geom_line(aes(color = rate), size = 0.7) +
+  geom_point(aes(fill = rate), size = 3, shape = 21, color = "black", stroke = 1) + 
+  labs(x = "Depth, m", y = expression(paste("BP or BCD, nmol C L"^-1,"d"^-1)), colour = "", fill = "") +
+  scale_x_reverse() +
+  ylim(0, 605) +
+  scale_fill_manual(values = custom.colors) +
+  scale_color_manual(values = custom.colors) +
+  coord_flip() +
+  guides(colour = F) +
+  theme_classic2(base_size = 16)
+
+profile2 
+```
 
