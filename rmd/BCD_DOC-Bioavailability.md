@@ -57,11 +57,18 @@ bge <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>%
   ungroup() %>% 
   group_by(Cruise, Station, Treatment, Hours) %>% 
   mutate(trt_combined_doc = ifelse(!is.na(sd_combined_doc), round(mean(combined_doc, na.rm = T), 1), NA),
-         sd_trt_combined_doc = ifelse(!is.na(sd_combined_doc), round(sd(combined_doc, na.rm = T), 1), NA)) %>% 
+         sd_trt_combined_doc = ifelse(!is.na(sd_combined_doc), round(sd(combined_doc, na.rm = T), 1), NA),
+         
+         trt_doc_toc = ifelse(Cruise == "AT34", round(mean(interp_doc, na.rm = T), 1), round(mean(interp_ptoc, na.rm = T))),
+         sd_trt_doc_toc = ifelse(Cruise == "AT34", round(sd(interp_doc, na.rm = T), 1), round(sd(interp_ptoc, na.rm = T)))
+         ) %>% 
   ungroup() %>% 
   group_by(Season, Station, Treatment) %>% 
   mutate(norm_doc =  round(trt_combined_doc - first(trt_combined_doc), 1),
          sd_norm_doc = ifelse(Hours != 0,  sd_trt_combined_doc, NA),
+         norm_doc_toc =  round(trt_doc_toc - first(trt_doc_toc), 1),
+         sd_norm_doc_toc = ifelse(Hours != 0,  sd_trt_doc_toc, NA),
+         
          norm_cells = station_cells - first(station_cells),
          sd_norm_cells = ifelse(Hours != 0, sd_station_cells, NA)) %>% 
   ungroup() %>% 
@@ -81,8 +88,7 @@ bge_summary <- read_rds("~/GITHUB/naames_bioav_ms/Output/bge_summary.rds") %>%
   left_join(., export_bioav %>% select(Season, Cruise, Station, degree_bin) %>% distinct()) %>% 
   mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
   select(Season:Station, degree_bin, everything()) %>% 
-  mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season)) %>% 
-  mutate(ccf = (del.poc * (12 * 10^9)/del.cells))
+  mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season)) 
 ```
 
     ## Joining, by = c("Season", "Cruise")
@@ -336,8 +342,8 @@ ba_curves <- bge %>%
   geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = factor(degree_bin)), width = 0.3, alpha = 0.5) +
   geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
   geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
-  scale_color_brewer(palette = "RdBu") +
-  scale_fill_brewer(palette = "RdBu") +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
  labs(x = expression(""), y = expression(paste("Bacterial Abundance, Cells L"^-1)), fill = "Latitude, ˚N") +
   theme_classic2(base_size = 16) +
   guides(color = F, linetype = F) + facet_grid(~factor(Season, levels = levels))
@@ -349,17 +355,17 @@ ba_curves <- bge %>%
 doc_curves <-  bge %>% 
   filter(Treatment == "Control") %>% 
   drop_na(sd_combined_doc) %>% 
-  select(Season, Station, degree_bin, Days, norm_doc, sd_norm_doc) %>% 
+  select(Season, Station, degree_bin, Days, norm_doc_toc, sd_norm_doc_toc) %>% 
   distinct() %>% 
   # filter(!Cruise == "AT34" | !S,tation == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
-  ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 1, alpha = 0.5) +
+  ggplot(aes(x = Days, y = norm_doc_toc, group = interaction(Season, Station))) +
+  geom_errorbar(aes(ymin = norm_doc_toc - sd_norm_doc_toc, ymax = norm_doc_toc + sd_norm_doc_toc, color = factor(degree_bin)), width = 1, alpha = 0.5) +
   geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
   geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
-  scale_color_brewer(palette = "RdBu") +
-  scale_fill_brewer(palette = "RdBu") +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
  # labs(x = expression("Days"), y = expression(paste("DOC"^"(*)",", µmol C L"^-1)), fill = "") +
-  labs(x = expression("Days"), y = expression(paste("DOC(*), µmol C L"^-1)), fill = "") +
+  labs(x = expression("Days"), y = expression(paste("DOC or TOC, µmol C L"^-1)), fill = "") +
   theme_classic2(base_size = 16) +
   theme(strip.background.x = element_blank(),
         strip.text.x = element_blank()) +
@@ -371,15 +377,15 @@ doc_curves <-  bge %>%
 doc_curves2 <-  bge %>% 
   filter(Treatment == "Control", Days <= 20) %>% 
   drop_na(sd_combined_doc) %>% 
-  select(Season, Station, degree_bin, Days, norm_doc, sd_norm_doc) %>% 
+  select(Season, Station, degree_bin, Days, norm_doc_toc, sd_norm_doc_toc) %>% 
   distinct() %>% 
   # filter(!Cruise == "AT34" | !S,tation == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
-  ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 0.5, alpha = 0.3) +
+  ggplot(aes(x = Days, y = norm_doc_toc, group = interaction(Season, Station))) +
+  geom_errorbar(aes(ymin = norm_doc_toc - sd_norm_doc_toc, ymax = norm_doc_toc + sd_norm_doc_toc, color = factor(degree_bin)), width = 0.5, alpha = 0.3) +
   geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
   geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
-  scale_color_brewer(palette = "RdBu") +
-  scale_fill_brewer(palette = "RdBu") +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
  labs(x = expression("Days"), y = expression(paste("DOC, µmol C L"^-1)), fill = "") +
   theme_classic2(base_size = 16) +
   theme(strip.background.x = element_blank(),
@@ -464,9 +470,9 @@ compare_means(longterm.del.doc ~ Cruise, longterm_delta_stats, method = "kruskal
 ```
 
     ## # A tibble: 1 x 6
-    ##   .y.                    p  p.adj p.format p.signif method        
-    ##   <chr>              <dbl>  <dbl> <chr>    <chr>    <chr>         
-    ## 1 longterm.del.doc 0.00167 0.0017 0.0017   **       Kruskal-Wallis
+    ##   .y.                    p   p.adj p.format p.signif method        
+    ##   <chr>              <dbl>   <dbl> <chr>    <chr>    <chr>         
+    ## 1 longterm.del.doc 0.00240 0.00240 0.0024   **       Kruskal-Wallis
 
 ``` r
 compare_means(longterm.del.doc ~ Cruise, longterm_delta_stats)
@@ -475,9 +481,9 @@ compare_means(longterm.del.doc ~ Cruise, longterm_delta_stats)
     ## # A tibble: 3 x 8
     ##   .y.              group1 group2       p  p.adj p.format p.signif method  
     ##   <chr>            <chr>  <chr>    <dbl>  <dbl> <chr>    <chr>    <chr>   
-    ## 1 longterm.del.doc AT34   AT38   0.00130 0.0039 0.0013   **       Wilcoxon
-    ## 2 longterm.del.doc AT34   AT39   0.120   0.12   0.1198   ns       Wilcoxon
-    ## 3 longterm.del.doc AT38   AT39   0.0165  0.033  0.0165   *        Wilcoxon
+    ## 1 longterm.del.doc AT34   AT38   0.00179 0.0054 0.0018   **       Wilcoxon
+    ## 2 longterm.del.doc AT34   AT39   0.305   0.3    0.3046   ns       Wilcoxon
+    ## 3 longterm.del.doc AT38   AT39   0.00752 0.015  0.0075   **       Wilcoxon
 
 ``` r
 longterm_delta_stats %>% 
@@ -489,8 +495,8 @@ longterm_delta_stats %>%
     ##   Cruise .y.                  n statistic    df      p method        
     ## * <chr>  <chr>            <int>     <dbl> <int>  <dbl> <chr>         
     ## 1 AT34   longterm.del.doc     7      5.14     4 0.273  Kruskal-Wallis
-    ## 2 AT38   longterm.del.doc    12      9.22     5 0.101  Kruskal-Wallis
-    ## 3 AT39   longterm.del.doc    12      4.15     1 0.0415 Kruskal-Wallis
+    ## 2 AT38   longterm.del.doc    12      4.31     5 0.506  Kruskal-Wallis
+    ## 3 AT39   longterm.del.doc    10      2.94     1 0.0864 Kruskal-Wallis
 
 ``` r
 longterm_delta_stats %>% 
@@ -502,8 +508,8 @@ longterm_delta_stats %>%
     ## # A tibble: 2 x 4
     ##   season  mean    sd foldchange
     ##   <chr>  <dbl> <dbl>      <dbl>
-    ## 1 Autumn  5.78  1.35       1.54
-    ## 2 Spring  3.76  1.24       1.54
+    ## 1 Autumn  4.84 1.03        1.43
+    ## 2 Spring  3.39 0.854       1.43
 
 ``` r
 longterm_delta_stats %>% 
@@ -514,22 +520,7 @@ longterm_delta_stats %>%
     ## # A tibble: 1 x 3
     ##    mean    sd    cv
     ##   <dbl> <dbl> <dbl>
-    ## 1  4.54  1.61 0.355
-
-\#CCFs
-
-``` r
-bge_summary %>% 
-  group_by(Cruise) %>% 
-  summarize_at(vars(ccf), list(mean = mean, sd = sd), na.rm = T)
-```
-
-    ## # A tibble: 3 x 3
-    ##   Cruise  mean    sd
-    ##   <chr>  <dbl> <dbl>
-    ## 1 AT34    29.4 63.1 
-    ## 2 AT38    18.8 17.4 
-    ## 3 AT39    20.5  8.25
+    ## 1  3.99  1.17 0.292
 
 # BGE
 
@@ -539,16 +530,26 @@ bge_box <- bge_summary %>%
   ggplot(aes(x = factor(Season, levels = levels), y = bge)) +
   geom_boxplot(width = 0.3) +
   geom_point(aes(fill = factor(degree_bin)), shape = 21, size = 3, alpha = 0.7) +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
   theme_classic2(base_size = 16) +
   # scale_fill_brewer(palette = "Dark2") +
-  scale_fill_manual(values = matlab.colors) +
   labs(x = "", y = "BGE", fill = "Latitude, ˚N") + 
   stat_compare_means()  
   
   bge_box
 ```
 
-![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+
+``` r
+compare_means(bge ~ degree_bin, bge_summary, method = "kruskal.test")
+```
+
+    ## # A tibble: 1 x 6
+    ##   .y.       p p.adj p.format p.signif method        
+    ##   <chr> <dbl> <dbl> <chr>    <chr>    <chr>         
+    ## 1 bge   0.155  0.15 0.15     ns       Kruskal-Wallis
 
 ``` r
 ba_curves / doc_curves2 + bge_box +
@@ -599,7 +600,8 @@ station_bioav <- bioav.table.data %>%
  group_by(Cruise, Season, Station, degree_bin) %>% 
   summarize_at(vars(redis_DOC_vol:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
-  ungroup()
+  ungroup() %>% 
+  select(Cruise, Station, contains("persis"))
 
 cruise_bioav <- bioav.table.data %>% 
  group_by(Cruise, Season) %>% 

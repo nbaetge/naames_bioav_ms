@@ -233,12 +233,13 @@ exp_doc <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>%
   filter(Treatment == "Control") %>% 
   select(Cruise, Station, degree_bin, Bottle, Hours, Days, stationary.harvest, interp_ptoc, sd_ptoc, interp_doc, sd_doc, i.poc, s.poc, contains("del.doc")) %>% 
   mutate(doc_star = ifelse(Cruise != "AT34" & Hours < stationary.harvest, round(interp_ptoc - i.poc,1), round(interp_ptoc - s.poc,1)),
+         doc_star = ifelse(Cruise != "AT34" & Hours > stationary.harvest, interp_ptoc, doc_star),
          combined_doc = ifelse(Cruise == "AT34", interp_doc, doc_star),
           sd_combined_doc = ifelse(Cruise == "AT34", sd_doc, sd_ptoc))  %>%  
   group_by(Cruise, Station, Bottle) %>% 
   mutate(end.remin = last(Hours),
          initial.doc = first(combined_doc),
-         longterm.del.doc = first(combined_doc) - last(na.omit(combined_doc)),
+         longterm.del.doc = ifelse(Cruise != "AT34", first(interp_ptoc) - last(na.omit(interp_ptoc)), first(interp_doc) - last(na.omit(interp_doc))),
          longterm.del.doc = ifelse(longterm.del.doc < 2, NA, longterm.del.doc),
          shortterm.del.doc = ifelse(Cruise == "AT34", del.doc, del.doc.star)) 
 

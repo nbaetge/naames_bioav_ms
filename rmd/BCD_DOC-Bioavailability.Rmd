@@ -68,11 +68,18 @@ bge <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_bge.rds") %>%
   ungroup() %>% 
   group_by(Cruise, Station, Treatment, Hours) %>% 
   mutate(trt_combined_doc = ifelse(!is.na(sd_combined_doc), round(mean(combined_doc, na.rm = T), 1), NA),
-         sd_trt_combined_doc = ifelse(!is.na(sd_combined_doc), round(sd(combined_doc, na.rm = T), 1), NA)) %>% 
+         sd_trt_combined_doc = ifelse(!is.na(sd_combined_doc), round(sd(combined_doc, na.rm = T), 1), NA),
+         
+         trt_doc_toc = ifelse(Cruise == "AT34", round(mean(interp_doc, na.rm = T), 1), round(mean(interp_ptoc, na.rm = T))),
+         sd_trt_doc_toc = ifelse(Cruise == "AT34", round(sd(interp_doc, na.rm = T), 1), round(sd(interp_ptoc, na.rm = T)))
+         ) %>% 
   ungroup() %>% 
   group_by(Season, Station, Treatment) %>% 
   mutate(norm_doc =  round(trt_combined_doc - first(trt_combined_doc), 1),
          sd_norm_doc = ifelse(Hours != 0,  sd_trt_combined_doc, NA),
+         norm_doc_toc =  round(trt_doc_toc - first(trt_doc_toc), 1),
+         sd_norm_doc_toc = ifelse(Hours != 0,  sd_trt_doc_toc, NA),
+         
          norm_cells = station_cells - first(station_cells),
          sd_norm_cells = ifelse(Hours != 0, sd_station_cells, NA)) %>% 
   ungroup() %>% 
@@ -88,8 +95,7 @@ bge_summary <- read_rds("~/GITHUB/naames_bioav_ms/Output/bge_summary.rds") %>%
   left_join(., export_bioav %>% select(Season, Cruise, Station, degree_bin) %>% distinct()) %>% 
   mutate(degree_bin = ifelse(is.na(degree_bin), 39, degree_bin)) %>% 
   select(Season:Station, degree_bin, everything()) %>% 
-  mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season)) %>% 
-  mutate(ccf = (del.poc * (12 * 10^9)/del.cells))
+  mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season)) 
 
 bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_BCD.rds") %>% 
   mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season))
@@ -355,8 +361,8 @@ ba_curves <- bge %>%
   geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = factor(degree_bin)), width = 0.3, alpha = 0.5) +
   geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
   geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
-  scale_color_brewer(palette = "RdBu") +
-  scale_fill_brewer(palette = "RdBu") +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
  labs(x = expression(""), y = expression(paste("Bacterial Abundance, Cells L"^-1)), fill = "Latitude, ˚N") +
   theme_classic2(base_size = 16) +
   guides(color = F, linetype = F) + facet_grid(~factor(Season, levels = levels))
@@ -367,17 +373,17 @@ ba_curves <- bge %>%
 doc_curves <-  bge %>% 
   filter(Treatment == "Control") %>% 
   drop_na(sd_combined_doc) %>% 
-  select(Season, Station, degree_bin, Days, norm_doc, sd_norm_doc) %>% 
+  select(Season, Station, degree_bin, Days, norm_doc_toc, sd_norm_doc_toc) %>% 
   distinct() %>% 
   # filter(!Cruise == "AT34" | !S,tation == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
-  ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 1, alpha = 0.5) +
+  ggplot(aes(x = Days, y = norm_doc_toc, group = interaction(Season, Station))) +
+  geom_errorbar(aes(ymin = norm_doc_toc - sd_norm_doc_toc, ymax = norm_doc_toc + sd_norm_doc_toc, color = factor(degree_bin)), width = 1, alpha = 0.5) +
   geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
   geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
-  scale_color_brewer(palette = "RdBu") +
-  scale_fill_brewer(palette = "RdBu") +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
  # labs(x = expression("Days"), y = expression(paste("DOC"^"(*)",", µmol C L"^-1)), fill = "") +
-  labs(x = expression("Days"), y = expression(paste("DOC(*), µmol C L"^-1)), fill = "") +
+  labs(x = expression("Days"), y = expression(paste("DOC or TOC, µmol C L"^-1)), fill = "") +
   theme_classic2(base_size = 16) +
   theme(strip.background.x = element_blank(),
         strip.text.x = element_blank()) +
@@ -390,15 +396,15 @@ doc_curves <-  bge %>%
 doc_curves2 <-  bge %>% 
   filter(Treatment == "Control", Days <= 20) %>% 
   drop_na(sd_combined_doc) %>% 
-  select(Season, Station, degree_bin, Days, norm_doc, sd_norm_doc) %>% 
+  select(Season, Station, degree_bin, Days, norm_doc_toc, sd_norm_doc_toc) %>% 
   distinct() %>% 
   # filter(!Cruise == "AT34" | !S,tation == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
-  ggplot(aes(x = Days, y = norm_doc, group = interaction(Season, Station))) +
-  geom_errorbar(aes(ymin = norm_doc - sd_norm_doc, ymax = norm_doc + sd_norm_doc, color = factor(degree_bin)), width = 0.5, alpha = 0.3) +
+  ggplot(aes(x = Days, y = norm_doc_toc, group = interaction(Season, Station))) +
+  geom_errorbar(aes(ymin = norm_doc_toc - sd_norm_doc_toc, ymax = norm_doc_toc + sd_norm_doc_toc, color = factor(degree_bin)), width = 0.5, alpha = 0.3) +
   geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
   geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
-  scale_color_brewer(palette = "RdBu") +
-  scale_fill_brewer(palette = "RdBu") +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
  labs(x = expression("Days"), y = expression(paste("DOC, µmol C L"^-1)), fill = "") +
   theme_classic2(base_size = 16) +
   theme(strip.background.x = element_blank(),
@@ -490,14 +496,6 @@ longterm_delta_stats %>%
   mutate(cv = sd/mean)
 ```
 
-#CCFs
-
-```{r}
-bge_summary %>% 
-  group_by(Cruise) %>% 
-  summarize_at(vars(ccf), list(mean = mean, sd = sd), na.rm = T)
-```
-
 
 # BGE
 
@@ -507,13 +505,19 @@ bge_box <- bge_summary %>%
   ggplot(aes(x = factor(Season, levels = levels), y = bge)) +
   geom_boxplot(width = 0.3) +
   geom_point(aes(fill = factor(degree_bin)), shape = 21, size = 3, alpha = 0.7) +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
   theme_classic2(base_size = 16) +
   # scale_fill_brewer(palette = "Dark2") +
-  scale_fill_manual(values = matlab.colors) +
   labs(x = "", y = "BGE", fill = "Latitude, ˚N") + 
   stat_compare_means()  
   
   bge_box
+```
+
+```{r}
+
+compare_means(bge ~ degree_bin, bge_summary, method = "kruskal.test")
 ```
 
 ```{r fig.height=12, fig.width=13, message=FALSE, warning=FALSE}
@@ -526,7 +530,7 @@ ba_curves / doc_curves2 + bge_box +
 
 # Experiments at 44˚N
 
-```{r Remin plots, echo=FALSE, fig.height=7, fig.width=16, message=FALSE, warning=FALSE}
+```{r Remin plots, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
 
 doc44a <- lat44 %>% 
   ggplot(aes(x = Days, y = norm.doc, group = interaction(Cruise, Station, Bottle))) + 
@@ -534,6 +538,8 @@ doc44a <- lat44 %>%
   geom_errorbar(aes(ymin = norm.doc - sd_combined_doc, ymax = norm.doc + sd_combined_doc, color = factor(Season, levels = levels)), width = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
+  # scale_color_viridis_d(option = "viridis") +
+  # scale_fill_viridis_d(option = "viridis") +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
  labs(x = expression("Days"), y = expression(paste("∆DOC, µmol C L"^-1))) +
@@ -549,6 +555,8 @@ doc44a_i <- lat44 %>%
   geom_errorbar(aes(ymin = norm.doc - sd_combined_doc, ymax = norm.doc + sd_combined_doc, color = factor(Season, levels = levels)), width = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
+  # scale_color_viridis_d(option = "viridis") +
+  # scale_fill_viridis_d(option = "viridis") +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
  labs(x = expression("Days"), y = expression(paste("∆DOC, µmol C L"^-1))) +
@@ -571,6 +579,8 @@ doc44b <- lat44 %>%
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
+  # scale_color_viridis_d(option = "viridis") +
+  # scale_fill_viridis_d(option = "viridis") +
  labs(x = expression("Days"), y = expression(paste("BDOC, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
@@ -579,9 +589,7 @@ doc44b <- lat44 %>%
 
 
 
-doc44a + doc44b  + 
-  plot_annotation(tag_levels = "a")  +
-  plot_layout(guides = "collect") &
+doc44a +
   theme(plot.tag = element_text(size = 14))
   
 ```
@@ -627,7 +635,8 @@ station_bioav <- bioav.table.data %>%
  group_by(Cruise, Season, Station, degree_bin) %>% 
   summarize_at(vars(redis_DOC_vol:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
-  ungroup()
+  ungroup() %>% 
+  select(Cruise, Station, contains("persis"))
 
 cruise_bioav <- bioav.table.data %>% 
  group_by(Cruise, Season) %>% 
@@ -650,73 +659,77 @@ my_comparisons <- list( c("Early Spring", "Late Spring"), c("Early Spring", "Ear
 
 #npp
 npp.boxplot <- bcd %>% 
-  select(Season,  int.NPP) %>% 
+  select(Season, degree_bin, int.NPP) %>% 
   distinct() %>% 
   mutate_at(vars(contains("NPP")), funs(./10^3)) %>% 
-  ggboxplot(., x = "Season", y = "int.NPP", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Early Winter"),
-            xlab = F, 
-            ylab = expression(paste("NPP, mmol C m"^-3, "d"^-1)),
-            add = "jitter",
-            add.params = list(size = 2, shape = 21, fill = "white"),
-            outlier.shape = NA,
-            width = 0.5,
-            ggtheme = theme_classic2(base_size = 16)) + 
-  rremove("x.text") +
+  ggplot(aes(x = factor(Season, levels = levels), y = int.NPP)) +
+  geom_boxplot(width = 0.3, outlier.shape = NA) +
+  geom_point(aes(fill = factor(degree_bin)), shape = 21, size = 3, alpha = 0.7) +
+  #  scale_color_brewer(palette = "RdBu") +
+  # scale_fill_brewer(palette = "RdBu") +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
+  theme_classic2(base_size = 16) +
+  labs(x = "", y =  expression(paste("NPP, mmol C m"^-3, "d"^-1)), fill = "Latitude, ˚N") + 
+  stat_compare_means(label.y = 0)  +
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.adj",
                      step.increase = 0.11,
                      tip.length = 0.01) +
-  stat_compare_means(label.y = 0)
+    rremove("x.text") 
+  
 
 #bp
 bp.boxplot <- bcd %>% 
-  select(Season,  int.bp) %>% 
+  select(Season, degree_bin, int.bp) %>% 
   mutate_at(vars(contains("bp")), funs(./10^3)) %>% 
   distinct() %>% 
-  ggboxplot(., x = "Season", y = "int.bp", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Early Winter"),
-            xlab = F,
-            ylab = expression(paste("BP, mmol C m"^-3, "d"^-1)),
-            add = "jitter",
-            add.params = list(size = 2, shape = 21, fill = "white"),
-            outlier.shape = NA,
-            width = 0.5,
-            ggtheme = theme_classic2(base_size = 16)) + 
-    rremove("x.text") +
+   ggplot(aes(x = factor(Season, levels = levels), y = int.bp)) +
+  geom_boxplot(width = 0.3, outlier.shape = NA) +
+  geom_point(aes(fill = factor(degree_bin)), shape = 21, size = 3, alpha = 0.7) +
+  #  scale_color_brewer(palette = "RdBu") +
+  # scale_fill_brewer(palette = "RdBu") +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
+  theme_classic2(base_size = 16) +
+  labs(x = "", y =  expression(paste("BP, mmol C m"^-3, "d"^-1)), fill = "Latitude, ˚N") + 
+  guides(fill = F) +
+  stat_compare_means(label.y = 0)  +
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.adj",
-                     step.increase = 0.12,
-                     tip.length = 0.01) + 
-  stat_compare_means(label.y = 0) 
+                     step.increase = 0.11,
+                     tip.length = 0.01) +
+    rremove("x.text") 
 
 #ba
 ba.boxplot <- bcd %>% 
-  select(Season,  int.ba) %>% 
+  select(Season, degree_bin, int.ba) %>% 
   distinct() %>% 
-  ggboxplot(., x = "Season", y = "int.ba", 
-            order = c("Early Spring", "Late Spring", "Early Autumn", "Early Winter"),
-            xlab = F, 
-            ylab = expression(paste("Bacterial Abundance, cells m"^-3)),
-            add = "jitter",
-            add.params = list(size = 2, shape = 21, fill = "white"),
-            outlier.shape = NA,
-            width = 0.5,
-            ggtheme = theme_classic2(base_size = 16)) +
+  ggplot(aes(x = factor(Season, levels = levels), y = int.ba)) +
+  geom_boxplot(width = 0.3, outlier.shape = NA) +
+  geom_point(aes(fill = factor(degree_bin)), shape = 21, size = 3, alpha = 0.7) +
+  #  scale_color_brewer(palette = "RdBu") +
+  # scale_fill_brewer(palette = "RdBu") +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
+  theme_classic2(base_size = 16) +
+  labs(x = "", y =  expression(paste("BA, cells m"^-3)), fill = "Latitude, ˚N") +
+  guides(fill = F) +
+  stat_compare_means(label.y = 0)  +
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.adj",
-                     step.increase = 0.12,
-                     tip.length = 0.01) + 
-  stat_compare_means(label.y = 0) 
+                     step.increase = 0.11,
+                     tip.length = 0.01) 
+
 
 
 ```
 
 
-```{r patchwork rate & abundance plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 14, fig.width = 6, fig.align = "center"}
+```{r patchwork rate & abundance plots, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 14, fig.width = 10, fig.align = "center"}
 
 patchwork <- npp.boxplot / bp.boxplot / ba.boxplot 
-patchwork +  plot_annotation(tag_levels = "a") &
+patchwork +  plot_annotation(tag_levels = "a") + plot_layout(guides = "collect") &
   theme(plot.tag = element_text(size = 14))
 
 ```
