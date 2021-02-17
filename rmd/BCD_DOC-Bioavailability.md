@@ -410,7 +410,7 @@ ba_curves / doc_curves2 +
   theme(plot.tag = element_text(size = 14))
 ```
 
-![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 # Delta Stats
 
@@ -540,7 +540,7 @@ bge_box <- bge_summary %>%
   bge_box
 ```
 
-![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-20-1.png)<!-- -->
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-21-1.png)<!-- -->
 
 ``` r
 compare_means(bge ~ degree_bin, bge_summary, method = "kruskal.test")
@@ -558,7 +558,7 @@ ba_curves / doc_curves2 + bge_box +
   theme(plot.tag = element_text(size = 20))
 ```
 
-![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-22-1.png)<!-- -->
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-24-1.png)<!-- -->
 
 # Experiments at 44˚N
 
@@ -573,12 +573,12 @@ ba_curves / doc_curves2 + bge_box +
 ``` r
 bge.table.data <- bge_summary %>% 
   group_by(Cruise, Season, Station, degree_bin) %>% 
-  summarize_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  summarize_at(vars(del.cells:station_bge), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels), degree_bin)
 
 bge.table.data2 <- bge_summary %>% 
   group_by(Cruise, Season) %>% 
-  summarize_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  summarize_at(vars(del.cells:station_bge), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels))
 
 bioav.table.data <- export_bioav %>% 
@@ -699,6 +699,14 @@ field.doc_table
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/BCD%20and%20NPP%20bar%20plots-1.png)<!-- -->
 
+``` r
+figure5 <- doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
+  plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(size = 14))
+
+ggsave("f5.jpg", figure5, device = "jpg",  width = 12, height = 10, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+```
+
 ![](BCD_DOC-Bioavailability_files/figure-gfm/BCD%20and%20NPP%20bar%20plots2-1.png)<!-- -->
 
 # Regressions: Property-Property
@@ -714,58 +722,16 @@ summary(bcd.data$int.NPP)
 
     ## RMA was not requested: it will not be computed.
 
-## BCD:NPP v NPP
-
-### exponential model using lm function
-
-``` r
-reg2 <- lm(log(bcd.npp_global) ~ int.NPP, data = bcd.data)
-
-reg2.df <- data.frame(x = bcd.data$int.NPP, y = exp(fitted(reg2)))
-```
-
-### manual exponential model
-
-y = alpha \* (e^beta \* x) + theta
-
-    ## $alpha
-    ## (Intercept) 
-    ##    0.312114 
-    ## 
-    ## $beta
-    ##    int.NPP 
-    ## -0.4936019 
-    ## 
-    ## $theta
-    ## [1] 0.04601972
-
-``` r
-model <- nls(bcd.npp_global ~ alpha * exp(beta * int.NPP) + theta , data = bcd.data, start = start)
-
-model.df <- data.frame(x = bcd.data$int.NPP, y = predict(model, list(x = bcd.data$int.NPP)) )
-
-summary(model)
-```
-
-    ## 
-    ## Formula: bcd.npp_global ~ alpha * exp(beta * int.NPP) + theta
-    ## 
-    ## Parameters:
-    ##       Estimate Std. Error t value Pr(>|t|)    
-    ## alpha  1.94713    0.54626   3.564   0.0012 ** 
-    ## beta  -8.89252    1.90546  -4.667 5.57e-05 ***
-    ## theta  0.20132    0.02245   8.969 4.03e-10 ***
-    ## ---
-    ## Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-    ## 
-    ## Residual standard error: 0.1012 on 31 degrees of freedom
-    ## 
-    ## Number of iterations to convergence: 11 
-    ## Achieved convergence tolerance: 3.152e-06
-
 ## Plots
 
 ![](BCD_DOC-Bioavailability_files/figure-gfm/BCD%20and%20NPP%20regression%20plots-1.png)<!-- -->
+
+``` r
+ggsave("f6.jpg", reg1.plot, device = "jpg",  width = 8, height = 6, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+```
+
+    ## Warning in is.na(x): is.na() applied to non-(list or vector) of type
+    ## 'expression'
 
 ``` r
 compare_means(bcd.npp_global_mean ~ Cruise, bcd.summary, method = "kruskal.test")
@@ -796,6 +762,6 @@ compare_means(bcd.npp_global_mean ~ Season, bcd.summary)
 
 ## bp/bcd profile
 
-![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-26-1.png)<!-- -->
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-32-1.png)<!-- -->
 
-![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-27-1.png)<!-- -->
+![](BCD_DOC-Bioavailability_files/figure-gfm/unnamed-chunk-33-1.png)<!-- -->

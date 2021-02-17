@@ -112,10 +112,8 @@ We need to readjust our initial bacterial carbon numbers before calculating othe
 We'll then calculate and define:
 
 - doc.star = TOC or PTOC - POC (for N3 and 4)
-- toc.star = DOC + POC (for N2) 
 - Bacterial growth efficiencies (BGE), only where ∆DOC is resolvable (>= 2.0 µmol C L^-1^ change):
   + ∆POC and ∆DOC (N2) or ∆DOC_star (N3) from T0 to stationary
-- cell_resp = ∆POC/∆TOC (N3 & 4) or TOC_star (N2)
   
 ```{r Calculate derived vars, message = F}
 calcs <- interpolated %>%
@@ -126,18 +124,12 @@ calcs <- interpolated %>%
          del.poc = round(s.poc - i.poc, 1)) %>% 
   fill(c(del.cells, del.poc), .direction = "downup") %>% 
 #######toc and doc star###
-  mutate(toc.star_i = ifelse(Cruise == "AT34" & Hours == 0, round(doc + i.poc, 1), NA),
-         toc.star_s = ifelse(Cruise == "AT34" & Hours == stationary.harvest, round(interp_doc + s.poc, 1), NA),
-         doc.star_i = ifelse(Cruise != "AT34" & Hours == 0, round(ptoc - i.poc, 1), NA),
+  mutate(doc.star_i = ifelse(Cruise != "AT34" & Hours == 0, round(ptoc - i.poc, 1), NA),
          doc.star_s = ifelse(Cruise != "AT34" & Hours == stationary.harvest, round(interp_ptoc - s.poc, 1), NA)) %>% 
   fill(contains("star"), .direction = "downup") %>% 
 ######delta toc, toc.star, doc, doc.star####
   mutate(del.toc = ifelse(Cruise != "AT34" & Hours == stationary.harvest, first(ptoc) - interp_ptoc, NA),
          del.toc = ifelse(del.toc < 1.75, NA, del.toc),
-         
-         del.toc.star = toc.star_i - toc.star_s,
-         del.toc.star = ifelse(del.toc.star < 1.75, NA, del.toc.star),
-         
          
          del.doc = ifelse(Cruise == "AT34" & Hours == stationary.harvest, first(doc) - interp_doc, NA),
          del.doc = ifelse(del.doc < 1.75, NA, del.doc),
@@ -152,10 +144,7 @@ mutate(bge = ifelse(Cruise == "AT34", del.poc/del.doc, del.poc/del.doc.star),
        bge = ifelse(Cruise == "AT34" & Station == 3, NA, bge)) %>% #N2S3 omitted because poc change and cell change from data well beyond stationary (in death phase)
   mutate_at(vars(contains("bge")), round, 2) %>% 
   ungroup() %>% 
-  ######cell sp resp fmol c L-1####
-  mutate(cell_resp = ifelse(Cruise == "AT34", round((del.toc.star / del.cells) * 10^9, 1), round((del.toc / del.cells) * 10^9, 1)),
-         cell_resp = ifelse(Cruise == "AT34" & Station == 3, NA, cell_resp)) %>% 
-arrange(factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")))
+  arrange(factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")))
 
 ```
 
@@ -165,17 +154,17 @@ arrange(factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")
 ```{r Summary table}
 bge_summary <- calcs %>% 
     filter(Treatment == "Control") %>% 
-  select(Season:Treatment, contains("del"), bge, cell_resp) %>% 
+  select(Season:Treatment, contains("del"), bge) %>% 
   distinct() 
 
 bge_cruise_means <- bge_summary %>% 
  group_by(Cruise, Season) %>% 
-  summarise_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T) %>% 
+  summarise_at(vars(del.cells:bge), list(mean = mean, sd = sd), na.rm = T) %>% 
   arrange(factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")))
 
 bge_station_means <- bge_summary %>% 
  group_by(Cruise, Season, Station) %>% 
-  summarise_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T) %>% 
+  summarise_at(vars(del.cells:bge), list(mean = mean, sd = sd), na.rm = T) %>% 
   arrange(factor(Season, levels = c("Early Spring", "Late Spring", "Early Autumn")))
 
 ```

@@ -420,6 +420,16 @@ ba_curves / doc_curves +
   theme(plot.tag = element_text(size = 14))
 ```
 
+
+```{r include = FALSE}
+figure1 <- ba_curves / doc_curves + 
+   plot_annotation(tag_levels = "a") &
+  plot_layout(guides = "collect") +
+  theme(plot.tag = element_text(size = 14))
+
+ggsave("f1.jpg", figure1, device = "jpg",  width = 16, height = 8, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+```
+
 ```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
 ba_curves / doc_curves2 + 
    plot_annotation(tag_levels = "a") &
@@ -515,6 +525,11 @@ bge_box <- bge_summary %>%
   bge_box
 ```
 
+
+```{r include = FALSE}
+ggsave("f3.jpg", bge_box, device = "jpg",  width = 7, height = 4, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+```
+
 ```{r}
 
 compare_means(bge ~ degree_bin, bge_summary, method = "kruskal.test")
@@ -594,6 +609,13 @@ doc44a +
   
 ```
 
+
+```{r include = FALSE}
+figure2 <- doc44a + theme(plot.tag = element_text(size = 14))
+
+ggsave("f2.jpg", figure2, device = "jpg",  width = 10, height = 7, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+```
+
 ```{r Remin plots initial, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
 doc44a_i
 ```
@@ -608,12 +630,12 @@ doc44a
 
 bge.table.data <- bge_summary %>% 
   group_by(Cruise, Season, Station, degree_bin) %>% 
-  summarize_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  summarize_at(vars(del.cells:station_bge), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels), degree_bin)
 
 bge.table.data2 <- bge_summary %>% 
   group_by(Cruise, Season) %>% 
-  summarize_at(vars(del.cells:cell_resp), list(mean = mean, sd = sd), na.rm = T)  %>% 
+  summarize_at(vars(del.cells:station_bge), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels))
 
 bioav.table.data <- export_bioav %>% 
@@ -734,6 +756,14 @@ patchwork +  plot_annotation(tag_levels = "a") + plot_layout(guides = "collect")
 
 ```
 
+```{r include = FALSE}
+figure4 <-  npp.boxplot / bp.boxplot / ba.boxplot  +  plot_annotation(tag_levels = "a") + plot_layout(guides = "collect") &
+  theme(plot.tag = element_text(size = 14))
+
+ggsave("f4.jpg", figure4, device = "jpg",  width = 12, height = 12, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+```
+
+
 # Bar plots: BCD and BCD:NPP
 
 Convert BCD and NPP to mmol C m^-3^ d^-1^  
@@ -851,6 +881,16 @@ doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
   theme(plot.tag = element_text(size = 14))
 ```
 
+```{r}
+figure5 <- doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
+  plot_annotation(tag_levels = "a") &
+  theme(plot.tag = element_text(size = 14))
+
+ggsave("f5.jpg", figure5, device = "jpg",  width = 12, height = 10, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+```
+
+
+
 ```{r BCD and NPP bar plots2, echo = FALSE, warning = FALSE, message = FALSE, fig.height = 10, fig.width = 12}
 bcd.bar2 / bcd.npp.bar / ratio.bar  +
   plot_annotation(tag_levels = "a") &
@@ -871,43 +911,6 @@ summary(bcd.data$int.NPP)
 reg1 <- lmodel2(int.bcd_global ~ int.NPP, data = bcd.data, nperm = 99)
 ```
 
-## BCD:NPP v NPP
-
-### exponential model using lm function
-
-```{r Exponential model}
-reg2 <- lm(log(bcd.npp_global) ~ int.NPP, data = bcd.data)
-
-reg2.df <- data.frame(x = bcd.data$int.NPP, y = exp(fitted(reg2)))
-```
-
-
-### manual exponential model 
-
-y = alpha * (e^beta * x) + theta
-
-```{r Parameterize model, echo = FALSE}
-
-# Select an approximate $\theta$, since theta must be lower than min(y), and greater than zero
-theta.0 <- min(bcd.data$bcd.npp_global) * 0.5  
-
-# Estimate the rest parameters using a linear model
-model.0 <- lm(log(bcd.npp_global - theta.0) ~ int.NPP, data = bcd.data)  
-alpha.0 <- exp(coef(model.0)[1])
-beta.0 <- coef(model.0)[2]
-
-# Starting parameters
-start <- list(alpha = alpha.0, beta = beta.0, theta = theta.0)
-start
-```
-
-```{r Nonlinear model}
-model <- nls(bcd.npp_global ~ alpha * exp(beta * int.NPP) + theta , data = bcd.data, start = start)
-
-model.df <- data.frame(x = bcd.data$int.NPP, y = predict(model, list(x = bcd.data$int.NPP)) )
-
-summary(model)
-```
 
 
 ## Plots
@@ -922,7 +925,7 @@ reg1.plot <- bcd.data %>%
   geom_abline(intercept = reg1$confidence.intervals[3,3],
               slope = reg1$confidence.intervals[3,5],colour = "grey", linetype = 3, size = 1) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 0.7) +
-  labs(x = expression(paste("")), y = expression(paste("BCD, mmol C m"^-3, "d"^-1))) +
+  labs(x =  expression(paste("NPP, mmol C m"^-3, "d"^-1)), y = expression(paste("BCD, mmol C m"^-3, "d"^-1))) +
   scale_fill_manual(values = custom.colors) +
   scale_color_manual(values = custom.colors) +
   theme_classic2(base_size = 16) +
@@ -931,26 +934,13 @@ reg1.plot <- bcd.data %>%
   annotate( geom = "text", label = expression(atop("y = 0.19x + 0.03", paste("r"^2," = 0.68, ", italic("p "), "<< 0.01"))), x = 2.7, y = 0.08, size = 6) 
   
 
-reg2.plot <- bcd.data %>% 
-  ggplot(aes(x = int.NPP, y = bcd.npp_global)) + 
-  # geom_abline(intercept = reg2$regression.results[3,2],
-  #             slope = reg2$regression.results[3,3],colour = "black", linetype = 2, size = 1) +
-  geom_line(data = model.df, aes(x,y), size = 1, linetype = 2 ) +
-  geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 0.7) +
-  labs(x = expression(paste("NPP, mmol C m"^-3, "d"^-1)), y = expression(paste("BCD:NPP"))) +
-  scale_fill_manual(values = custom.colors) +
-  scale_color_manual(values = custom.colors) +
-  theme_classic2(base_size = 16) +
-  theme(legend.title = element_blank()) +
-  guides(color = F, fill = F) +
-  annotate( geom = "text", label = expression(paste("y = 1.95", "e"^{-8.90 * "x"}, " + 0.20")), x = 2.5, y = 0.14, size = 6) +
-  annotate( geom = "text", label = expression(paste("rse = 0.1; dof = 31")), x = 2.5, y = 0.08, size = 6) 
-
-
-# (reg1.plot) / (reg2.plot) + plot_annotation(tag_levels = "a")
-
 reg1.plot
 
+```
+
+```{r}
+
+ggsave("f6.jpg", reg1.plot, device = "jpg",  width = 8, height = 6, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
 ```
 
 ```{r}
@@ -963,6 +953,8 @@ compare_means(bcd.npp_global_mean ~ Cruise, bcd.summary, method = "kruskal.test"
 ```{r}
 compare_means(bcd.npp_global_mean ~ Season, bcd.summary)
 ```
+
+
 
 
 ## bp/bcd profile

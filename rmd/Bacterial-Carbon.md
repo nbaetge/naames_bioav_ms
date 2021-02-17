@@ -141,6 +141,7 @@ corrfactor <- blank.data %>%
   filter(Filter == 2) %>% 
   select(Season, BlnkFiltrate, BactC_µg, BactN_µg) %>% 
   mutate(global_c_ug = mean(BactC_µg, na.rm = T),
+         sd_global_c_ug = sd(BactC_µg, na.rm = T),
          global_n_ug = mean(BactN_µg, na.rm = T),) %>% 
   group_by(BlnkFiltrate) %>% 
   mutate(filtrate_c_ug = mean(BactC_µg, na.rm = T),
@@ -172,6 +173,12 @@ corrfactor
     ##   poc.cf1 poc.cf2 poc.cf3 pon.cf1 pon.cf2 pon.cf3
     ##     <dbl>   <dbl>   <dbl>   <dbl>   <dbl>   <dbl>
     ## 1     2.7       3     2.5     0.2     0.2     0.3
+
+``` r
+sample_filt2 <- t.test.data %>% 
+  filter(Type == "Non-blank", Filter == 2, Filtrate == "Control") %>% 
+  summarize_at(vars(BactC_µg), list(mean = mean, sd = sd), na.rm = T) 
+```
 
 # Perform Corrections
 
@@ -213,40 +220,22 @@ bactcarbon <- bigelow %>%
          poc.ug = BactC_µg) %>% 
   cbind(., corrfactor) %>% 
   mutate(poc.c1.ug = poc.ug - poc.cf1,
-         poc.c2.ug = poc.ug - poc.cf2,
-         poc.c3.ug = poc.ug - poc.cf3,
          pon.c1.ug = pon.ug - pon.cf1,
-         pon.c2.ug = pon.ug - pon.cf2,
-         pon.c3.ug = pon.ug - pon.cf3,
          poc.c1.ug = ifelse(poc.c1.ug < 0, 0, poc.c1.ug),
-         poc.c2.ug = ifelse(poc.c2.ug < 0, 0, poc.c2.ug),
-         poc.c3.ug = ifelse(poc.c3.ug < 0, 0, poc.c3.ug),
-         pon.c1.ug = ifelse(pon.c1.ug < 0, 0, pon.c1.ug),
-         pon.c2.ug = ifelse(pon.c2.ug < 0, 0, pon.c2.ug),
-         pon.c3.ug = ifelse(pon.c3.ug < 0, 0, pon.c3.ug)) %>%
+         pon.c1.ug = ifelse(pon.c1.ug < 0, 0, pon.c1.ug)) %>%
   group_by(Cruise, Station, Depth, Bottle, Timepoint) %>%
   mutate(poc.ug = round((sum(poc.ug)),1),
          pon.ug = round((sum(pon.ug)),1),
          poc.c1.ug = round((sum(poc.c1.ug)),1),
-         poc.c2.ug = round((sum(poc.c2.ug)),1),
-         poc.c3.ug = round((sum(poc.c3.ug)),1),
-         pon.c1.ug = round((sum(pon.c1.ug)),1),
-         pon.c2.ug = round((sum(pon.c2.ug)),1),
-         pon.c3.ug = round((sum(pon.c3.ug)),1)) %>% 
+         pon.c1.ug = round((sum(pon.c1.ug)),1)) %>% 
   ungroup() %>% 
   mutate(poc.um = round(poc.ug/12, 1),
          poc.c1.um = round(poc.c1.ug/12, 1),
-         poc.c2.um = round(poc.c2.ug/12, 1),
-         poc.c3.um = round(poc.c3.ug/12, 1),
          pon.um = round(pon.ug/14, 1),
-         pon.c1.um = round(pon.c2.ug/14, 1),
-         pon.c2.um = round(pon.c2.ug/14, 1),
-         pon.c3.um = round(pon.c3.ug/14, 1),
+         pon.c1.um = round(pon.c1.ug/14, 1),
          cn = round(poc.um/pon.um),
-         cn.c1 = round(poc.c1.um/pon.c1.um),
-         cn.c2 = round(poc.c2.um/pon.c2.um),
-         cn.c3 = round(poc.c3.um/pon.c3.um)) %>% 
-  select(Season, Cruise, Station, Depth, facetlabel, Treatment, Bottle, Timepoint, poc.ug, pon.ug, poc.cf1, poc.cf2, poc.cf3, pon.cf1, pon.cf2, pon.cf3, poc.c1.ug:cn.c3 ) %>% 
+         cn.c1 = round(poc.c1.um/pon.c1.um)) %>% 
+  select(Season, Cruise, Station, Depth, facetlabel, Treatment, Bottle, Timepoint, poc.ug, pon.ug, poc.cf1, pon.cf1, poc.c1.ug:cn.c1 ) %>% 
   distinct() %>% 
   arrange(Season, Cruise, Station, Depth, Treatment, Bottle, Timepoint) 
 ```
@@ -302,52 +291,22 @@ s.gf75 <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/tidy_N2-4_BactA_Remin_M
   select(Season:Bottle, Treatment, Timepoint, s.gf75.cells, s.gf75.ret) 
 ```
 
-## Combine Cell Abundance and POC Data, Calculate CCF
-
-We’ll calculate 6 CCFs (fg C cell<sup>-1</sup>) from the POC data:
-
-  - i.ccf.c1 = poc.c1.um/cells on filter \* 12 \* 10<sup>9</sup>
-    (initial)
-  - s.ccf.c1 = poc.c1.um/cells on filter \* 12 \* 10<sup>9</sup>
-    (stationary)
-  - i.ccf.c2 = poc.c2.um/cells on filter \* 12 \* 10<sup>9</sup>
-    (initial)
-  - s.ccf.c2 = poc.c2.um/cells on filter \* 12 \* 10<sup>9</sup>
-    (stationary)
-  - i.ccf.c3 = poc.c3.um/cells on filter \* 12 \* 10<sup>9</sup>
-    (initial)
-  - s.ccf.c3 = poc.c3.um/cells on filter \* 12 \* 10<sup>9</sup>
-    (stationary)
-
-We’ll also add 3 other CCFs from the literature:
-
-  - ccf.white = 6.5 (SAR11), White et al 2019
-      - also close to 6.3 of Carlson et al 1996 and 7 of Zubkov 2000
-  - ccf.fukuda = 12.3 (average oceanic Pacific), Fukuda et al 1998
-      - also close to 10 generally used by many papers Wear et al 2020,
-        Christian and Karl 1994, Caron et al 1995, James et al 2017
-  - ccf.lee = 20 (Long Island Sound), Lee and Fuhrman 1987
-      - generally used as reported by Gunderson et al 2002
-
-<!-- end list -->
+## Combine Cell Abundance and POC Data
 
 ``` r
 #initial timepoints
-i.fg_cell <-  bactcarbon %>% 
+i.cell <-  bactcarbon %>% 
   filter(!Treatment == "Volume", Timepoint == 0) %>% 
-  select_at(vars(poc.ug:cn.c3), .funs = funs(paste0("i.", .))) %>% 
+  select_at(vars(poc.ug:cn.c1), .funs = funs(paste0("i.", .))) %>% 
   bind_cols(bactcarbon %>% filter(!Treatment == "Volume", Timepoint == 0) %>% select(Season:facetlabel), .) %>% 
   mutate(Station = gsub("2RD", "S2RD", Station),
          Station = gsub("2RF", "S2RF", Station)) %>% 
-  left_join(., i.gf75) %>% 
-  mutate(i.ccf.c1 = round(i.poc.c1.um/i.gf75.cells * 12 * 10^9),
-         i.ccf.c2 = round(i.poc.c2.um/i.gf75.cells * 12 * 10^9),
-         i.ccf.c3 = round(i.poc.c3.um/i.gf75.cells * 12 * 10^9)) 
+  left_join(., i.gf75) 
 
 #stationary timepoints
-s.fg_cell <- bactcarbon %>% 
+s.cell <- bactcarbon %>% 
   filter(!Treatment == "Volume", !Timepoint == 0) %>% 
-  select_at(vars(poc.ug:cn.c3), .funs = funs(paste0("s.", .))) %>% 
+  select_at(vars(poc.ug:cn.c1), .funs = funs(paste0("s.", .))) %>% 
   bind_cols(bactcarbon %>% filter(!Treatment == "Volume", !Timepoint == 0) %>% select(Season:facetlabel, Treatment, Bottle, Timepoint), .) %>% 
   mutate(Station = gsub("2RD", "S2RD", Station),
          Station = gsub("2RF", "S2RF", Station),
@@ -368,24 +327,17 @@ s.fg_cell <- bactcarbon %>%
   add_row(Season = "Early Autumn", Cruise = "AT38", Station = "1", Depth = 200, Treatment = "SynLys", Bottle = "P") %>% 
   arrange(Cruise, Station, Depth, Treatment, Bottle) %>% 
   group_by(Cruise, Station, Depth, Treatment) %>% 
-  fill(s.poc.ug:s.cn.c3, .direction = "updown") %>% 
+  fill(s.poc.ug:s.cn.c1, .direction = "updown") %>% 
   mutate(Bottle = gsub("JI", "J", Bottle),
          Bottle = gsub("MN", "M", Bottle),
          Bottle = gsub("LK", "L", Bottle),
          Bottle = gsub("OP", "O", Bottle)) %>% 
   left_join(., s.gf75) %>% 
-  mutate(s.ccf.c1 = round(s.poc.c1.um/s.gf75.cells * 12 * 10^9),
-         s.ccf.c2 = round(s.poc.c2.um/s.gf75.cells * 12 * 10^9),
-         s.ccf.c3 = round(s.poc.c3.um/s.gf75.cells * 12 * 10^9)) %>% 
-  ungroup() %>% 
   rename(s.timepoint = Timepoint)
 
-fg_cell <- left_join(s.fg_cell, i.fg_cell)  %>% 
+bc <- left_join(s.cell, i.cell)  %>% 
    group_by(Cruise, Station, Depth, Treatment) %>% 
-  fill(c(s.timepoint,i.poc.ug:i.ccf.c3), .direction = "updown") %>% 
-  mutate(ccf.white = 6.5,
-         ccf.fukuda = 12.3,
-         ccf.lee = 20) %>% 
+  fill(c(s.timepoint,i.poc.ug:i.gf75.ret), .direction = "updown") %>% 
   ungroup()
 ```
 
@@ -412,7 +364,7 @@ reflect faulty procedure (i.e. ripped filters) and may be associated
 with questionable measurements. We’ll flag these data.
 
 ``` r
-fg_cell.qc <- fg_cell %>% 
+bc.qc <- bc %>% 
   mutate(type = ifelse(Treatment == "Control", "Control", "Non-control"),
          i.gf75.flag = ifelse(Depth == 10 & i.gf75.ret < 0.72, "< Ave. Ret.", NA),
          i.gf75.flag = ifelse(Depth == 200 & i.gf75.ret < 0.51, "< Ave. Ret.", i.gf75.flag ),
@@ -435,167 +387,14 @@ fg_cell.qc <- fg_cell %>%
   select(Season:Bottle, type, i.gf75.ret, s.gf75.ret, i.gf75.flag, s.gf75.flag, gf75.flag, contains("i."), contains("s."), contains("ccf"))
 ```
 
-# CCFs
-
-    ## # A tibble: 18 x 4
-    ## # Groups:   Cruise [3]
-    ##    Cruise correction ave_ccf    sd
-    ##    <chr>  <chr>        <dbl> <dbl>
-    ##  1 AT34   i.ccf.c1        13     6
-    ##  2 AT34   i.ccf.c2        13     5
-    ##  3 AT34   i.ccf.c3        13     6
-    ##  4 AT34   s.ccf.c1        13    12
-    ##  5 AT34   s.ccf.c2        12    11
-    ##  6 AT34   s.ccf.c3        14    12
-    ##  7 AT38   i.ccf.c1        50    18
-    ##  8 AT38   i.ccf.c2        49    18
-    ##  9 AT38   i.ccf.c3        50    17
-    ## 10 AT38   s.ccf.c1        31    13
-    ## 11 AT38   s.ccf.c2        30    12
-    ## 12 AT38   s.ccf.c3        31    13
-    ## 13 AT39   i.ccf.c1        20    24
-    ## 14 AT39   i.ccf.c2        16    17
-    ## 15 AT39   i.ccf.c3        21    23
-    ## 16 AT39   s.ccf.c1        22     8
-    ## 17 AT39   s.ccf.c2        21     8
-    ## 18 AT39   s.ccf.c3        23     9
-
-![](Bacterial-Carbon_files/figure-gfm/CCF%20plots%20with%20flags-1.png)<!-- -->
-
-The points are colored by the QC flag associated with the POC samples.
-”Questionable” measures indicate below average (of all samples, not
-grouped) cell retention on the POC filters. “ND” indicates no data.
-
-# C:N Ratios
-
-    ## # A tibble: 24 x 4
-    ## # Groups:   Cruise [3]
-    ##    Cruise correction ave_cn    sd
-    ##    <chr>  <chr>       <dbl> <dbl>
-    ##  1 AT34   i.cn          7.4   2.1
-    ##  2 AT34   i.cn.c1       7.8   4.1
-    ##  3 AT34   i.cn.c2       7.6   3.9
-    ##  4 AT34   i.cn.c3       8.8   3.4
-    ##  5 AT34   s.cn          6.6   4.1
-    ##  6 AT34   s.cn.c1       5.1   2.7
-    ##  7 AT34   s.cn.c2       4.7   2.7
-    ##  8 AT34   s.cn.c3       5.4   2.7
-    ##  9 AT38   i.cn         14.5   6.7
-    ## 10 AT38   i.cn.c1      14.2   6.3
-    ## # … with 14 more rows
-
-![](Bacterial-Carbon_files/figure-gfm/C:N%20ratio%20plots-1.png)<!-- -->
-
-The points on the line intersecting the max of the y-axis represent
-“Inf” values, where PON values are 0.
-
-We would expect the carbon content of oceanic surface bacterioplankton
-to be around 5 (Faggerbakke et al 1996, Fukuda et al, 1998, Gundersen et
-al 2002, Zimmerman et al 2014, White et al 2019). Excluding infinity
-values where PON was undetectable, C:N ratios for the spring are
-comparable to expectations, with slight improvement using corrected
-values.
-
-The C:N ratios of the early autumn samples are clear outliers, outside
-even the maximum reported by Gundersen et al 2002 (9.1). These high
-values might point to issues with the POC data. What might be causing
-the high C:N ratios observed in the early autumn? Below average cell
-retentions don’t appear to be skewing results in at least the initial
-condition or during the spring. It could, in some cases, be skewing
-early autumn
-measurements.
-
-# Identify Outliers: Property-Property Plots
-
-![](Bacterial-Carbon_files/figure-gfm/CCF%20property-property-1.png)<!-- -->
-
-<img src="Bacterial-Carbon_files/figure-gfm/cell C property-property-1.png" style="display: block; margin: auto;" />
-
-Generally, samples with below average cell retentions have higher cell C
-content, but this seems to be less of an effect at stationary.
-
-For the initial condition, it is clear that there are two outliers in
-the spring data. The initial early spring outlier sample (station 1) has
-a reasonable C:N ratio (2-3), a low POC value, and a relatively high
-carbon per cell estimate (35-53 fg C cell<sup>-1</sup>). This points to
-an issue in the cell count data, where cell abundance is likely
-underestimated. The late spring outlier is characterized by a C:N ratio
-and a cell carbon content that does not deviate from the rest of the
-late spring data, so it may not be a true outlier.
-
-The early autumn sample (station 1) with a cell carbon content of 77 fg
-C cell<sup>-1</sup> and a filter cell retention of 55% has low POC
-infinity C:N ratio. All of these metrics would suggest this sample to be
-a true outlier where filter cell abundance was likely underestimated due
-to ripped filters. The other two early autumn samples with slightly
-below average cell retentions do have high cell carbon contents (56-57
-fg C cell-1), but also have lower C:N ratios (9, 11) than the remaining
-early autumn samples (13, 25, infinity), making them hard to distinguish
-as outliers.
-
-The cell carbon content and C:N ratios of all early autumn samples are
-higher than what is expected for oceanic bacterioplankton. It is
-possible that POC is overestimated or cell abundances are underestimated
-for these samples (or both). Low cell retentions for these samples would
-suggest that cell abundances could have been underestimated. Generally,
-the relationship between cell carbon content and C:N appear to be
-reasonable at stationary, with less separation between the seasons. This
-would suggest that the POC data taken during the early autumn are not
-necessarily all compromised. The divergence of these samples from the
-other seasons could point to other factors, such as the larger influence
-of detrital matieral.
-
-We will remove the CCF for the two outlier samples (intial condition,
-AT39 S1 and AT38 S1) from remaining analyses.
-
-``` r
-fg_cell.qc %>% 
-  select(Season:s.gf75.ret) %>% 
-  filter(Depth == 10, Treatment == "Control") %>% 
-  select(-c(Depth:Treatment, type)) %>% 
-  distinct() %>% 
-  mutate(i.gf75.ret = ifelse(Cruise == "AT39" & Station == 1, NA, i.gf75.ret),
-        s.gf75.ret = ifelse(Cruise == "AT39" & Station == 1, NA, s.gf75.ret),
-        i.gf75.ret = ifelse(Cruise == "AT38" & Station == 1, NA, i.gf75.ret),
-        s.gf75.ret = ifelse(Cruise == "AT38" & Station == 1, NA, s.gf75.ret),
-        i.gf75.ret = ifelse(Bottle == "B", NA, i.gf75.ret)) %>% 
-  pivot_longer(i.gf75.ret:s.gf75.ret, names_to = "names", values_to = "ret" ) %>% 
-  drop_na(ret) %>% 
-  mutate(ave_ret = mean(ret),
-         sd_re = sd(ret))
-```
-
-    ## # A tibble: 45 x 8
-    ##    Season      Cruise Station Bottle names        ret ave_ret  sd_re
-    ##    <chr>       <chr>  <chr>   <chr>  <chr>      <dbl>   <dbl>  <dbl>
-    ##  1 Late Spring AT34   1       A      i.gf75.ret  0.77   0.782 0.0940
-    ##  2 Late Spring AT34   1       A      s.gf75.ret  0.87   0.782 0.0940
-    ##  3 Late Spring AT34   1       B      s.gf75.ret  0.79   0.782 0.0940
-    ##  4 Late Spring AT34   2       A      i.gf75.ret  0.54   0.782 0.0940
-    ##  5 Late Spring AT34   3       A      i.gf75.ret  0.69   0.782 0.0940
-    ##  6 Late Spring AT34   3       A      s.gf75.ret  0.68   0.782 0.0940
-    ##  7 Late Spring AT34   3       B      s.gf75.ret  0.74   0.782 0.0940
-    ##  8 Late Spring AT34   4       A      i.gf75.ret  0.88   0.782 0.0940
-    ##  9 Late Spring AT34   4       A      s.gf75.ret  0.85   0.782 0.0940
-    ## 10 Late Spring AT34   4       B      s.gf75.ret  0.8    0.782 0.0940
-    ## # … with 35 more rows
-
 # Save Data
 
 ``` r
-unfiltered.data <- fg_cell.qc %>% 
-  mutate(i.ccf.c1 = ifelse(Cruise == "AT39" & Station == 1 & Depth == 10, NA, i.ccf.c1),
-         i.ccf.c2 = ifelse(Cruise == "AT39" & Station == 1 & Depth == 10, NA, i.ccf.c2),
-         i.ccf.c3 = ifelse(Cruise == "AT39" & Station == 1 & Depth == 10, NA, i.ccf.c3),
-         i.ccf.c1 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c1),
-         i.ccf.c2 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c2),
-         i.ccf.c3 = ifelse(Cruise == "AT38" & Station == 1 & Depth == 10, NA, i.ccf.c3))
-  
-saveRDS(unfiltered.data, "~/GITHUB/naames_bioav_ms/Output/unfiltered/processed_bacterial_carbon.rds")
+saveRDS(bc.qc, "~/GITHUB/naames_bioav_ms/Output/unfiltered/processed_bacterial_carbon.rds")
 
-filtered.data <- unfiltered.data %>% 
+filtered.data <- bc.qc %>% 
   filter(Treatment == "Control", Depth == 10, !Station == "U") %>% 
-  select(Season:Bottle,s.timepoint, contains(c("poc.cf1", "poc.c1.um", "ccf.c1")), -facetlabel) 
+  select(Season:Bottle,s.timepoint, contains(c("poc.cf1", "poc.c1.um",  "pon.cf1", "pon.c1.um", "cn.c1")), -facetlabel) 
   
 saveRDS(filtered.data, "~/GITHUB/naames_bioav_ms/Output/filt_processed_bacterial_carbon.rds")
 ```

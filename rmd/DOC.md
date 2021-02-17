@@ -169,27 +169,3 @@ filtered_data <- oc_p %>%
 
 saveRDS(filtered_data, "~/GITHUB/naames_bioav_ms/Output/filt_processed_doc.rds")
 ```
-
-# Plot Curves
-
-## NAAMES 2
-
-![](DOC_files/figure-gfm/N2%20Control%20plots-1.png)<!-- -->
-
-There looks to be some poor replication between the experiments
-conducted at station 4:
-
-  - S4 bottle A measurements look suspect.
-
-These points will affect BGE calculations and my need to be omitted. The
-BGE from S4 Bottle A may be unreliable.
-
-## NAAMES 3
-
-![](DOC_files/figure-gfm/N3%20Control%20plots-1.png)<!-- -->
-
-## NAAMES 4
-
-![](DOC_files/figure-gfm/N4%20Control%20plots-1.png)<!-- -->
-
-The replication between experiments at Station 4 is poor.
