@@ -19,6 +19,8 @@ library(lmodel2)
 library(rstatix)
 library(ggpubr)
 library(blandr)
+
+
 ```
 
 
@@ -421,17 +423,17 @@ ba_curves / doc_curves +
 ```
 
 
-```{r include = FALSE}
+```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
 figure1 <- ba_curves / doc_curves + 
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
 
-ggsave("f1.jpg", figure1, device = "jpg",  width = 16, height = 8, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+# ggsave("f1.jpg", figure1, device = "jpg",  width = 16, height = 8, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
 ```
 
 ```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
-ba_curves / doc_curves2 + 
+figure1a <-  ba_curves / doc_curves2 + 
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
@@ -527,7 +529,7 @@ bge_box <- bge_summary %>%
 
 
 ```{r include = FALSE}
-ggsave("f3.jpg", bge_box, device = "jpg",  width = 7, height = 4, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+# ggsave("f3.jpg", bge_box, device = "jpg",  width = 7, height = 4, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
 ```
 
 ```{r}
@@ -613,7 +615,7 @@ doc44a +
 ```{r include = FALSE}
 figure2 <- doc44a + theme(plot.tag = element_text(size = 14))
 
-ggsave("f2.jpg", figure2, device = "jpg",  width = 10, height = 7, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+# ggsave("f2.jpg", figure2, device = "jpg",  width = 10, height = 7, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
 ```
 
 ```{r Remin plots initial, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
@@ -760,7 +762,7 @@ patchwork +  plot_annotation(tag_levels = "a") + plot_layout(guides = "collect")
 figure4 <-  npp.boxplot / bp.boxplot / ba.boxplot  +  plot_annotation(tag_levels = "a") + plot_layout(guides = "collect") &
   theme(plot.tag = element_text(size = 14))
 
-ggsave("f4.jpg", figure4, device = "jpg",  width = 12, height = 12, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+# ggsave("f4.jpg", figure4, device = "jpg",  width = 12, height = 12, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
 ```
 
 
@@ -886,7 +888,7 @@ figure5 <- doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 
-ggsave("f5.jpg", figure5, device = "jpg",  width = 12, height = 10, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+# ggsave("f5.jpg", figure5, device = "jpg",  width = 12, height = 10, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
 ```
 
 
@@ -940,7 +942,7 @@ reg1.plot
 
 ```{r}
 
-ggsave("f6.jpg", reg1.plot, device = "jpg",  width = 8, height = 6, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+# ggsave("f6.jpg", reg1.plot, device = "jpg",  width = 8, height = 6, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
 ```
 
 ```{r}
@@ -1002,5 +1004,48 @@ profile2 <- profile.data %>%
   theme_classic2(base_size = 16)
 
 profile2 
+```
+
+# Plots for powerpoint
+
+```{r}
+library(officer)
+```
+
+
+```{r}
+
+
+p1a <- ba_curves + labs(y = expression(paste("Cells L"^-1))) +  theme_classic2(16)
+p1b <- doc_curves2 + theme_classic2(16) + theme(strip.background = element_blank(), strip.text.x = element_blank())
+p1 <- p1a / p1b +
+  plot_layout(guides = "collect") 
+##
+p2 <- bge_box + theme_classic2(18)
+##
+p3a <- bcd.bar2 + theme_classic2(16) 
+p3b <- bcd.npp.bar + theme_classic2(16) + theme(strip.background = element_blank(), strip.text = element_blank()) + theme(legend.position = "right", legend.title = element_blank()) 
+p3c <- ratio.bar + theme_classic2(16) + theme(strip.background = element_blank(), strip.text = element_blank()) 
+p3 <- p3a / p3b / p3c
+
+
+# initialize PowerPoint slide
+officer::read_pptx() %>%
+  # add slide ----
+  officer::add_slide() %>%
+  # specify object and location of object 
+  officer::ph_with(p1, ph_location(width = 9, height = 5)) %>%
+  
+  officer::add_slide() %>%
+  officer::ph_with(p2, ph_location(width = 9, height = 4)) %>%
+  
+  officer::add_slide() %>%
+  officer::ph_with(p3, ph_location(width = 10, height = 8)) %>%
+  
+  # export slide 
+  base::print(
+    target = "~/Desktop/Dissertation/MS_Bioavailability/Presentations/biov_pres_figs.pptx"
+    )
+
 ```
 
