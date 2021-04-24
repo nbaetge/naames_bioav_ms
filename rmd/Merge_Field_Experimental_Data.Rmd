@@ -56,26 +56,35 @@ npp <- read_rds("~/GITHUB/naames_bioav_ms/Input/master/processed_bf.2.2020.rds")
 #Bacterial Production and Abundance Data, join with NPP
 bact_npp <- read_rds("~/GITHUB/naames_bioav_ms/Input/master/processed_bf.2.2020.rds") %>%
   filter(Target_Z %in% c(0, 5, 10, 25, 50, 75, 100, 150, 200, 300)) %>% 
-  select(Cruise:Station, degree_bin, CampCN, Target_Z, BactProd_C, BactProd_C_sd, BactAbund, BactAbund_sd) %>%  
+  select(Cruise:Station, degree_bin, CampCN, Z_MLD,  Target_Z, Temperature, Temperature1, Fluorescence, BactProd_C, BactProd_C_sd, BactAbund, BactAbund_sd) %>%  
+  mutate(temp = (Temperature + Temperature1) / 2) %>% 
+  select(Cruise:Target_Z, temp, everything(), -contains("Temperature")) %>% 
   mutate(Cruise = gsub("AT39-6", "AT39", Cruise)) %>% 
   mutate(degree_bin = ifelse(Cruise == "AT34" & Station == 4, 48, degree_bin)) %>% 
   mutate_at(vars(BactProd_C:BactProd_C_sd), round, 2) %>% 
   filter(!is.na(BactProd_C) | Target_Z == 0) %>% 
   group_by(Cruise, Station, CampCN) %>% 
-  fill(BactProd_C:BactAbund_sd, .direction = "up") %>% 
+  fill(BactProd_C:BactAbund_sd, temp, Fluorescence, .direction = "up") %>% 
   drop_na(BactProd_C) %>% 
   rename(Depth = Target_Z,
          bp = BactProd_C, 
          sd_bp = BactProd_C_sd,
          ba = BactAbund,
-         sd_ba = BactAbund_sd) %>% 
+         sd_ba = BactAbund_sd,
+         chl = Fluorescence) %>% 
   ungroup() %>% 
   select(Cruise:CampCN, Depth,  everything()) %>% 
   left_join(., npp) %>% 
-  select(Cruise:CampCN, Date, Latitude, Longitude,Ez:Ez_NPP, Depth:sd_ba) %>% 
+  select(Cruise:CampCN, Date, Latitude, Longitude, Z_MLD, Ez:Ez_NPP, Depth:sd_ba) %>% 
   arrange(CampCN) %>% 
   mutate(ba = ifelse(ba == "NaN", NA, ba),
-         sd_ba = ifelse(sd_ba == "NaN", NA, sd_ba))
+         sd_ba = ifelse(sd_ba == "NaN", NA, sd_ba)) %>% 
+  drop_na(Ez) %>% 
+  group_by(Cruise, Station) %>% 
+  mutate(ave_mld = mean(Z_MLD),
+         sd_mld = sd(Z_MLD)) %>% 
+  ungroup() %>% 
+  select(Cruise:Z_MLD, ave_mld, sd_mld, everything())
 
 ```
 
@@ -117,11 +126,12 @@ interpolate.func <- function(copper) {
 to_interpolate.df <- copper %>% 
   select(Depth:ncol(.)) %>% 
   zoo(., order.by = .$Depth) 
-
+interp_temp <- as.numeric(na.approx(to_interpolate.df$temp, na.rm = F))
+interp_chl <- as.numeric(na.approx(to_interpolate.df$chl, na.rm = F))
 interp_bp <- as.numeric(na.approx(to_interpolate.df$bp, na.rm = F))
 interp_ba <- as.numeric(na.approx(to_interpolate.df$ba, na.rm = F))
 Depth <- to_interpolate.df$Depth
-interpolations.df <- data.frame(Depth, interp_bp, interp_ba)
+interpolations.df <- data.frame(Depth, interp_temp, interp_chl, interp_bp, interp_ba)
 }
 
 #apply function to list 
@@ -137,7 +147,8 @@ interpolated.df <- right_join(bact_npp, interpolations.df) %>%
   group_by(CampCN) %>% 
   fill(Cruise:degree_bin, Date:Ez_NPP, .direction = "downup") %>% 
   ungroup() %>% 
-  mutate_at(vars(interp_bp), round, 2)
+  mutate_at(vars(interp_bp), round, 2) %>% 
+  arrange(CampCN, Depth)
 
 ```
 
@@ -172,7 +183,9 @@ bcd <- interpolated.df %>%
 int_bcd <- bcd %>% 
   group_by(CampCN) %>% 
   filter(Depth <= Ez) %>% 
-  mutate(int.bcd = integrateTrapezoid(Depth, bcd, type = "A"),
+  mutate(int.temp = integrateTrapezoid(Depth, interp_temp, type = "A"),
+         int.chl = integrateTrapezoid(Depth, interp_chl, type = "A"),
+         int.bcd = integrateTrapezoid(Depth, bcd, type = "A"),
          int.bcd_global = integrateTrapezoid(Depth, bcd_global, type = "A"),
          int.bp = integrateTrapezoid(Depth, interp_bp, type = "A"),
          int.ba = integrateTrapezoid(Depth, interp_ba, type = "A")) %>% 
@@ -282,7 +295,7 @@ example_doc_remin <- exp_doc %>%
 ```{r Save}
 
 # Integrated BCD
-saveRDS(int_bcd, "~/GITHUB/naames_bioav_ms/Output/processed_BCD.rds")
+saveRDS(int_bcd, "~/GITHUB/naames_bioav_ms/Output/processed_BCD_4_2021.rds")
 # Integrated DOC and bioavailability
 saveRDS(export_bioav, "~/GITHUB/naames_bioav_ms/Output/processed_DOC_bioavailability.rds")
 # Lat 44

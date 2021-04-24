@@ -41,7 +41,7 @@ levels = c("GS/Sargasso", "Subtropical", "Temperate", "Subpolar",  "AT39-6", "AT
 ```{r Import processed data}
 
 export <- readRDS("~/GITHUB/naames_bioav_ms/Input/master/processed_export_for_bioavMS.6.7.20.rds") %>% 
-  select(Season, Cruise, degree_bin, Station, int_delta_DOC_100, NCP_mol_100, doc_ncp_100) %>% 
+  select(Season, Cruise, degree_bin, Station, Max_MLD, int_delta_DOC_100, NCP_mol_100, doc_ncp_100) %>% 
   distinct() %>% 
   mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season))
 
@@ -99,7 +99,7 @@ bge_summary <- read_rds("~/GITHUB/naames_bioav_ms/Output/bge_summary.rds") %>%
   select(Season:Station, degree_bin, everything()) %>% 
   mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season)) 
 
-bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_BCD.rds") %>% 
+bcd <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_BCD_4_2021.rds") %>% 
   mutate(Season = ifelse(Season == "Late Autumn", "Early Winter", Season))
 
 lat44 <- read_rds("~/GITHUB/naames_bioav_ms/Output/processed_lat44_remins.rds") %>% 
@@ -347,6 +347,55 @@ doc_og %>%
   
 ```
 
+## Map
+
+```{r}
+library(akima)
+library(mapdata)
+library(maps)
+library(rerddap)
+```
+## Chl climatology
+
+[tutorial](https://rmendels.github.io/pices2017.nb.html)
+[tutorial2](https://rpubs.com/eqmh/sat-data-plotter-mapper)
+
+```{r}
+chlaInfo <- info("erdMH1chla8day")
+CHLA <- griddap(chlaInfo, latitude = c(35., 65.), longitude = c(-60, -30), time = c('2016-05-01','2016-05-31'), fields = 'chlorophyll')
+
+library(readxl)
+
+stations <- read_xlsx("~/GITHUB/naames_bioav_ms/Input/stations.xlsx") %>% 
+  select(Cruise, Station, Latitude, Longitude) %>% 
+  mutate(Season = ifelse(Cruise == "AT32", "Early Winter", NA),
+         Season = ifelse(Cruise == "AT34", "Late Spring", Season),
+         Season = ifelse(Cruise == "AT38", "Early Autumn", Season),
+         Season = ifelse(Cruise == "AT39", "Early Spring", Season))
+
+```
+
+```{r message=FALSE, warning=FALSE}
+mycolor <- colors$salinity
+w <- map_data("worldHires", ylim = c(35., 65.), xlim = c(-60, -30))
+
+map <- ggplot() + 
+  geom_polygon(data = w, aes(x = long, y = lat, group = group), fill = "grey80") +
+  geom_raster(data = CHLA$data, aes(x = lon, y = lat, fill = log(chlorophyll)), interpolate = FALSE, alpha = 0.4) +
+  scale_fill_gradientn(colours = mycolor, na.value = NA) +
+  theme_bw() + 
+  labs(x = "Latitude, ˚N", y = "Longitude, ˚W", fill = expression(paste("log(Chl ", italic("a"), ")")), color = "") +
+  coord_fixed(1.3, xlim = c(-60, -30),  ylim = c(35., 65.)) +
+  geom_point(data = stations, aes(x = Longitude, y = Latitude, color = factor(Season, levels = levels)), shape = 21, fill = "white", size = 2, alpha = 0.6, stroke = 2) +
+  scale_color_manual(values = custom.colors) 
+ 
+```
+
+```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+figure1 <- map 
+
+ggsave("f1.jpg", figure1, device = "jpg",  width = 8, height = 8, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
+```
 
 # Curves
 
@@ -369,6 +418,29 @@ ba_curves <- bge %>%
   theme_classic2(base_size = 16) +
   guides(color = F, linetype = F) + facet_grid(~factor(Season, levels = levels))
 ```
+
+
+```{r incubation delta cells log, message=FALSE, warning=FALSE}
+ba_curves2 <- bge %>% 
+  filter(Treatment == "Control") %>% 
+  drop_na(norm_cells) %>% 
+  select(Season, Station, degree_bin, Days, norm_cells, sd_norm_cells) %>% 
+  distinct() %>% 
+  # filter(!Cruise == "AT34" | !Station == 3) %>% #did not calc bge or cell resp due to data coming from post stationary
+  ggplot(aes(x = Days, y = norm_cells, group = interaction(Season, Station))) +
+  geom_errorbar(aes(ymin = norm_cells - sd_norm_cells, ymax = norm_cells + sd_norm_cells, color = factor(degree_bin)), width = 0.3, alpha = 0.5) +
+  geom_line(aes(color = factor(degree_bin)), alpha = 0.7) +
+  geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
+  scale_y_log10() +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
+ labs(x = expression(""), y = expression(paste("Bacterial Abundance, Log"[10]," Cells L"^-1)), fill = "Latitude, ˚N") +
+  theme_classic2(base_size = 16) +
+  guides(color = F, linetype = F) + facet_grid(~factor(Season, levels = levels))
+```
+
+
+
 ## DOC
 
 ```{r incubation delta doc, message=FALSE, warning=FALSE}
@@ -416,7 +488,7 @@ doc_curves2 <-  bge %>%
 ```
 
 ```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
-ba_curves / doc_curves + 
+ba_curves2 / doc_curves + 
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
@@ -424,21 +496,20 @@ ba_curves / doc_curves +
 
 
 ```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
-figure1 <- ba_curves / doc_curves + 
+figure2 <- ba_curves / doc_curves + 
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
 
-# ggsave("f1.jpg", figure1, device = "jpg",  width = 16, height = 8, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+ggsave("f2.jpg", figure2, device = "jpg",  width = 16, height = 8, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
 ```
 
 ```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
-figure1a <-  ba_curves / doc_curves2 + 
-   plot_annotation(tag_levels = "a") &
-  plot_layout(guides = "collect") +
-  theme(plot.tag = element_text(size = 14))
+# figure1a <-  ba_curves / doc_curves2 + 
+#    plot_annotation(tag_levels = "a") &
+#   plot_layout(guides = "collect") +
+#   theme(plot.tag = element_text(size = 14))
 ```
-
 
 
 # Delta Stats
@@ -529,7 +600,7 @@ bge_box <- bge_summary %>%
 
 
 ```{r include = FALSE}
-# ggsave("f3.jpg", bge_box, device = "jpg",  width = 7, height = 4, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+ggsave("f4.jpg", bge_box, device = "jpg",  width = 7, height = 4, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
 ```
 
 ```{r}
@@ -538,7 +609,7 @@ compare_means(bge ~ degree_bin, bge_summary, method = "kruskal.test")
 ```
 
 ```{r fig.height=12, fig.width=13, message=FALSE, warning=FALSE}
-ba_curves / doc_curves2 + bge_box +
+ba_curves2 / doc_curves2 + bge_box +
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 20))
@@ -559,7 +630,7 @@ doc44a <- lat44 %>%
   # scale_fill_viridis_d(option = "viridis") +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression("Days"), y = expression(paste("∆DOC, µmol C L"^-1))) +
+ labs(x = expression("Days"), y = expression(paste("DOC"["SA"],", µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(color = F, linetype = F) +
@@ -576,7 +647,7 @@ doc44a_i <- lat44 %>%
   # scale_fill_viridis_d(option = "viridis") +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression("Days"), y = expression(paste("∆DOC, µmol C L"^-1))) +
+ labs(x = expression("Days"), y = expression(paste("DOC"["SA"],", µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   xlim(0, 106) +
@@ -598,7 +669,7 @@ doc44b <- lat44 %>%
   scale_fill_manual(values = custom.colors) +
   # scale_color_viridis_d(option = "viridis") +
   # scale_fill_viridis_d(option = "viridis") +
- labs(x = expression("Days"), y = expression(paste("BDOC, µmol C L"^-1))) +
+ labs(x = expression("Days"), y = expression(paste("∆DOC, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(color = F, linetype = F, fill = F) +
@@ -613,9 +684,9 @@ doc44a +
 
 
 ```{r include = FALSE}
-figure2 <- doc44a + theme(plot.tag = element_text(size = 14))
+figure5 <- doc44a + theme(plot.tag = element_text(size = 14))
 
-# ggsave("f2.jpg", figure2, device = "jpg",  width = 10, height = 7, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+ggsave("f5.jpg", figure5, device = "jpg",  width = 10, height = 7, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
 ```
 
 ```{r Remin plots initial, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
@@ -653,14 +724,15 @@ bioav.table.data <- export_bioav %>%
          
          persis.doc = ifelse(persis.doc < 2, NA, persis.doc),
          
-         percent_persis.doc = ifelse(is.na(persis.doc), NA, percent_persis.doc)) 
+         percent_persis.doc = ifelse(is.na(persis.doc), NA, percent_persis.doc)) %>% 
+  arrange(factor(Season, levels = levels), degree_bin) %>% 
+  ungroup() 
 
 station_bioav <- bioav.table.data %>% 
  group_by(Cruise, Season, Station, degree_bin) %>% 
   summarize_at(vars(redis_DOC_vol:longterm.ddoc), list(mean = mean, sd = sd), na.rm = T)  %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
-  ungroup() %>% 
-  select(Cruise, Station, contains("persis"))
+  ungroup()
 
 cruise_bioav <- bioav.table.data %>% 
  group_by(Cruise, Season) %>% 
@@ -672,6 +744,58 @@ time <- export_bioav %>%
   select(Season, Cruise, degree_bin, Station, Bottle, stationary.harvest, end.remin) %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
   ungroup()
+
+
+ #N2S3 bge not calc omitted because poc change and cell change from data well beyond stationary (in death phase)
+boc_doc <- bge %>% 
+  filter(Treatment == "Control") %>% 
+  select(Cruise, Season, Station, degree_bin, Bottle, stationary.harvest, remin.end, Days, bge,  doc.star_i, doc.star_s,  i.poc, s.poc, combined_doc, sd_ptoc, sd_doc, doc  ) %>% 
+  filter(Days == 0 | Days == stationary.harvest) %>%
+  drop_na(stationary.harvest) %>% 
+  mutate(doc_i = ifelse(Cruise == "AT34" & Days == 0, combined_doc, NA),
+         doc_s = ifelse(Cruise == "AT34" & Days == stationary.harvest, combined_doc, NA)) %>% 
+  group_by(Cruise, Station, Bottle) %>% 
+  fill(doc_i:doc_s, .direction = "downup") %>% 
+  ungroup() %>% 
+  mutate(doc_i = ifelse(!Cruise == "AT34", doc.star_i, doc_i),
+         doc_s = ifelse(!Cruise == "AT34", doc.star_s, doc_s )) %>% 
+  #select(-combined_doc) %>% 
+  mutate(phase = ifelse(Days == 0, "t0", "stationary")) %>% 
+  group_by(Cruise, Station, phase) %>% 
+  mutate(i.boc = mean(i.poc),
+         sd_i.boc = sd(i.poc),
+         
+         s.boc = mean(s.poc),
+         sd_s.boc = sd(s.poc),
+         
+         i.doc = mean(doc_i),
+         sd_i.doc = sd(doc_i),
+         
+          s.doc = mean(doc_s),
+         sd_s.doc = sd(doc_s),
+         ) %>%
+    ungroup() %>% 
+  arrange(factor(Season, levels = levels), degree_bin) %>% 
+  ungroup() %>% 
+  select(Cruise:Bottle, i.boc:sd_s.doc, everything())
+  # mutate(s.boc = ifelse(Cruise == "AT34" & Station == 3, NA, s.boc))#N2S3 omitted because poc change and cell change from data well beyond stationary (in death phase)
+#n3s3, doc star is resolveable, but measured doc was not so bge was not calculated for this station
+#n4s4 ∆doc reflects single experiment. same with n2s4
+
+
+boc_doc2 <- bge %>% 
+  filter(Treatment == "Control") %>% 
+  select(Cruise, Season, Station, degree_bin, Bottle, Days, interp_ptoc, sd_ptoc, interp_doc, sd_doc  ) %>% 
+  group_by(Cruise, Station, Bottle) %>% 
+  mutate(last_ptoc = last(na.omit(interp_ptoc)),
+         last_doc = last(na.omit(interp_doc))) %>% 
+   mutate(longterm.del.doc = ifelse(Cruise != "AT34", first(interp_ptoc) - last(na.omit(interp_ptoc)), first(interp_doc) - last(na.omit(interp_doc))),
+         longterm.del.doc = ifelse(longterm.del.doc < 2, NA, longterm.del.doc)) %>% 
+  mutate(last = ifelse(Cruise == "AT34", last_doc, last_ptoc)) %>% 
+  group_by(Cruise, Station) %>% 
+  mutate(mean = mean(last),
+         sd = sd(last)) %>% 
+  arrange(factor(Season, levels = levels), degree_bin) 
 
 ```
 
@@ -759,10 +883,10 @@ patchwork +  plot_annotation(tag_levels = "a") + plot_layout(guides = "collect")
 ```
 
 ```{r include = FALSE}
-figure4 <-  npp.boxplot / bp.boxplot / ba.boxplot  +  plot_annotation(tag_levels = "a") + plot_layout(guides = "collect") &
+figure6 <-  npp.boxplot / bp.boxplot / ba.boxplot  +  plot_annotation(tag_levels = "a") + plot_layout(guides = "collect") &
   theme(plot.tag = element_text(size = 14))
 
-# ggsave("f4.jpg", figure4, device = "jpg",  width = 12, height = 12, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+ggsave("f6.jpg", figure6, device = "jpg",  width = 12, height = 12, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
 ```
 
 
@@ -772,26 +896,26 @@ Convert BCD and NPP to mmol C m^-3^ d^-1^
 
 ```{r Summarize BCD and NPP data}
 bcd.data <- bcd %>% 
-  select(Season, Cruise:degree_bin, Station, int.bcd, int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp, bcd.npp_global) %>% 
+  select(Season, Cruise:degree_bin, Station, ave_mld, sd_mld, int.temp, int.chl, int.ba, int.bcd, int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp, bcd.npp_global) %>% 
   distinct() %>% 
   mutate_at(vars(int.bcd, int.bcd_global, int.bp, int.NPP), funs(./10^3)) %>% 
   mutate_at(vars(bp.npp, bcd.npp, bcd.npp_global), funs(./10^2)) %>% 
   mutate(degree_bin = as.character(degree_bin)) 
 
 bcd.summary <- bcd.data %>% 
-  group_by(Season, Cruise, Station, degree_bin) %>% 
-  summarise_at(vars(int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp_global), list(mean = mean, sd = sd)) %>% 
+  group_by(Season, Cruise, Station, degree_bin, ave_mld, sd_mld) %>% 
+  summarise_at(vars(int.temp, int.chl, int.ba, int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp_global), list(mean = mean, sd = sd)) %>% 
   arrange(factor(Season, levels = levels), degree_bin) %>% 
-  select(Season:degree_bin, contains(c("int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp")))
+  select(Season:sd_mld, contains(c("int.temp", "int.chl", "int.ba",  "int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp"))) 
   
 bcd.cruise.summary <- bcd.data %>% 
   group_by(Season, Cruise) %>% 
-  summarise_at(vars(int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp_global), list(cruise_mean = mean, cruise_sd = sd, cruise_max = max, cruise_min = min)) %>% 
+  summarise_at(vars(int.temp, int.chl, int.ba, int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp_global), list(cruise_mean = mean, cruise_sd = sd, cruise_max = max, cruise_min = min)) %>% 
   arrange(factor(Season, levels = levels)) %>% 
-  select(Season, contains(c("int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp")))
+  select(Season, contains(c("int.temp", "int.chl", "int.ba", "int.NPP", "int.bp", "bp.npp", "int.bcd", "bcd.npp")))
 
 bcd.overall.summary <- bcd.data %>% 
-  summarise_at(vars(int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp_global), list(overall_mean = mean, overall_sd = sd, max = max, min = min))
+  summarise_at(vars(int.temp, int.chl, int.ba, int.bcd_global, int.bp, int.NPP, bp.npp, bcd.npp_global), list(overall_mean = mean, overall_sd = sd, max = max, min = min))
 
 bcd.npp.summary <- bcd.summary %>% 
   select(Season, Cruise,  degree_bin, int.NPP_mean, int.bcd_global_mean) %>% 
@@ -808,23 +932,29 @@ bcd.npp_summary_table <- left_join(bcd.summary, bcd.cruise.summary) %>%
   mutate_at(vars(contains(c("int.NPP", "int.bp", "int.bcd"))), round, 3) %>% 
   mutate_at(vars(contains(c("bp.npp", "bcd.npp"))), round, 2) 
 
-export_bar <- export %>% 
-  mutate(degree_bin = as.character(degree_bin)) %>% 
-  group_by(Season, Cruise, degree_bin) %>% 
-  summarise_at(vars(int_delta_DOC_100, doc_ncp_100, NCP_mol_100), list(mean = mean, sd = sd)) %>% 
+# export_bar <- export %>% 
+#   mutate(degree_bin = as.character(degree_bin)) %>% 
+#   group_by(Season, Cruise, degree_bin) %>% 
+#   summarise_at(vars(int_delta_DOC_100, doc_ncp_100, NCP_mol_100), list(mean = mean, sd = sd)) %>% 
+#   arrange(factor(Season, levels = levels), degree_bin)
+
+export_bar <- export_bioav %>%
+  mutate(degree_bin = as.character(degree_bin)) %>%
+  group_by(Season, Cruise, degree_bin) %>%
+  summarise_at(vars(accm.doc), list(mean = mean, sd = sd), na.rm = T) %>%
   arrange(factor(Season, levels = levels), degree_bin)
 
   
 ```
 
-```{r Field DOC table}
-field.doc_table <- export_bioav %>% 
+```{r accm DOC table}
+accm.doc_table <- export_bioav %>% 
   select(Cruise, Season, accm.doc) %>% 
   drop_na(accm.doc) %>% 
   group_by(Cruise, Season) %>% 
   summarise_at(vars(accm.doc), list(mean = mean, sd = sd))
 
-field.doc_table
+accm.doc_table
 ```
 
 
@@ -836,7 +966,7 @@ bcd.bar <- bcd.summary %>%
    geom_errorbar(aes(ymin = int.bcd_global_mean - int.bcd_global_sd, ymax = int.bcd_global_mean + int.bcd_global_sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
   labs(x = expression(""), y = expression(paste("BCD, mmol C m"^-3, "d"^-1)), colour = expression("")) +
   theme_classic2() +
-   theme(strip.background = element_blank(), strip.text = element_blank()) +
+   # theme(strip.background = element_blank(), strip.text = element_blank()) +
   facet_grid(~factor(Season, levels = levels), scales = "free") 
 
 bcd.bar2 <- bcd.summary %>% 
@@ -869,14 +999,22 @@ ratio.bar <- bcd.summary %>%
   theme(strip.background = element_blank(), strip.text = element_blank())
 
 
-doc_sa.bar <-  export_bar %>% 
-  ggplot(aes(x = degree_bin, y = int_delta_DOC_100_mean, group = interaction(Season, degree_bin)))  +
-  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
-   geom_errorbar(aes(ymin = int_delta_DOC_100_mean - int_delta_DOC_100_sd, ymax = int_delta_DOC_100_mean + int_delta_DOC_100_sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(""), y = expression(paste("∆DOC, mol C m"^-3)), colour = expression("")) +
-  theme_classic2() +
-  facet_grid(~factor(Season, levels = levels), scales = "free") 
+# doc_sa.bar <-  export_bar %>% 
+#   ggplot(aes(x = degree_bin, y = int_delta_DOC_100_mean, group = interaction(Season, degree_bin)))  +
+#   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
+#    geom_errorbar(aes(ymin = int_delta_DOC_100_mean - int_delta_DOC_100_sd, ymax = int_delta_DOC_100_mean + int_delta_DOC_100_sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+#   labs(x = expression(""), y = expression(paste("∆DOC, mol C m"^-3)), colour = expression("")) +
+#   theme_classic2() +
+#   facet_grid(~factor(Season, levels = levels), scales = "free") 
 
+
+doc_sa.bar <-  export_bar %>%
+  ggplot(aes(x = degree_bin, y = mean, group = interaction(Season, degree_bin)))  +
+  geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
+   geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
+  labs(x = expression(""), y = expression(paste("DOC"["SA"],", mol C m"^-3)), colour = expression("")) +
+  theme_classic2() +
+  facet_grid(~factor(Season, levels = levels), scales = "free")
   
 doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
   plot_annotation(tag_levels = "a") &
@@ -884,11 +1022,11 @@ doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
 ```
 
 ```{r}
-figure5 <- doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
+figure7 <- doc_sa.bar / bcd.bar / bcd.npp.bar / ratio.bar  +
   plot_annotation(tag_levels = "a") &
   theme(plot.tag = element_text(size = 14))
 
-# ggsave("f5.jpg", figure5, device = "jpg",  width = 12, height = 10, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+ggsave("f7.jpg", figure7, device = "jpg",  width = 12, height = 10, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
 ```
 
 
@@ -911,8 +1049,13 @@ summary(bcd.data$int.NPP)
 
 ```{r Model 2 regression, echo = FALSE}
 reg1 <- lmodel2(int.bcd_global ~ int.NPP, data = bcd.data, nperm = 99)
+
+
 ```
 
+```{r}
+reg_test <- lm(int.NPP ~ int.temp, data = bcd.data) ; summary(reg_test)
+```
 
 
 ## Plots
@@ -942,7 +1085,7 @@ reg1.plot
 
 ```{r}
 
-# ggsave("f6.jpg", reg1.plot, device = "jpg",  width = 8, height = 6, path = "~/Desktop/Bioavailability_MS/Submission1/figures/") 
+ggsave("f8.jpg", reg1.plot, device = "jpg",  width = 8, height = 6, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
 ```
 
 ```{r}
@@ -1047,5 +1190,83 @@ officer::read_pptx() %>%
     target = "~/Desktop/Dissertation/MS_Bioavailability/Presentations/biov_pres_figs.pptx"
     )
 
+```
+
+# Reviews
+
+## 1.2 µm filtrate
+
+```{r}
+library(readxl)
+library(googledrive)
+library(googlesheets4)
+
+headers <- read_sheet("https://docs.google.com/spreadsheets/d/1zw-W1k__BeuJg1oQpQQ_XT7zWLiY3dfL-dTaQ0pzN5Q/edit#gid=1446474071", sheet = "Bottle File Headers", skip = 0)
+
+cols <- headers %>% 
+  pull(col_type) %>% 
+  str_c(., collapse = "")
+
+google.df <-  read_sheet("https://docs.google.com/spreadsheets/d/1zw-W1k__BeuJg1oQpQQ_XT7zWLiY3dfL-dTaQ0pzN5Q/edit#gid=1446474071", sheet = "Bottle File", skip = 1, col_types = cols)
+
+google.df1 <- google.df %>% 
+  select(Cruise, Station, Date, SCN, Target_Z, BactAbund) %>% 
+  filter(between(Target_Z, 1, 10)) %>%
+  drop_na(BactAbund) %>% 
+  filter(!Cruise == "AT32", SCN %in% c(3, 7, 12)) %>% 
+  filter(!Cruise == "AT34" | !Station == 4 | !SCN %in% c(3, 7)) %>% 
+  filter(!Cruise == "AT38" | !Station == 6 | !SCN %in% c(3, 12))  %>% 
+  drop_na(BactAbund) %>% 
+  select(-Date, -SCN) %>% 
+  rename(Depth = Target_Z) %>% 
+  mutate(Cruise = ifelse(Cruise == "AT39-6", "AT39", Cruise)) %>% 
+  mutate(Depth = ifelse(Depth == 1, 5, Depth))
+
+
+n4_filtrates <- readxl::read_xlsx("~/GITHUB/naames_bioav_ms/Input/master/NAAMES_4_Filter Retention_Bacterial_Abundance.xlsx", sheet = "Sheet1") %>% 
+  mutate(cells = cells/10^8) 
+
+ba <- read_csv("~/GITHUB/naames_bioav_ms/Input/master/N2-4_BactA_Remin_Master.csv") %>% 
+  # filter(Hours == 0, Bottle %in% c("W", "1.2"), Depth != 200) 
+filter(Hours == 0, Bottle %in% c("Niskin"), Depth != 200) %>% #niskin are actually 1.2 µm filtrate
+  mutate(Depth = ifelse(Cruise == "AT34" & Station == 4, 5, Depth)) %>% 
+  select(Cruise, Station, Depth, cellsperL) %>% 
+  rename(cells = cellsperL) %>% 
+  mutate(cells = cells/10^8,
+         cells = ifelse(Cruise == "AT39", NA, cells)) %>% 
+  full_join(., n4_filtrates) %>% 
+  drop_na(cells)
+
+initial.cond <- bge %>% 
+  filter(Hours == 0) %>% 
+  select(Cruise, Station, cells) %>% 
+  distinct() %>% 
+  group_by(Cruise, Station) %>% 
+  mutate(ave_initial = mean(cells)) %>% 
+  ungroup() %>% 
+  select(Cruise, Station, ave_initial) %>% 
+  distinct() %>% 
+  mutate(ave_initial = ave_initial/10^8)
+
+
+filtrate <- left_join(ba, google.df1) %>% 
+  drop_na(BactAbund) %>% 
+  mutate(ret = cells/BactAbund)  %>% 
+  left_join(., initial.cond) %>% 
+  rename(in_situ = BactAbund,
+         inoc = cells,
+         init = ave_initial) %>% 
+  mutate(dil = init/inoc) %>% 
+  mutate_at(vars(in_situ, inoc, init), funs(.*10^8)) %>%
+  mutate_at(vars(in_situ, inoc, init), funs(./10^9))  
+```
+```{r}
+filtrate %>% 
+  summarise_at(vars(ret), list(mean = mean, sd = sd)) 
+```
+
+```{r}
+filtrate %>% 
+  summarise_at(vars(dil), list(mean = mean, sd = sd)) 
 ```
 
