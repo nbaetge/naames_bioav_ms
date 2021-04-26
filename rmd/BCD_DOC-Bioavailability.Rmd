@@ -381,12 +381,12 @@ w <- map_data("worldHires", ylim = c(35., 65.), xlim = c(-60, -30))
 
 map <- ggplot() + 
   geom_polygon(data = w, aes(x = long, y = lat, group = group), fill = "grey80") +
-  geom_raster(data = CHLA$data, aes(x = lon, y = lat, fill = log(chlorophyll)), interpolate = FALSE, alpha = 0.4) +
+  geom_raster(data = CHLA$data, aes(x = lon, y = lat, fill = log(chlorophyll)), interpolate = FALSE, alpha = 0.55) +
   scale_fill_gradientn(colours = mycolor, na.value = NA) +
   theme_bw() + 
   labs(x = "Latitude, ˚N", y = "Longitude, ˚W", fill = expression(paste("log(Chl ", italic("a"), ")")), color = "") +
   coord_fixed(1.3, xlim = c(-60, -30),  ylim = c(35., 65.)) +
-  geom_point(data = stations, aes(x = Longitude, y = Latitude, color = factor(Season, levels = levels)), shape = 21, fill = "white", size = 2, alpha = 0.6, stroke = 2) +
+  geom_point(data = stations, aes(x = Longitude, y = Latitude, color = factor(Season, levels = levels)), shape = 21, fill = "white", size = 2, alpha = 0.9, stroke = 2) +
   scale_color_manual(values = custom.colors) 
  
 ```
@@ -414,7 +414,7 @@ ba_curves <- bge %>%
   geom_point(aes(fill = factor(degree_bin)), size = 3, shape = 21, alpha = 0.7) +
   scale_color_viridis_d(option = "viridis") +
   scale_fill_viridis_d(option = "viridis") +
- labs(x = expression(""), y = expression(paste("Bacterial Abundance, Cells L"^-1)), fill = "Latitude, ˚N") +
+ labs(x = expression(""), y = expression(paste("Bacterioplankton Abundance, Cells L"^-1)), fill = "Latitude, ˚N") +
   theme_classic2(base_size = 16) +
   guides(color = F, linetype = F) + facet_grid(~factor(Season, levels = levels))
 ```
@@ -434,7 +434,7 @@ ba_curves2 <- bge %>%
   scale_y_log10() +
   scale_color_viridis_d(option = "viridis") +
   scale_fill_viridis_d(option = "viridis") +
- labs(x = expression(""), y = expression(paste("Bacterial Abundance, Log"[10]," Cells L"^-1)), fill = "Latitude, ˚N") +
+ labs(x = expression(""), y = expression(paste("Bacterioplankton Abundance, Log"[10]," Cells L"^-1)), fill = "Latitude, ˚N") +
   theme_classic2(base_size = 16) +
   guides(color = F, linetype = F) + facet_grid(~factor(Season, levels = levels))
 ```
@@ -487,7 +487,7 @@ doc_curves2 <-  bge %>%
   facet_grid(~factor(Season, levels = levels))
 ```
 
-```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
+```{r fig.height=10, fig.width=16, message=FALSE, warning=FALSE}
 ba_curves2 / doc_curves + 
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
@@ -495,13 +495,13 @@ ba_curves2 / doc_curves +
 ```
 
 
-```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
-figure2 <- ba_curves / doc_curves + 
+```{r fig.height=10, fig.width=16, message=FALSE, warning=FALSE}
+figure3 <- ba_curves / doc_curves + 
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
 
-ggsave("f2.jpg", figure2, device = "jpg",  width = 16, height = 8, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
+ggsave("f3.jpg", figure3, device = "jpg",  width = 16, height = 8, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
 ```
 
 ```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
@@ -630,11 +630,13 @@ doc44a <- lat44 %>%
   # scale_fill_viridis_d(option = "viridis") +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression("Days"), y = expression(paste("DOC"["SA"],", µmol C L"^-1))) +
+ labs(x = expression("Days"), y = expression(paste("DOC, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   guides(color = F, linetype = F) +
-  annotate("text", x = 50, y = -3, label = expression(bold("Annual DOC Minimum \nduring Deep Mixing")), size = 5)
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0,
+  alpha = .2) +
+  annotate("text", x = 50, y = -3, label = expression(bold("Annual DOC Minimum \nduring Deep Mixing")), size = 5) 
 
 doc44a_i <- lat44 %>% 
   filter(Days == 0) %>% 
@@ -818,7 +820,7 @@ npp.boxplot <- bcd %>%
   scale_color_viridis_d(option = "viridis") +
   scale_fill_viridis_d(option = "viridis") +
   theme_classic2(base_size = 16) +
-  labs(x = "", y =  expression(paste("NPP, mmol C m"^-3, "d"^-1)), fill = "Latitude, ˚N") + 
+  labs(x = "", y =  expression(paste("NPP, µmol C L"^-1, " d"^-1)), fill = "Latitude, ˚N") + 
   stat_compare_means(label.y = 0)  +
   stat_compare_means(comparisons = my_comparisons, 
                      label = "p.adj",
@@ -840,7 +842,7 @@ bp.boxplot <- bcd %>%
   scale_color_viridis_d(option = "viridis") +
   scale_fill_viridis_d(option = "viridis") +
   theme_classic2(base_size = 16) +
-  labs(x = "", y =  expression(paste("BP, mmol C m"^-3, "d"^-1)), fill = "Latitude, ˚N") + 
+  labs(x = "", y =  expression(paste("BP, µmol C L"^-1, " d"^-1)), fill = "Latitude, ˚N") + 
   guides(fill = F) +
   stat_compare_means(label.y = 0)  +
   stat_compare_means(comparisons = my_comparisons, 
@@ -861,7 +863,7 @@ ba.boxplot <- bcd %>%
   scale_color_viridis_d(option = "viridis") +
   scale_fill_viridis_d(option = "viridis") +
   theme_classic2(base_size = 16) +
-  labs(x = "", y =  expression(paste("BA, cells m"^-3)), fill = "Latitude, ˚N") +
+  labs(x = "", y =  expression(paste("BA, cells L"^-1)), fill = "Latitude, ˚N") +
   guides(fill = F) +
   stat_compare_means(label.y = 0)  +
   stat_compare_means(comparisons = my_comparisons, 
@@ -964,7 +966,7 @@ bcd.bar <- bcd.summary %>%
   ggplot(aes(x = degree_bin, y = int.bcd_global_mean, group = interaction(Season, Station, degree_bin)))  +
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#377EB8") +
    geom_errorbar(aes(ymin = int.bcd_global_mean - int.bcd_global_sd, ymax = int.bcd_global_mean + int.bcd_global_sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(""), y = expression(paste("BCD, mmol C m"^-3, "d"^-1)), colour = expression("")) +
+  labs(x = expression(""), y = expression(paste("BCD, µmol C L"^-1, " d"^-1)), colour = expression("")) +
   theme_classic2() +
    # theme(strip.background = element_blank(), strip.text = element_blank()) +
   facet_grid(~factor(Season, levels = levels), scales = "free") 
@@ -973,7 +975,7 @@ bcd.bar2 <- bcd.summary %>%
   ggplot(aes(x = degree_bin, y = int.bcd_global_mean, group = interaction(Season, Station, degree_bin)))  +
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#377EB8") +
    geom_errorbar(aes(ymin = int.bcd_global_mean - int.bcd_global_sd, ymax = int.bcd_global_mean + int.bcd_global_sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(""), y = expression(paste("BCD, mmol C m"^-3, "d"^-1)), colour = expression("")) +
+  labs(x = expression(""), y = expression(paste("BCD, µmol C L"^-1, " d"^-1)), colour = expression("")) +
   theme_classic2() +
   facet_grid(~factor(Season, levels = levels), scales = "free") 
 
@@ -981,7 +983,7 @@ bcd.npp.bar <- bcd.npp.summary  %>%
   ggplot(aes(x = degree_bin, fill = factor(rate, levels = c("NPP", "BCD")), y =  ave, group = interaction(Season, Station, degree_bin)))  + 
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1) +
   geom_errorbar(aes(ymin = ave - sd, ymax = ave + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(""), y = expression(paste("mmol C m"^-3, "d"^-1)), colour = expression("")) +
+  labs(x = expression(""), y = expression(paste("µmol C L"^-1, " d"^-1)), colour = expression("")) +
   scale_fill_manual(values = custom.colors) +
   theme_classic2() +
   facet_grid(~factor(Season, levels = levels), scales = "free") +
@@ -1012,7 +1014,7 @@ doc_sa.bar <-  export_bar %>%
   ggplot(aes(x = degree_bin, y = mean, group = interaction(Season, degree_bin)))  +
   geom_bar(position = position_dodge(), stat = "identity", color = "black", alpha = 1, fill = "#999999") +
    geom_errorbar(aes(ymin = mean - sd, ymax = mean + sd), position = position_dodge(width = 0.9), stat = "identity", width = 0.1, size = 0.5) +
-  labs(x = expression(""), y = expression(paste("DOC"["SA"],", mol C m"^-3)), colour = expression("")) +
+  labs(x = expression(""), y = expression(paste("DOC"["SA"],", µmol C L"^-1)), colour = expression("")) +
   theme_classic2() +
   facet_grid(~factor(Season, levels = levels), scales = "free")
   
@@ -1070,7 +1072,7 @@ reg1.plot <- bcd.data %>%
   geom_abline(intercept = reg1$confidence.intervals[3,3],
               slope = reg1$confidence.intervals[3,5],colour = "grey", linetype = 3, size = 1) +
   geom_point( aes(fill = factor(Season, levels = levels)), shape = 21, color = "black", size = 4, alpha = 0.7) +
-  labs(x =  expression(paste("NPP, mmol C m"^-3, "d"^-1)), y = expression(paste("BCD, mmol C m"^-3, "d"^-1))) +
+  labs(x =  expression(paste("NPP, µmol C L"^-1, " d"^-1)), y = expression(paste("BCD, µmol C L"^-1, " d"^-1))) +
   scale_fill_manual(values = custom.colors) +
   scale_color_manual(values = custom.colors) +
   theme_classic2(base_size = 16) +
@@ -1262,6 +1264,7 @@ filtrate <- left_join(ba, google.df1) %>%
 ```
 ```{r}
 filtrate %>% 
+  filter(ret > 0.5) %>%
   summarise_at(vars(ret), list(mean = mean, sd = sd)) 
 ```
 
@@ -1270,3 +1273,29 @@ filtrate %>%
   summarise_at(vars(dil), list(mean = mean, sd = sd)) 
 ```
 
+## BA at end of exp
+
+```{r}
+ba_end <- read_csv("~/GITHUB/naames_bioav_ms/Input/master/N2-4_BactA_Remin_Master.csv") %>% 
+  filter(Cruise == "AT39", Treatment == "Control", Bottle %in% c("A", "B")) %>% 
+  mutate(days = Hours/24,
+         cells = cellsperL,
+         cells = ifelse(Hours > 200, p_cellsperL, cells),
+         
+         sd_cells = sd_cellsperL,
+         sd_cells = ifelse(Hours > 200, p_sdcellsperL, sd_cells)) %>% 
+  select(Cruise:Bottle, days, cells, sd_cells) %>% 
+  drop_na(cells)
+```
+```{r ba end, fig.height=6, fig.width=10, message=FALSE, warning=FALSE}
+ba_long <- ba_end %>% 
+  ggplot(aes(x = days, y = cells, group = interaction(Station, Bottle))) +
+  geom_errorbar(aes(ymin = cells - sd_cells, ymax = cells + sd_cells, color = factor(Station)), width = 0.3, alpha = 0.5) +
+  geom_line(aes(color = factor(Station)), alpha = 0.7) +
+  geom_point(aes(fill = factor(Station)), size = 3, shape = 21, alpha = 0.7) +
+  scale_color_viridis_d(option = "viridis") +
+  scale_fill_viridis_d(option = "viridis") +
+ labs(x = expression(""), y = expression(paste("Bacterioplankton Abundance, Cells L"^-1)), fill = "Station") +
+  theme_classic2(base_size = 16) +
+  guides(color = F, linetype = F) ; ba_long
+```
