@@ -394,6 +394,8 @@ map <- ggplot() +
 ```{r fig.height=8, fig.width=16, message=FALSE, warning=FALSE}
 figure1 <- map 
 
+
+saveRDS(figure1, "~/GITHUB/naames_bioav_ms/Output/map.rds")
 ggsave("f1.jpg", figure1, device = "jpg",  width = 8, height = 8, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
 ```
 
@@ -496,7 +498,7 @@ ba_curves2 / doc_curves +
 
 
 ```{r fig.height=10, fig.width=16, message=FALSE, warning=FALSE}
-figure3 <- ba_curves / doc_curves + 
+figure3 <- ba_curves2 / doc_curves + 
    plot_annotation(tag_levels = "a") &
   plot_layout(guides = "collect") +
   theme(plot.tag = element_text(size = 14))
@@ -649,34 +651,57 @@ doc44a_i <- lat44 %>%
   # scale_fill_viridis_d(option = "viridis") +
   scale_color_manual(values = custom.colors) +
   scale_fill_manual(values = custom.colors) +
- labs(x = expression("Days"), y = expression(paste("DOC"["SA"],", µmol C L"^-1))) +
+ labs(x = expression("Days"), y = expression(paste("DOC, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
   xlim(0, 106) +
   guides(color = F, linetype = F) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0,
+  alpha = .2) +
   annotate("text", x = 50, y = -3, label = expression(bold("Annual DOC Minimum \nduring Deep Mixing")), size = 5)
   
-doc44b <- lat44 %>% 
-  group_by(Cruise, Station, Hours) %>% 
-  mutate(ave_del.bioav.doc = mean(del.bioav.doc),
-         sd_del.bioav.doc = sd(del.bioav.doc)) %>% 
-  ungroup() %>% 
-  select(Season, Cruise, Station, Days, ave_del.bioav.doc, sd_del.bioav.doc, station_line) %>% distinct() %>% 
-  ggplot(aes(x = Days, y = ave_del.bioav.doc , group = interaction(Cruise, Station))) + 
+
+doc44a_b <- lat44 %>% 
+  mutate(norm.doc = ifelse(!Cruise == "AT39" & Days != 0 , NA, norm.doc),
+         sd_combined_doc = ifelse(!Cruise == "AT39" & Days != 0 , NA,  sd_combined_doc)) %>% 
+  ggplot(aes(x = Days, y = norm.doc, group = interaction(Cruise, Station, Bottle))) + 
   geom_hline(aes(yintercept = 0)) +
-  geom_errorbar(aes(ymin = ave_del.bioav.doc - sd_del.bioav.doc, ymax = ave_del.bioav.doc + sd_del.bioav.doc, color = factor(Season, levels = levels)), width = 1) +
+  geom_errorbar(aes(ymin = norm.doc - sd_combined_doc, ymax = norm.doc + sd_combined_doc, color = factor(Season, levels = levels)), width = 1) +
   geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
   geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
-  scale_color_manual(values = custom.colors) +
-  scale_fill_manual(values = custom.colors) +
   # scale_color_viridis_d(option = "viridis") +
   # scale_fill_viridis_d(option = "viridis") +
- labs(x = expression("Days"), y = expression(paste("∆DOC, µmol C L"^-1))) +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+ labs(x = expression("Days"), y = expression(paste("DOC, µmol C L"^-1))) +
   theme_classic2(base_size = 16) +
   theme(legend.title = element_blank()) +
-  guides(color = F, linetype = F, fill = F) +
-  annotate("text", x = 50, y = -1.5, label = expression(bold(paste("Annual DOC Minimum \nduring Deep Mixing & Persistent ∆DOC"))), size = 5)
+  xlim(0, 106) +
+  guides(color = F, linetype = F) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0,
+  alpha = .2) +
+  annotate("text", x = 50, y = -3, label = expression(bold("Annual DOC Minimum \nduring Deep Mixing")), size = 5)
 
+doc44a_c <- lat44 %>% 
+  mutate(norm.doc = ifelse(Cruise == "AT38" & Days != 0 , NA, norm.doc),
+         sd_combined_doc = ifelse(Cruise == "AT38" & Days != 0 , NA,  sd_combined_doc)) %>% 
+  ggplot(aes(x = Days, y = norm.doc, group = interaction(Cruise, Station, Bottle))) + 
+  geom_hline(aes(yintercept = 0)) +
+  geom_errorbar(aes(ymin = norm.doc - sd_combined_doc, ymax = norm.doc + sd_combined_doc, color = factor(Season, levels = levels)), width = 1) +
+  geom_point(aes(fill = factor(Season, levels = levels)), size = 3, shape = 21, alpha = 0.7 ) +
+  geom_line(aes(color = Season, linetype = station_line), size = 0.75, alpha = 0.7) +
+  # scale_color_viridis_d(option = "viridis") +
+  # scale_fill_viridis_d(option = "viridis") +
+  scale_color_manual(values = custom.colors) +
+  scale_fill_manual(values = custom.colors) +
+ labs(x = expression("Days"), y = expression(paste("DOC, µmol C L"^-1))) +
+  theme_classic2(base_size = 16) +
+  theme(legend.title = element_blank()) +
+  xlim(0, 106) +
+  guides(color = F, linetype = F) +
+  annotate("rect", xmin = -Inf, xmax = Inf, ymin = -Inf, ymax = 0,
+  alpha = .2) +
+  annotate("text", x = 50, y = -3, label = expression(bold("Annual DOC Minimum \nduring Deep Mixing")), size = 5)
 
 
 doc44a +
@@ -691,13 +716,6 @@ figure5 <- doc44a + theme(plot.tag = element_text(size = 14))
 ggsave("f5.jpg", figure5, device = "jpg",  width = 10, height = 7, path = "~/Desktop/Dissertation/MS_Bioavailability/Submission 2/figures/")
 ```
 
-```{r Remin plots initial, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
-doc44a_i
-```
-
-```{r Remin plots2, echo=FALSE, fig.height=7, fig.width=10, message=FALSE, warning=FALSE}
-doc44a
-```
 
 # Bioavailability & BGE Tables
 
@@ -1161,7 +1179,7 @@ library(officer)
 ```{r}
 
 
-p1a <- ba_curves + labs(y = expression(paste("Cells L"^-1))) +  theme_classic2(16)
+p1a <- ba_curves2 + labs(y = expression(paste("Log cells L"^-1))) +  theme_classic2(16)
 p1b <- doc_curves2 + theme_classic2(16) + theme(strip.background = element_blank(), strip.text.x = element_blank())
 p1 <- p1a / p1b +
   plot_layout(guides = "collect") 
@@ -1172,6 +1190,21 @@ p3a <- bcd.bar2 + theme_classic2(16)
 p3b <- bcd.npp.bar + theme_classic2(16) + theme(strip.background = element_blank(), strip.text = element_blank()) + theme(legend.position = "right", legend.title = element_blank()) 
 p3c <- ratio.bar + theme_classic2(16) + theme(strip.background = element_blank(), strip.text = element_blank()) 
 p3 <- p3a / p3b / p3c
+##
+p4 <- map + theme_classic2(16) 
+ 
+p5 <- doc44a_i + theme_classic2(16) + labs(fill = "")
+
+p6 <- doc44a + theme_classic2(16) + labs(fill = "")
+
+p7 <- doc44a_b + theme_classic2(16) + labs(fill = "")
+
+p8 <- doc44a_c + theme_classic2(16) + labs(fill = "")
+
+p9 <- (ba_curves2 + labs(y = expression(paste("Log cells L"^-1))) +  theme_classic2(16)) +
+  (doc_curves2 + theme_classic2(16) + theme(strip.background = element_blank(), strip.text.x = element_blank())) +
+  (bge_box + theme_classic2(18)) + plot_layout(nrow = 3, ncol = 1)
+  
 
 
 # initialize PowerPoint slide
@@ -1182,10 +1215,28 @@ officer::read_pptx() %>%
   officer::ph_with(p1, ph_location(width = 9, height = 5)) %>%
   
   officer::add_slide() %>%
-  officer::ph_with(p2, ph_location(width = 9, height = 4)) %>%
+  officer::ph_with(p2, ph_location(width = 7, height = 4)) %>%
   
   officer::add_slide() %>%
   officer::ph_with(p3, ph_location(width = 10, height = 8)) %>%
+  
+  officer::add_slide() %>%
+  officer::ph_with(p4, ph_location(width = 8, height = 7)) %>%
+  
+  officer::add_slide() %>%
+  officer::ph_with(p5, ph_location(width = 10, height = 8)) %>%
+  
+  officer::add_slide() %>%
+  officer::ph_with(p6, ph_location(width = 10, height = 8)) %>%
+  
+   officer::add_slide() %>%
+  officer::ph_with(p7, ph_location(width = 10, height = 8)) %>%
+  
+   officer::add_slide() %>%
+  officer::ph_with(p8, ph_location(width = 10, height = 8)) %>%
+  
+  officer::add_slide() %>%
+  officer::ph_with(p9, ph_location(width = 9, height = 9)) %>%
   
   # export slide 
   base::print(
